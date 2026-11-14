@@ -27,7 +27,7 @@ Data/bergama_pages_common.py, Data/section_lines.json, Data/bergama_access_herit
 """
 import os, re, glob, json, math, time
 
-NC_VERSION = "v4.5"   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
+NC_VERSION = "v5"   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
 ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 PAGE_W, PAGE_H = 420.0, 297.0
 NODE_MARGIN_M = 25.0                       # m of town round the node frame on the plan
@@ -248,220 +248,42 @@ def node_frame(B, corners):
     return B["Frame"]([back(u0, v0), back(u1, v0), back(u1, v1), back(u0, v1)])
 
 
-def plan_units(P, B, F, log):
-    """Page02's preparation on the node frame: L (layers in frame m), units (buildings with fabric), lc, O, D"""
-    if not os.path.isfile(B["CACHE_FILE"]):
-        raise RuntimeError(u"%s not found: press Basemap once first" % B["CACHE_FILE"])
-    with open(B["CACHE_FILE"], encoding="utf-8") as f:
-        D = json.load(f)
-    fl_of = {}
-    fls = (D.get("floors") or {}).get("buildings") or []
-    j_ = 0
-    for cl, Q in D["layers"].get("buildings", []):
-        if cl and len(Q) >= 3:
-            if j_ < len(fls):
-                fl_of[(round(Q[0][0], 2), round(Q[0][1], 2))] = fls[j_]
-            j_ += 1
-    D["layers"].update(B["osm_houses"](D, F, log))
-    D["layers"].update(B["sat_houses"](D, F, log))
-    L = B["localise"](D, F)
-    B["image_check"](L, F, log)
-    B["road_surface"](L, F, log)
-    B["town_streets"](L, F, log)
-    try:
-        B["build_river"](L, F, log)
-    except Exception as e:
-        L["river"] = []
-        log.append(u"FLAG river: not built on the node plan (%s: %s): the stream is its survey lines" % (
-            type(e).__name__, e))
-    O = P["read_osm"](B, log)
+def load_mb(log):
+    """v5: the library part of the newest MapBase script (mb_load, mb_draw, mb_legend): one base map for every map
+    (Aras 14 Nov 12:17-12:18 UTC: "create one map from that (outlines and etc.) and every map should use that")"""
+    pth = _newest("bergama_mapbase_v*.py")
+    with open(pth, encoding="utf-8") as f:
+        code = f.read()
+    end = "# ================================================================ main"
+    ns = {"__name__": "bergama_mapbase_lib"}
+    exec(compile(code[:code.index(end)], pth, "exec"), ns)
+    ns["BERGAMA_ROOT"] = ROOT
+    log.append(u"base map: %s (%s %s)" % (pth, ns.get("GH_LABEL"), ns.get("VERSION")))
+    return ns
+
+
+def mb_plan(MB, C, F, T, k, lim, B, P, log):
+    """the plan's context from MapBase (its default look, no grain: this writer has none; water hatched) and, for the
+    land-use count, the buildings, river and streets in frame m"""
+    items = []
+    cnt = MB["mb_draw"](C, items, T, k, lim, None, style={"grain": False})
+    riv = [R for R in (B["clip_ring"]([T(p) for p in R_], lim) for R_ in C["polys"].get("river", [])) if len(R) >= 3]
+    items += hatch(riv, 1.0, P["WATER_LINE"], 0.08, "water_hatch")
     inF = lambda q: -5.0 <= q[0] <= F.w + 5.0 and -5.0 <= q[1] <= F.h + 5.0
     units = []
-    for key in ("buildings", "heritage", "osm_houses", "sat_houses"):
-        for cl, Q, a, b in L.get(key, []):
-            if not (cl and len(Q) >= 3) or not any(inF(q) for q in Q):
-                continue
-            A = abs(P["area"](Q))
-            if A < 2.0:
-                continue
-            fl = fl_of.get(P["_survey_key"](F, Q[0]), 0) if key == "buildings" else 0
-            units.append({"P": Q, "A": A, "fl": fl, "her": key == "heritage", "src": key})
-    # v4.5 (Aras 12:16 UTC "include every detail ... data is missing please fill in that"): Page02's gap fills
-    pip, area = P["pip"], P["area"]
-    gU = {}
-
-    def index(i_):
-        V = units[i_]["P"]
-        for i in range(int(min(q[0] for q in V) // 25.0), int(max(q[0] for q in V) // 25.0) + 1):
-            for j in range(int(min(q[1] for q in V) // 25.0), int(max(q[1] for q in V) // 25.0) + 1):
-                gU.setdefault((i, j), []).append(i_)
-
-    def owner(q):
-        for i_ in gU.get((int(q[0] // 25.0), int(q[1] // 25.0)), ()):
-            if pip(q[0], q[1], units[i_]["P"]):
-                return units[i_]
-        return None
-    for i_ in range(len(units)):
-        index(i_)
-    cov = set()                                           # 50 m cells with survey line work (and the 8 round)
-    c_ = P["BEYOND_CELL"]
-    for key in ("buildings", "heritage", "walls", "road_edges", "kerbs", "sheds"):
-        for cl, Q, a, b in L.get(key, []):
-            for q in Q:
-                cov.add((int(q[0] // c_), int(q[1] // c_)))
-    free = lambda q: not any((int(q[0] // c_) + di, int(q[1] // c_) + dj) in cov for di in (-1, 0, 1)
-                             for dj in (-1, 0, 1))
-    n_beyond = n_fill = 0
-    for Pp, tg in O["bld"]:
-        Q = [F.local(p) for p in Pp]
-        if not all(inF(q) for q in Q):
-            continue
-        A = abs(area(Q))
-        if A < 2.0:
-            continue
-        if all(free(q) for q in Q):
-            src_ = "osm_beyond"
-        else:                                             # an OSM footprint no drawn building overlaps (osm_fill)
-            cq = (sum(q[0] for q in Q) / len(Q), sum(q[1] for q in Q) / len(Q))
-            if owner(cq) is not None or any(owner(q) is not None for q in Q):
-                continue
-            bb = (min(q[0] for q in Q), min(q[1] for q in Q), max(q[0] for q in Q), max(q[1] for q in Q))
-            near = set(i_ for i in range(int(bb[0] // 25.0), int(bb[2] // 25.0) + 1)
-                       for j in range(int(bb[1] // 25.0), int(bb[3] // 25.0) + 1) for i_ in gU.get((i, j), ()))
-            if any(bb[0] <= v[0] <= bb[2] and bb[1] <= v[1] <= bb[3] and pip(v[0], v[1], Q)
-                   for i_ in near for v in units[i_]["P"]):
-                continue
-            src_ = "osm_fill"
-        try:
-            lv = int(float(tg.get("building:levels") or 0))
-        except ValueError:
-            lv = 0
-        units.append({"P": Q, "A": A, "fl": lv, "her": bool(tg.get("historic")), "src": src_, "tags": tg})
-        index(len(units) - 1)
-        if src_ == "osm_beyond":
-            n_beyond += 1
-        else:
-            n_fill += 1
-    log.append(u"gaps: %d OpenStreetMap buildings where the survey has no line work, %d where no drawn building "
-               u"overlaps them" % (n_beyond, n_fill))
-    for t, x, y, a_, kind in D.get("labels") or []:
-        if kind != "street":
-            u = owner(F.local((x, y)))
-            if u is not None and not u.get("name"):
-                u["name"] = t
-    for x, y, tg in O["nodes"]:
-        u = owner(F.local((x, y)))
-        if u is not None and not u.get("tags"):
-            u["tags"] = tg
-    P["fabric"](units, log)
-    n_com = 0                                             # Page02 v2.3: ground-floor shops / offices / crafts (OSM)
-    for x, y in O.get("shops", []):
-        q = F.local((x, y))
-        if not inF(q):
-            continue
-        u = owner(q)
-        if u is None:
-            cn = [units[i_] for i in (-1, 0, 1) for j in (-1, 0, 1)
-                  for i_ in gU.get((int(q[0] // 25.0) + i, int(q[1] // 25.0) + j), ())]
-            dd = [(min(P["seg_d"](q[0], q[1], c["P"][m - 1], c["P"][m]) for m in range(len(c["P"]))), id(c), c)
-                  for c in cn]
-            dd = [d for d in dd if d[0] <= P.get("COM_NEAR", 5.0)]
-            u = min(dd)[2] if dd else None
-        if u is not None and not u.get("com"):
-            u["com"] = True
-            n_com += 1
-    log.append(u"commercial ground floors (OSM shop / office / craft): %d buildings" % n_com)
-    plan_units.free = free
-    lc = {}
-    src = os.path.join(ROOT, P["LC_FILE"])
-    if os.path.isfile(src):
-        with open(src, encoding="utf-8") as f:
-            J = json.load(f)
-        for k_, rings in (J.get("rings") or {}).items():
-            lc[k_] = [R for R in ([F.local(p) for p in R_] for R_ in rings) if len(R) >= 3]
-    log.append(u"node plan: %d buildings (%s)" % (len(units), u", ".join(
-        u"%s %d" % (s_, sum(1 for u in units if u["src"] == s_)) for s_ in ("buildings", "heritage", "osm_houses",
-                                                                            "sat_houses", "osm_beyond", "osm_fill"))))
-    return D, L, units, lc, O
-
-
-def plan_items(P, B, F, L, units, lc, den, X0, Y0, log):
-    """Page02's drawing on the node frame (water hatched: this writer has no grain)"""
-    items = []
-    k = 1000.0 / den
-    bx = (0.0, 0.0, F.w, F.h)
-    pg = lambda q: (X0 + q[0] * k, Y0 + q[1] * k)
-
-    def poly(rings, fill, layer, eo=True):
-        rr = [R for R in (B["clip_ring"](R_, bx) for R_ in rings) if len(R) >= 3]
-        if rr:
-            items.append(R_([[pg(q) for q in R] for R in rr], fill, None, 0.0, layer, eo))
-        return rr
-
-    def line(Q, col, lw, layer, dash=None):
-        for run in B["clip_line"](Q, bx):
-            if len(run) >= 2:
-                items.append(L_([pg(q) for q in run], col, lw, layer, dash))
-    items.append(R_([box(X0, Y0, X0 + F.w * k, Y0 + F.h * k)], P["PAPER"], None, 0.0, "map_paper"))
-    for k_ in P["LC_ORDER"]:
-        for R in lc.get(k_, []):
-            poly([R], P["mixh"](P["LC"][k_][0], P["PAPER"], P["LC_LIGHT"]), "landcover_" + k_)
-    poly([Q for key in ("road_net", "town_net") for cl, Q, a, b in L.get(key, [])], P["STREET_C"], "streets")
-    hair = 0.1
-    for key in ("road_edges", "kerbs", "town_edges"):
-        for cl, Q, a, b in L.get(key, []):
-            line(Q, P["STREET_EDGE"], hair, "street_edges")
-    free = getattr(plan_units, "free", lambda q: False)
-    O = plan_items.O
-    for Pp, tg in O["ways"]:                              # v4.5: OSM streets, paths, streams, city walls beyond the survey
-        hw, ww = tg.get("highway"), tg.get("waterway")
-        wall = tg.get("historic") == "citywalls" or tg.get("barrier") == "city_wall"
-        if hw and (tg.get("area") == "yes" or (hw not in P["BEYOND_W"] and hw not in P["PATH_TAGS"])):
-            continue
-        if not (hw or ww in ("river", "stream", "canal") or wall):
-            continue
-        run = []
-        for q in [F.local(p) for p in Pp] + [None]:
-            if q is not None and free(q):
-                run.append(q)
-                continue
-            if len(run) >= 2:
-                if wall:
-                    line(run, P["HER_WALL"], 0.25, "heritage_walls")
-                elif ww:
-                    line(run, P["WATER_LINE"], 0.22, "water")
-                elif hw in P["BEYOND_W"]:
-                    line(run, P["STREET_EDGE"], P["BEYOND_W"][hw] * k + 0.2, "streets_osm")
-                    line(run, P["STREET_C"], P["BEYOND_W"][hw] * k, "streets_osm")
-                else:
-                    line(run, P["STREET_EDGE"], hair, "paths_osm")
-            run = []
-    riv = poly([Q for cl, Q, a, b in L.get("river", [])], P["WATER_C"], "water")
-    items += hatch([[pg(q) for q in R] for R in riv], 1.0, P["WATER_LINE"], 0.08, "water_hatch")
-    for key, w_ in (("stream_banks", 0.2), ("ponds", 0.12)):
-        for cl, Q, a, b in L.get(key, []):
-            line(Q + ([Q[0]] if cl else []), P["WATER_LINE"], w_, "water")
-    for cl, Q, a, b in L.get("walls", []):
-        line(Q, P["WALL_C"], hair, "walls")
-    for cl, Q, a, b in L.get("heritage_walls", []):
-        line(Q, P["HER_WALL"], 0.25, "heritage_walls")
-    FC = P.get("FAB_COM") or P["FAB"]
-    for u in units:                                       # outlines twice the pen first, fills over them
-        rr = B["clip_ring"](u["P"], bx)
-        if len(rr) >= 3:
-            col = (FC if u.get("com") else P["FAB"])[u["fab"]]
-            items.append(L_([pg(q) for q in rr + [rr[0]]], P["mixh"](col, INK, P["P02_EDGE_DARK"]),
-                            2 * hair, "buildings_outline"))
-    for f_ in P["FAB_ORDER"]:
-        for cm in (False, True):
-            rr = [R for R in (B["clip_ring"](u["P"], bx) for u in units if u["fab"] == f_ and bool(u.get("com")) == cm)
-                  if len(R) >= 3]
-            if rr:
-                items.append(R_([[pg(q) for q in R] for R in rr], (FC if cm else P["FAB"])[f_], None, 0.0,
-                                "buildings_" + f_ + ("_shops" if cm else "")))
-    for cl, Q, a, b in L.get("bridges", []):
-        line(Q, INK, 0.2, "bridges")
-    return items
+    for R, fab_, com, src, nm in C["bld"]:
+        Q = [F.local(p) for p in R]
+        if len(Q) >= 3 and any(inF(q) for q in Q):
+            units.append({"P": Q, "fab": fab_, "com": com, "src": src, "A": abs(P["area"](Q)),
+                          "cx": sum(q[0] for q in Q) / len(Q), "cy": sum(q[1] for q in Q) / len(Q)})
+    loc = lambda Rs: [(True, Q, 0.0, 0.0) for Q in ([F.local(p) for p in R] for R in Rs) if len(Q) >= 3]
+    L = {"river": loc(C["polys"].get("river", [])), "road_net": loc(C["polys"].get("streets", []))}
+    lc = dict((k_, [Q for cl, Q, a, b in loc(v)]) for k_, v in (C.get("lc") or {}).items())
+    log.append(u"plan context (MapBase): %d buildings in the frame (%s); drawn: %s" % (
+        len(units), u", ".join(u"%s %d" % (s_, n_) for s_, n_ in sorted(
+            dict((u["src"], sum(1 for v in units if v["src"] == u["src"])) for u in units).items())),
+        u", ".join(u"%s %d" % kv for kv in sorted(cnt.items()))))
+    return items, cnt, units, L, lc
 
 
 def hatch(rings, gap, col, lw, layer):
@@ -506,9 +328,14 @@ def node_page(cfg, log):
     Y0 = PLAN_BOX[3] - F.h * k
     log.append(u"plan: %s frame %.0f x %.0f m (+%.0f m round it), 1:%d, %.0f x %.0f mm" % (
         node, F.w - 2 * NODE_MARGIN_M, F.h - 2 * NODE_MARGIN_M, NODE_MARGIN_M, den, F.w * k, F.h * k))
-    BD, L, units, lc, O = plan_units(P, B, F, log)
-    plan_items.O = O
-    items = plan_items(P, B, F, L, units, lc, den, X0, Y0, log)
+    MB = load_mb(log)
+    MC = MB["mb_load"](log)
+    if MC is None:
+        raise RuntimeError(u"MapBase cache missing: press MapBase once (after Basemap), then this node")
+    items = [R_([box(X0, Y0, X0 + F.w * k, Y0 + F.h * k)], P["PAPER"], None, 0.0, "map_paper")]
+    its_, mb_cnt, units, L, lc = mb_plan(MB, MC, F, lambda xy: (X0 + F.local(xy)[0] * k, Y0 + F.local(xy)[1] * k), k,
+                                         (X0, Y0, X0 + F.w * k, Y0 + F.h * k), B, P, log)
+    items += its_
     sec_ids = set()
     pgS = lambda xy: (X0 + F.local(xy)[0] * k, Y0 + F.local(xy)[1] * k)
     inside = lambda q, m=0.0: X0 + m <= q[0] <= X0 + F.w * k - m and Y0 + m <= q[1] <= Y0 + F.h * k - m
@@ -728,8 +555,9 @@ def node_page(cfg, log):
              ("line", SQUARE_C, u"streamside spine K4 - K5 along the Selinos (proposed path)"),
              ("line", RED, u"stream walk of the heritage loop, Tabak Köprüsü - Ulucami Önü"),
              ("disc", SQUARE_C, u"V1 viewpoint of the perspective (place assumed)")]
+    rows1 += [("hdr", None, u"EXISTING: GROUND AND GREEN (MapBase)")] + MB["mb_legend"](MC, mb_cnt, {"grain": False})
     cw = (PLAN_BOX[2] - PLAN_BOX[0]) / 2.0
-    yk1 = P["draw_rows"](B, items, rows1, PLAN_BOX[0], ky, cw - 3.0, step=3.4, ts=2.3)
+    yk1 = P["draw_rows"](B, items, rows1, PLAN_BOX[0], ky, cw - 3.0, step=3.0, ts=2.1)
     yk2 = P["draw_rows"](B, items, rows2, PLAN_BOX[0] + cw, ky, cw - 3.0, step=3.4, ts=2.3)
 
     # ---- land use of the node frame (Page02's count, 1 m cells, on the node frame's own box)
@@ -749,9 +577,10 @@ def node_page(cfg, log):
         xx += w_
     rows = [("box", col, u"%s %s" % (lab, (u"%.0f%%" % (100.0 * a_ / tot)) if 100.0 * a_ / tot >= 0.5 else u"< 1%"))
             for lab, col, a_ in keep]
-    half = (len(rows) + 1) // 2
-    P["draw_rows"](B, items, rows[:half], PLAN_BOX[0], bar_y - 5.0, bw / 2.0 - 3.0, step=3.2, ts=2.2)
-    P["draw_rows"](B, items, rows[half:], PLAN_BOX[0] + bw / 2.0, bar_y - 5.0, bw / 2.0 - 3.0, step=3.2, ts=2.2)
+    third = (len(rows) + 2) // 3                          # v5: three columns (the key above grew)
+    for ci in range(3):
+        P["draw_rows"](B, items, rows[ci * third:(ci + 1) * third], PLAN_BOX[0] + ci * bw / 3.0, bar_y - 5.0,
+                       bw / 3.0 - 3.0, step=3.0, ts=2.1)
 
     # ---- water depth over the bed by season, both cuts (the Sections code's levels)
     dx0, dy1 = 214.0, 94.0
