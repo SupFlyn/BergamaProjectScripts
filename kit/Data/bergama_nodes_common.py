@@ -17,7 +17,7 @@ Reads the newest scripts/bergama_basemap_v*, bergama_p02_what_is_there_v*, berga
 """
 import os, re, glob, json, math, time
 
-NC_VERSION = "v6.4"   # v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
+NC_VERSION = "v6.5"   # v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
 ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 PAGE_W, PAGE_H = 420.0, 297.0
 NODE_MARGIN_M = 25.0                       # m of town round the node frame on the plan
@@ -26,6 +26,7 @@ DEN_STEPS = (1000, 1250, 1500, 2000, 2500, 3000, 4000, 5000)
 SEC_DENS = (1000, 1500, 2000, 2500, 3000)  # v6.2: Sections v1.6.6 cache scales; the first that fits its room
 SEC_ROOMS = ((214.0, 186.0, 406.0, 266.0), (214.0, 100.0, 406.0, 180.0))   # mm: N#-A, N#-B
 INK, GREY, RED = "2C2219", "6E675E", "8B2D2D"
+LBL_LAYERS = ("bus_stops", "heritage_loop", "city_square", "section_names")   # v6.5: plan labels kept apart
 SQUARE_C = "C07A2E"                        # the city-square ring (a contrast to the red loop and blue lines; ours)
 CUT_C = "2C2219"
 
@@ -537,6 +538,24 @@ def node_page(cfg, log):
             c0 = Cn.xy(Cn.window[0])
         vp = (c0, Cn.xy(Cn.s_th))
         qa, qb = pgS(vp[0]), pgS(vp[1])
+        # v6.5 (run 5: V1 sat on the Kızıl Avlu label in N4 and on the square's dotted link in N2): V1 moves to the
+        # nearby spot farthest from the plan's labels and markers (inside the square when there is one)
+        occ = []
+        for it in items:
+            if id(it) in sec_ids:
+                continue
+            if it[0] == "text" and it[8] in LBL_LAYERS:
+                w_ = B["text_w"](it[1], it[4], it[6])
+                xa = it[2] - (w_ / 2.0 if it[7] == "C" else (w_ if it[7] == "R" else 0.0))
+                occ += [(xa + w_ * i / 8.0, it[3] + it[4] * 0.35) for i in range(9)]
+            elif it[0] == "line" and it[5] in ("city_square", "bus_stops"):
+                occ += it[1]
+        rr = [0.0, 4.0, 8.0] if not sq else [0.0, 0.3 * r_m * k, 0.6 * r_m * k]
+        cand = [(qa[0] + r * math.cos(a_ * math.pi / 8.0), qa[1] + r * math.sin(a_ * math.pi / 8.0), r)
+                for r in rr for a_ in range(16 if r else 1)]
+        cand = [c for c in cand if inside(c, 5.0)] or [(qa[0], qa[1], 0.0)]
+        best = max(cand, key=lambda c: min([6.0] + [G["pc_dist"](c[:2], o) for o in occ]) - 0.05 * c[2])
+        qa = best[:2]
         ang = math.atan2(qb[1] - qa[1], qb[0] - qa[0])
         for da in (-0.35, 0.35):
             items.append(L_([qa, (qa[0] + 9.0 * math.cos(ang + da), qa[1] + 9.0 * math.sin(ang + da))], SQUARE_C, 0.35,
@@ -545,6 +564,16 @@ def node_page(cfg, log):
         items.append(T_(u"V1", qa[0], qa[1] - 0.8, 2.2, "FFFFFF", True, "C", "viewpoints"))
         log.append(u"V1 viewpoint (assumed): %s, looking to the bed of %s" % (
             u"the city square" if sq else u"the bank end of %s" % Cn.name, Cn.name))
+    # v6.5 (run 5: stop and loop labels read poorly over buildings and the spine): a light backing behind plan labels
+    lab = []
+    for it in items:
+        if id(it) not in sec_ids and it[0] == "text" and it[8] in LBL_LAYERS and it[5] != "FFFFFF":
+            w_ = B["text_w"](it[1], it[4], it[6])
+            xa = it[2] - (w_ / 2.0 if it[7] == "C" else (w_ if it[7] == "R" else 0.0))
+            lab.append(("poly", [box(xa - 0.5, it[3] - 0.35 * it[4], xa + w_ + 0.5, it[3] + 0.85 * it[4])], "FFFFFF",
+                        None, 0.0, None, it[8], 1, None, 0.75))
+        lab.append(it)
+    items = lab
     # v4.3 (Aras 12:14 UTC "drawings do flows outside of it"): every plan item cut to the plan frame
     items = clip_plan(B, [it for it in items if id(it) not in sec_ids], (X0, Y0, X0 + F.w * k, Y0 + F.h * k), log) + \
         [it for it in items if id(it) in sec_ids]
