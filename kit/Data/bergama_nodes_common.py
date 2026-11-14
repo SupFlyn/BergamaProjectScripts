@@ -17,7 +17,7 @@ Reads the newest scripts/bergama_basemap_v*, bergama_p02_what_is_there_v*, berga
 """
 import os, re, glob, json, math, time
 
-NC_VERSION = "v8.3"   # v8.3: B cut subtitle "along the bank", N3 diagram label clear of the dots; v8.2: v8.2: 4-corner picture rectangles of the masterplan left out (no solid green blocks), the river filled as water; v8.1: v8.1: masterplan sheet / texture frames (> 0.1 km2) left out, legend columns balanced, intro without the old levels text; v8: plan = his masterplan drawing; why-here story + one concept diagram per node; water bars and meets line gone; v7.5: v7.5: section_lines v2 (B along the bank: looks at the stream, no water bars); v7.4: v7.4: cut marks = two end arrows, no line between (pages_common v3.14); v7.3: v7.3: scale + north ignore the node frame line; v7.2: v7.2: the proposal from his masterplan SVG (MasterplanBase cache); v7.1: v7.1: R01 cut arrows (pc_cut_mark), no city-square ring, land-use columns >= 45 mm; v7: v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
+NC_VERSION = "v8.4"   # v8.4: scale + north above the plan (off his drawing), intro wording; v8.3: v8.3: B cut subtitle "along the bank", N3 diagram label clear of the dots; v8.2: v8.2: 4-corner picture rectangles of the masterplan left out (no solid green blocks), the river filled as water; v8.1: v8.1: masterplan sheet / texture frames (> 0.1 km2) left out, legend columns balanced, intro without the old levels text; v8: plan = his masterplan drawing; why-here story + one concept diagram per node; water bars and meets line gone; v7.5: v7.5: section_lines v2 (B along the bank: looks at the stream, no water bars); v7.4: v7.4: cut marks = two end arrows, no line between (pages_common v3.14); v7.3: v7.3: scale + north ignore the node frame line; v7.2: v7.2: the proposal from his masterplan SVG (MasterplanBase cache); v7.1: v7.1: R01 cut arrows (pc_cut_mark), no city-square ring, land-use columns >= 45 mm; v7: v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
 ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 PAGE_W, PAGE_H = 420.0, 297.0
 NODE_MARGIN_M = 25.0                       # m of town round the node frame on the plan
@@ -822,19 +822,18 @@ def node_page(cfg, log):
                     0.25, "map_frame"))
     # v6.6 (run 6, N3: hub tile T on the scale bar): scale and north go to the plan corner with the fewest marks
     sn = scale_north(F, den, X0 + F.w * k, Y0)
-    occ = occ_points(B, items, sec_ids, OCC_LAYERS[1:])   # v7.3 (run 9: every corner FLAG): the node frame line may run under it
     xs = [p_[0] for it in sn if it[0] == "poly" for r in it[1] for p_ in r] + [it[2] for it in sn if it[0] == "text"]
     ys = [p_[1] for it in sn if it[0] == "poly" for r in it[1] for p_ in r] + [it[3] for it in sn if it[0] == "text"]
     sx0, sx1, sy0, sy1 = min(xs) - 1.0, max(xs) + 5.0, min(ys) - 1.0, max(ys) + 3.0
-    best = None
-    for dx in (0.0, X0 + 3.0 - sx0):
-        for dy in (0.0, Y0 + F.h * k - 3.0 - sy1):
-            n = sum(1 for o in occ if sx0 + dx <= o[0] <= sx1 + dx and sy0 + dy <= o[1] <= sy1 + dy)
-            if best is None or n < best[0]:
-                best = (n, dx, dy)
-    items += scale_items(sn, 1.0, 0.0, 0.0, best[1], best[2])
-    if best[0]:
-        log.append(u"FLAG scale + north: every plan corner has marks under it (%d points in the best)" % best[0])
+    # v8.4 (run 3, N3 + N6: the transparent marks sat on his drawing and across the node frame): scale and north go
+    # OUTSIDE the plan, above its top right corner, shrunk only if the slide title would run into them
+    ytop = Y0 + F.h * k
+    tw = 14.0 + B["text_w"](u"%s · %s" % (node, nd["name"]), 7.5, True) + 3.0
+    lim_ = 276.0 if sx0 < tw else 286.0
+    f_sn = min(1.0, (lim_ - ytop - 1.0) / (sy1 - sy0))
+    items += scale_items(sn, f_sn, sx1, sy0, 0.0, ytop + 1.0 - sy0)
+    if f_sn < 0.6:
+        log.append(u"FLAG scale + north: only %.0f %% size fits above the plan" % (100.0 * f_sn))
 
     # ---- key under the plan
     ky = Y0 - 5.0
@@ -929,7 +928,7 @@ def node_page(cfg, log):
     # ---- title band and credit
     items.append(T_(u"C  NODES IN DETAIL · SLIDE %d" % cfg["SLIDE"], 14.0, 288.0, 2.6, INK, True))
     items.append(T_(u"%s · %s" % (node, nd["name"]), 14.0, 278.5, 7.5, INK, True))
-    intro = u"%s: why we chose this node, the node in plan (his masterplan over the town today) and its two cuts, " \
+    intro = u"%s: why we chose this node, the node in plan (the masterplan over the town today) and its two cuts, " \
             u"A across the Selinos and B along the bank." % cfg["INTRO"].split(u":")[0]   # v8.1: no old levels text
     para(B, items, intro, 214.0, 288.0, 2.6, 192.0, INK, False, 3.6, "title")
     # v6.7 (Aras 14 Nov 15:23-15:24 UTC "dont give sources in the drawings at all", "no sources for nothing"):
