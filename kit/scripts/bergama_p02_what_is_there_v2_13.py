@@ -99,7 +99,7 @@ Writes ~/Downloads/Bergama/output/bergama_p02/Page02_What_is_there.pdf, Page02_W
 import os, time, json, math, re, glob, ast
 
 # ---- SETTINGS ----
-VERSION = "v2.11"
+VERSION = "v2.13"  # v2.13 (overnight check, PDF at 300 dpi): the corner scale reads "1:25,000" like its caption (was "1/25000"); v2.12  # v2.12 (Aras 21:31 UTC "all the diagrams are awful"): the land-use ring is redrawn to library/diagram_style/DIAGRAM_STYLE.md with pages_common pc_dg_kit: one long strip, one claim title, greys + water only, at most 4 bracket labels
 SLIDE = 1                          # output/presentation/1.pdf (Aras 14 Nov 11:22 UTC; slide 1 = analysis)
 GH_LABEL = "Page02"
 OUT_FOLDER = "bergama_p02"
@@ -703,35 +703,54 @@ def main():
         if not compact and y_end < 33.0:                  # v2.6: the credit starts at 30 mm
             log.append(u"FLAG key column %d runs into the credit (ends at %.1f mm, the credit at 30 mm)" % (ci + 1, y_end))
     log.append(CREDIT)                                    # v2.9: sources in the log only, never on the page
-    # ---- right column: the land-use ring, the bridges, the clashes
+    # ---- right column: the land-use strip (v2.12, DIAGRAM_STYLE.md), the bridges, the clashes
+    _pk = {"__name__": "bergama_pages_common"}
+    _pkp = os.path.join(BERGAMA_ROOT, "Data", "bergama_pages_common.py")
+    with open(_pkp, encoding="utf-8") as _f:
+        exec(compile(_f.read(), _pkp, "exec"), _pk)
+    fab_words = set(FAB_WORDS[f_] for f_ in FAB_ORDER)
+    grp = [(u"BUILT AND STREETS", sum(a_ for l_, _, a_ in lu if l_ in fab_words or l_ == u"Streets")),
+           (u"THE STREAM", sum(a_ for l_, _, a_ in lu if l_ == u"The stream")),
+           (u"WOODS, GRASS, FIELDS", sum(a_ for l_, _, a_ in lu if l_ not in fab_words and
+                                         l_ not in (u"Streets", u"The stream", u"Other open ground"))),
+           (u"OTHER OPEN GROUND", sum(a_ for l_, _, a_ in lu if l_ == u"Other open ground"))]
+    big = max(grp, key=lambda g_: g_[1])
+    log.append(u"land-use strip (v2.12): " + u", ".join(u"%s %.2f ha (%.1f%%)" % (n_, a_ / 1e4, 100.0 * a_ / lu_tot)
+                                                       for n_, a_ in grp))
+    SW, SH = CWID, 26.0                                   # the strip box (page mm): title, strip, two label rows
     cy0 = y_end - 8.0 if compact else 255.0
-    items.append(("text", u"LAND USE AND GROUND COVER", CX, cy0, 3.2, INK, True, "L", "ring", None, None))
-    items.append(("text", u"site frame (site_alan) · %% of its %.1f ha, counted on %.0f m cells" % (
-        lu_tot / 1e4, AREA_CELL), CX, cy0 - 4.5, 2.4, "6E675E", False, "L", "ring", None, None))
-    keep = [r_ for r_ in lu if r_[2] >= 0.005 * lu_tot]
-    small = sum(r_[2] for r_ in lu if r_[2] < 0.005 * lu_tot)
-    if small > 0:
-        keep.append((u"Others, each under 0.5%", "C9C5BC", small))
-    R1 = 24.0 if compact else 30.0
-    ccx, ccy, R0 = CX + R1 + 2.0, cy0 - 10.0 - R1, R1 * 0.6
-    a0 = math.pi / 2.0
-    for lab, col, a_ in keep:
-        da = 2.0 * math.pi * a_ / lu_tot
-        n_ = max(2, int(da / 0.05))
-        outer = [(ccx + R1 * math.cos(a0 - da * t / n_), ccy + R1 * math.sin(a0 - da * t / n_)) for t in range(n_ + 1)]
-        inner = [(ccx + R0 * math.cos(a0 - da * t / n_), ccy + R0 * math.sin(a0 - da * t / n_)) for t in range(n_, -1, -1)]
-        items.append(("poly", [outer + inner], col, "FFFFFF", 0.2, None, "ring", 1, None, None))
-        a0 -= da
-    items.append(("text", u"%.1f" % (lu_tot / 1e4), ccx, ccy - 0.5, 6.0, INK, True, "C", "ring", None, None))
-    items.append(("text", u"ha", ccx, ccy - 5.5, 2.8, "6E675E", False, "C", "ring", None, None))
-    rk = [("box", col, u"%s %s" % (lab, (u"%.0f%%" % (100.0 * a_ / lu_tot)) if 100.0 * a_ / lu_tot >= 0.5 else u"< 1%"))
-          for lab, col, a_ in keep]
-    rk_end = draw_rows(B, items, rk, CX + 2 * R1 + 10.0, cy0 - 10.0, CWID - 2 * R1 - 10.0, step=4.2, ts=2.6)
-    if compact and min(rk_end, ccy - R1) < 8.0:
-        log.append(u"FLAG compact page: the ring and its key run below the page (%.1f mm)" % min(rk_end, ccy - R1))
+    ytop = cy0
+    items.append(("text", u"%s IS THE LARGEST SHARE OF THE SITE: %.0f%%" % (big[0], 100.0 * big[1] / lu_tot),
+                  CX, ytop, 2.8, INK, True, "L", "ring", None, None))
+    DG = _pk["pc_dg_kit"](items, CX, ytop - SH, SW, SH, layer="ring", lw=SW, lh=SH)
+    sy0, sy1 = 13.0, 20.0                                 # strip bottom / top in the kit box
+    fills = [DG["C"]["her"], DG["C"]["water"], DG["C"]["ground"], DG["C"]["paper"]]
+    x, segs = 0.0, []
+    for (n_, a_), col in zip(grp, fills):
+        w_ = SW * a_ / lu_tot
+        if w_ > 0:
+            DG["poly"]([(x, sy0), (x + w_, sy0), (x + w_, sy1), (x, sy1)], col)
+            segs.append((n_, a_, x, x + w_))
+        x += w_
+    DG["line"]([(0.0, sy0), (SW, sy0), (SW, sy1), (0.0, sy1), (0.0, sy0)], DG["C"]["ink"], DG["W"]["thin"])
+    DG["line"]([(0.0, sy1), (SW, sy1)], DG["C"]["ink"], DG["W"]["cut"])   # the one heavy line
+    rows_x = [[], []]
+    for i_, (n_, a_, xa, xb) in enumerate(segs):
+        r_ = i_ % 2
+        ty = sy0 - 1.2 - 5.0 * r_
+        nm = u"%s %.0f%%" % (n_, 100.0 * a_ / lu_tot)
+        DG["bracket"](xa + 0.4, xb - 0.4, ty, nm)
+        tw = B["text_w"](nm, 1.5, True)
+        cx_ = (xa + xb) / 2.0
+        lo, hi = cx_ - tw / 2.0, cx_ + tw / 2.0
+        if lo < 0.0 or hi > SW + 10.0 or any(lo < h_ + 1.0 and hi > l_ - 1.0 for l_, h_ in rows_x[r_]):
+            log.append(u"FLAG land-use strip: label %s collides or leaves the column" % nm)
+        rows_x[r_].append((lo, hi))
+    rk_end = ytop - SH
+    if compact and rk_end < 8.0:
+        log.append(u"FLAG compact page: the land-use strip runs below the page (%.1f mm)" % rk_end)
     if not compact:
-        by = cy0 - 10.0 - 4.2 * len(rk) - 8.0
-        by = min(by, ccy - R1 - 10.0)
+        by = rk_end - 8.0
         items.append(("text", u"BRIDGES · upstream to downstream", CX, by, 3.2, INK, True, "L", "lists", None, None))
         by -= 6.0
         for i_, (n_, nm, x, y) in enumerate(BRIDGES):
@@ -749,6 +768,8 @@ def main():
     os.makedirs(OUT_DIR, exist_ok=True)
     name = u"Page02_What_is_there"
     items = [t[:1] + (MBL["mb_clean"](t[1]),) + t[2:] if t[0] == "text" else t for t in items]   # v2.9: no sources
+    items = [t[:1] + (re.sub(r"^1/(\d+)$", lambda m_: u"1:{:,}".format(int(m_.group(1))), t[1]),) + t[2:]
+             if t[0] == "text" else t for t in items]     # v2.13: one scale notation (1:25,000) on the whole page
     p = B["write_pdf"](os.path.join(OUT_DIR, name + u".pdf"), PW, PH, items, u"Page 02, " + TITLE, clips)
     log.append(B["out_line"](p, PW, PH, den, items, u""))
     try:                                                  # output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)

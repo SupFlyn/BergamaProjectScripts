@@ -25,7 +25,7 @@ Items are the Basemap writer's tuples (page mm, y up):
 """
 import os, re, json, math, time, glob
 
-PC_VERSION = "v3.19"  # v3.19: v3.18 undone (the writer keeps a line's clip at item[4]: those lines were really unclipped); v3.17: SiteMap ring + b (survey box), pc_site_den, pc_north_deg, pc_sheet cols + span (legend columns beside a site_alan strip); v3.16: pc_loop names=True (stop names on the map), every stop outside the frame gets an edge arrow, the stream walk in either loop order (loop numbered from Asklepion, Aras 16:26); v3.15: SiteMap / pc_site_map (the map frame = site_alan turned flat, Aras 16:17 UTC "KEEP EVERY DRAWING STRICTLY IN SITE_ALAN"), pc_loop edge arrows to stops outside it, pc_north_items; v3.14: pc_cut_mark = two end arrows, no line between (Aras 16:05 UTC); v3.13: v3.13: pc_mp_data (MasterplanBase: the masterplan SVG cached in survey m); v3.12: pc_cut_mark, the R01 cut symbol (two arrows, Aras 15:37 UTC); v3.11: pc_loop (the heritage loop, one code for the heritage and the transit map; Aras 15:31) and pc_station_name; v3.10: pc_a3_den / pc_a3 (a map page fitted and centred on A3 or a slide panel, Aras 15:25-15:27 UTC); v3.9: no sources in the drawings (Aras 15:23 UTC): pc_nosrc on MapBase legend rows, empty credit skipped; v3.8: a name with no free place goes where it overlaps least (run 7); v3.7: Labels.block_line / block_items (names keep off lines: run 6 review); v3.6: the outside Python runs hidden (no console window, Aras 14 Nov 12:57 UTC); v3.5: frame check skips items with any clip id; pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
+PC_VERSION = "v3.22"  # v3.22: pc_dg_kit to DIAGRAM_STYLE v2 (ground 3 x other weights, pale-accent terraces, arches silhouette);  v3.21: v3.21: pc_dg_kit dashes at item[6] (Basemap writer), dash_at=4 for the Sections writer;  v3.20: v3.20: pc_dg_kit, the diagram kit of library/diagram_style/DIAGRAM_STYLE.md (Aras 21:30 UTC "all the diagrams are awful"); v3.19: v3.18 undone (the writer keeps a line's clip at item[4]: those lines were really unclipped); v3.17: SiteMap ring + b (survey box), pc_site_den, pc_north_deg, pc_sheet cols + span (legend columns beside a site_alan strip); v3.16: pc_loop names=True (stop names on the map), every stop outside the frame gets an edge arrow, the stream walk in either loop order (loop numbered from Asklepion, Aras 16:26); v3.15: SiteMap / pc_site_map (the map frame = site_alan turned flat, Aras 16:17 UTC "KEEP EVERY DRAWING STRICTLY IN SITE_ALAN"), pc_loop edge arrows to stops outside it, pc_north_items; v3.14: pc_cut_mark = two end arrows, no line between (Aras 16:05 UTC); v3.13: v3.13: pc_mp_data (MasterplanBase: the masterplan SVG cached in survey m); v3.12: pc_cut_mark, the R01 cut symbol (two arrows, Aras 15:37 UTC); v3.11: pc_loop (the heritage loop, one code for the heritage and the transit map; Aras 15:31) and pc_station_name; v3.10: pc_a3_den / pc_a3 (a map page fitted and centred on A3 or a slide panel, Aras 15:25-15:27 UTC); v3.9: no sources in the drawings (Aras 15:23 UTC): pc_nosrc on MapBase legend rows, empty credit skipped; v3.8: a name with no free place goes where it overlaps least (run 7); v3.7: Labels.block_line / block_items (names keep off lines: run 6 review); v3.6: the outside Python runs hidden (no console window, Aras 14 Nov 12:57 UTC); v3.5: frame check skips items with any clip id; pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
 PC_NOWIN = 0x08000000 if os.name == "nt" else 0   # v3.6: CREATE_NO_WINDOW for the review-PNG / photo subprocesses
 PC_DATA = os.path.join("Data", "bergama_access_heritage.json")
 PC_CENTRE = os.path.join("Data", "selinos_centreline.json")
@@ -1143,3 +1143,151 @@ def System_floats(v):
     for i, x in enumerate(v):
         arr[i] = float(x)
     return arr
+
+
+# ================================================================ v3.20: diagram kit (library/diagram_style/DIAGRAM_STYLE.md)
+DG_W = {"cut": 0.70, "move": 0.22, "thin": 0.22, "arrow": 0.30, "hair": 0.10}   # v3.22: ground = 3 x the rest (Niarchos, measured)
+DG_C = {"ink": "1E1E1E", "ground": "D9D4CA", "ctx": "B9B4AA", "her": "8E877C", "water": "A2B6B5",
+        "water_ln": "3F86B8", "move": "C07A2E", "move_t": "EBCFAE", "bus": "8A8A8A", "paper": "FFFFFF"}
+
+
+def pc_dg_kit(items, x0, y0, W, H, layer="concept", lw=192.0, lh=30.0, dash_at=6):
+    """v3.20 (Aras 14 Nov 21:30 UTC "all the diagrams are awful"): one drawing kit for every explanatory diagram, the
+    rules of library/diagram_style/DIAGRAM_STYLE.md: three weights (cut 0.70 / move 0.45 / thin 0.18), ground as poché,
+    context as a regular row, ONE accent (DG_C move) for our move, water flat, at most 3 arrows and 4 labels.
+    Local units: a lw x lh box at page (x0, y0), y up; returns a dict of drawing functions that append to items."""
+    sx, sy = W / lw, H / lh
+    P = lambda p: (x0 + p[0] * sx, y0 + p[1] * sy)
+    C, Wt = DG_C, DG_W
+
+    def line(pts, col=C["ink"], w=Wt["thin"], dash=None):
+        d_ = list(dash) if dash else None                 # v3.21: dash at item[6] (Basemap writer: [4] = clip id);
+        items.append(("line", [P(p) for p in pts], col, w, d_, layer, 1) if dash_at == 4 else   # the Sections writer
+                     ("line", [P(p) for p in pts], col, w, None, layer, d_ or 1))                  # (nodes) reads [4]
+
+    def poly(pts, fill, stroke=None, w=0.0):
+        items.append(("poly", [[P(p) for p in pts]], fill, stroke, w if stroke else 0.0, None, layer, 1, None, None))
+
+    def text(s, x, y, size=1.7, col=C["ink"], bold=True, al="L"):
+        q = P((x, y))
+        items.append(("text", s, q[0], q[1], size, col, bold, al, layer, None, None))
+
+    def ground(pts, base=0.0):
+        """the cut ground: poché down to base, then the one heavy line"""
+        poly([(pts[0][0], base)] + list(pts) + [(pts[-1][0], base)], C["ground"])
+        line(pts, C["ink"], Wt["cut"])
+
+    def gy(pts, x):
+        for a, b in zip(pts, pts[1:]):
+            if a[0] <= x <= b[0] and b[0] > a[0]:
+                return a[1] + (b[1] - a[1]) * (x - a[0]) / (b[0] - a[0])
+        return pts[0][1] if x < pts[0][0] else pts[-1][1]
+
+    def city(gpts, xa, xb, step=4.0, h=2.6, focus=None, roof=True, col=None):
+        """the town as a rhythm: one row of small blocks ON the ground, smaller away from focus (our move)"""
+        col = col or C["ctx"]
+        n = max(1, int((xb - xa) / step))
+        span = max(abs(xa - (focus if focus is not None else xa)), abs(xb - (focus if focus is not None else xb)), 1.0)
+        for i in range(n):
+            x = xa + (i + 0.5) * (xb - xa) / n
+            f = 1.0 if focus is None else 1.0 - 0.55 * abs(x - focus) / span
+            w_, hh = step * 0.62 * f, h * f
+            yb = gy(gpts, x)
+            pts = [(x - w_ / 2, yb), (x + w_ / 2, yb), (x + w_ / 2, yb + hh)]
+            pts += [(x, yb + hh + w_ * 0.45)] if roof else []
+            poly(pts + [(x - w_ / 2, yb + hh)], col)
+
+    def water(xa, xb, yb, yt, levels=()):
+        """flat water, one hairline per named level (name at the right end)"""
+        poly([(xa, yb), (xb, yb), (xb, yt), (xa, yt)], C["water"])
+        for y, nm in levels:
+            line([(xa, y), (xb, y)], C["water_ln"], Wt["hair"] * 2, (1.4, 0.9))
+            text(nm, xb - 0.5, y + 0.6, 1.5, C["water_ln"], True, "R")
+
+    def move(pts):
+        """OUR move: the only accent shape"""
+        poly(pts, C["move"], C["move"], Wt["move"])
+
+    def steps(xa, xb, ya, yb, n, base=None, tint=True):
+        """accent terraces from (xa, ya) down to (xb, yb), down to base: v3.22 a pale accent body with the accent
+        tread line (the accent stays small, DIAGRAM_STYLE v2); tint=False = solid"""
+        base = min(ya, yb) if base is None else base
+        pts, y = [(xa, ya)], ya
+        for i in range(n):
+            x1 = xa + (xb - xa) * (i + 1) / float(n)
+            y1 = ya + (yb - ya) * (i + 1) / float(n)
+            pts += [(x1, y), (x1, y1)]
+            y = y1
+        if tint:
+            poly(pts + [(xb, base), (xa, base)], C["move_t"])
+            line(pts, C["move"], Wt["move"] * 2.0)
+        else:
+            move(pts + [(xb, base), (xa, base)])
+
+    def arrow(a, b, kind="people"):
+        col = {"people": C["move"], "water": C["water_ln"], "bus": C["bus"]}.get(kind, C["ink"])
+        L = math.hypot(b[0] - a[0], b[1] - a[1]) or 1.0
+        ux, uy = (b[0] - a[0]) / L, (b[1] - a[1]) / L
+        hl, hw = 2.2, 0.9
+        line([a, (b[0] - ux * hl * 0.8, b[1] - uy * hl * 0.8)], col, Wt["arrow"])
+        poly([b, (b[0] - ux * hl - uy * hw, b[1] - uy * hl + ux * hw),
+              (b[0] - ux * hl + uy * hw, b[1] - uy * hl - ux * hw)], col)
+
+    def person(x, y, col=None):
+        col = col or C["ink"]
+        line([(x, y), (x, y + 1.7)], col, 0.3)
+        line([(x - 0.5, y), (x, y + 0.8), (x + 0.5, y)], col, 0.22)
+        poly([(x + 0.38 * math.cos(2 * math.pi * i / 10), y + 2.15 + 0.38 * math.sin(2 * math.pi * i / 10))
+              for i in range(10)], col)
+
+    def people(xs, y):
+        for x in xs:
+            person(x, y)
+
+    def bracket(xa, xb, y, name, col=C["ink"]):
+        """the 'agora' naming: a hairline span with end ticks, its name centred under it"""
+        line([(xa, y + 0.8), (xa, y), (xb, y), (xb, y + 0.8)], col, Wt["hair"] * 1.5)
+        text(name, (xa + xb) / 2.0, y - 2.0, 1.5, col, True, "C")
+
+    def road(x, yb, h=6.0, w=3.0):
+        """the driver at the frame edge: dense vertical hatching (the Niarchos highway)"""
+        for i in range(9):
+            xx = x + w * i / 8.0
+            line([(xx, yb), (xx, yb + h * (0.75 + 0.25 * ((i * 7) % 5) / 4.0))], C["ink"], Wt["thin"])
+
+    def label(s, x, y, accent=False, al="L"):
+        text(s.upper(), x, y, 1.7, C["move"] if accent else C["ink"], True, al)
+
+    def silhouette(kind, x, yb, s=1.0):
+        """heritage as one recognisable outline, grey: dome, minaret, arch (bridge), basilica (Red Hall)"""
+        if kind == "dome":
+            poly([(x - 4 * s, yb), (x + 4 * s, yb), (x + 4 * s, yb + 3 * s)] +
+                 [(x + 4 * s * math.cos(math.radians(a)), yb + 3 * s + 3 * s * math.sin(math.radians(a)))
+                  for a in range(0, 181, 15)] + [(x - 4 * s, yb + 3 * s)], C["paper"], C["her"], Wt["thin"] * 1.4)
+        elif kind == "minaret":
+            poly([(x - 0.7 * s, yb), (x + 0.7 * s, yb), (x + 0.7 * s, yb + 11 * s), (x, yb + 13 * s),
+                  (x - 0.7 * s, yb + 11 * s)], C["paper"], C["her"], Wt["thin"] * 1.4)
+        elif kind == "mosque":
+            poly([(x - 8 * s, yb), (x + 8 * s, yb), (x + 8 * s, yb + 4 * s), (x - 8 * s, yb + 4 * s)],
+                 C["paper"], C["her"], Wt["thin"] * 1.4)
+            poly([(x + 5 * s * math.cos(math.radians(a)), yb + 4 * s + 3.6 * s * math.sin(math.radians(a)))
+                  for a in range(0, 181, 12)], C["paper"], C["her"], Wt["thin"] * 1.4)
+        elif kind == "arches":                          # a stone bridge of n arches (deck at yb + 6 s)
+            n_ = 3
+            w_ = 16.0 * s
+            top = yb + (w_ * 0.76 / n_ / 2.0) * 1.3 + 1.0 * s   # deck just over the arch crowns
+            pts = [(x - w_ / 2, top), (x + w_ / 2, top), (x + w_ / 2, yb)]
+            for i in range(n_ - 1, -1, -1):
+                xa_ = x - w_ / 2 + w_ * (i + 0.12) / n_
+                xb_ = x - w_ / 2 + w_ * (i + 0.88) / n_
+                r_ = (xb_ - xa_) / 2
+                pts += [(xb_, yb)] + [((xa_ + xb_) / 2 + r_ * math.cos(math.radians(a_)), yb + r_ * 1.3 *
+                                       math.sin(math.radians(a_))) for a_ in range(0, 181, 15)] + [(xa_, yb)]
+            poly(pts + [(x - w_ / 2, yb)], "E4E1DA", C["her"], Wt["thin"] * 1.4)
+        elif kind == "basilica":
+            poly([(x - 16 * s, yb), (x + 16 * s, yb), (x + 16 * s, yb + 11 * s), (x, yb + 14 * s),
+                  (x - 16 * s, yb + 11 * s)], C["paper"], C["her"], Wt["move"])
+
+    return {"line": line, "poly": poly, "text": text, "ground": ground, "gy": gy, "city": city, "water": water,
+            "move": move, "steps": steps, "arrow": arrow, "person": person, "people": people, "bracket": bracket,
+            "road": road, "label": label, "silhouette": silhouette, "C": C, "W": Wt}
