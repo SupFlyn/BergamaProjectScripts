@@ -45,7 +45,7 @@ Writes ~/Downloads/Bergama/output/bergama_sections/Sections.pdf          ONE pag
 import os, time, json, math, bisect, glob
 
 # ---- SETTINGS ----
-VERSION = "v1.6.7"
+VERSION = "v1.6.8"
 GH_LABEL = "Sections"
 OUT_FOLDER = "bergama_sections"
 LOG_NAME = "bergama_sections_log.txt"
@@ -1229,6 +1229,8 @@ WALL_H_M, WALL_T_M, WALL_FILL = 5.0, 0.6, "BDB6A6"
 WALL_MAX_W = 30.0                  # m: v1.6.1: a wider low flat is not the walled channel
 WALL_SEARCH_M = 20.0               # m from the bed low point: v1.6.2 the wall stands where the ground reaches its top
 DSI_BED_W = 20.0                   # m: DSI planned channel width (SYGM 2019 summary p.75, measure 155)
+LEVEL_LABELS = False               # v1.6.8, Aras 14 Nov 13:01 UTC: "remove these markings we gonna have a new diagram
+#                                    for that": no level sign / value stack; the water lines and fills stay
 LU_H = 4.0                         # mm, the land-use band
 LU = {"open": ("D9D6BE", u"open ground"), "street": ("706B62", u"street"), "stream": ("7FA4B3", u"stream"),
       "building": ("B9B2A2", u"building"), "wall": ("8E8578", u"wall")}
@@ -1426,12 +1428,15 @@ def spread_levels(E, pg, S, short=False, gap=2.6):
     x_end = S.X(S.hi)
 
     def _sign(it):                                       # the engine's level sign (triangle + bar) at the cut end
+        # v1.6.8: anywhere (v1.6.7 ends the water lines at the joined stretch, so the signs no longer sit at x_end)
         if it[0] == "poly" and it[6] == "levels" and len(it[1]) == 1 and len(it[1][0]) == 3:
-            return all(x_end - 4.6 <= p[0] <= x_end - 1.4 for p in it[1][0])
+            return True
         if it[0] == "line" and it[5] == "levels" and len(it[1]) == 2 and abs(it[1][1][0] - it[1][0][0]) <= 1.7:
-            return all(x_end - 4.6 <= p[0] <= x_end - 1.4 for p in it[1]) and abs(it[1][1][1] - it[1][0][1]) < 1e-6
+            return abs(it[1][1][1] - it[1][0][1]) < 1e-6
         return False
     pg.items = [it for it in pg.items if not (it[0] == "text" and it[8] == "levels") and not _sign(it)]
+    if not LEVEL_LABELS:
+        return
     # v1.6 (fix 2): the texts sit just right of where the water lines end (the channel), not at the cut's far end
     ends = [max(p[0] for p in it[1]) for it in pg.items if it[0] == "line" and it[5] == "levels" and len(it[1]) == 2
             and abs(it[1][0][1] - it[1][1][1]) < 1e-6]
