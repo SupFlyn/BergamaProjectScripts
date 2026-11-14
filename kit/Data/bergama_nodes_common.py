@@ -17,14 +17,14 @@ Reads the newest scripts/bergama_basemap_v*, bergama_p02_what_is_there_v*, berga
 """
 import os, re, glob, json, math, time
 
-NC_VERSION = "v7"   # v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
+NC_VERSION = "v7.1"   # v7.1: R01 cut arrows (pc_cut_mark), no city-square ring, land-use columns >= 45 mm; v7: v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
 ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 PAGE_W, PAGE_H = 420.0, 297.0
 NODE_MARGIN_M = 25.0                       # m of town round the node frame on the plan
 PLAN_BOX = (14.0, 100.0, 200.0, 264.0)     # mm: x0, y0, x1, y1 of the plan's room
 SEC_ROOMS = ((214.0, 186.0, 406.0, 266.0), (214.0, 100.0, 406.0, 180.0))   # mm: N#-A, N#-B
 INK, GREY, RED = "2C2219", "6E675E", "8B2D2D"
-OCC_LAYERS = ("bus_stops", "heritage_loop", "city_square", "section_names", "hubs", "viewpoints", "proposed_path")
+OCC_LAYERS = ("node_frame", "bus_stops", "heritage_loop", "city_square", "section_names", "hubs", "viewpoints", "proposed_path")
 LBL_LAYERS = ("bus_stops", "heritage_loop", "city_square", "section_names")   # v6.5: plan labels kept apart
 SQUARE_C = "C07A2E"                        # the city-square ring (a contrast to the red loop and blue lines; ours)
 CUT_C = "2C2219"
@@ -472,31 +472,21 @@ def node_page(cfg, log):
         sec_ids.add(id(items[-1]))
         log += [u"%s: %s" % (C.name, n_) for n_ in C.J.get("notes", []) if n_.startswith(u"FLAG")]
 
-    # ---- section lines on the plan: the whole line thin, the drawn window bold, names at both ends
-    ends = []
+    # ---- section lines on the plan. v7.1 (Aras 15:37 UTC "draw two distinct arrows you have been doing that before"):
+    # the R01 cut symbol of the older scripts (pages_common pc_cut_mark) over the drawn part, looking downstream
+    names_at = []
     for C in cuts:
-        sline([C.A, C.B], CUT_C, 0.25, "section_lines", (2.0, 0.8))
-        if C in done:
-            s0, s1 = C.window
-            sline([C.xy(s0), C.xy(s1)], CUT_C, 0.7, "section_lines")
-        for e_ in (C.A, C.B):
-            q = pgS(e_)
-            near = next((m for m in ends if G["pc_dist"](m[0], q) < 6.0), None)
-            if near is not None:                          # v4.1 (run 1, N1: A and B drawn on top of each other)
-                near[1].append(C.name)
-                continue
-            ends.append((q, [C.name]))
-            if inside(q, 2.0):
-                items.append(R_([ring(q[0], q[1], 2.6, 24)], "FFFFFF", CUT_C, 0.3, "section_names"))
-                items.append(T_(C.name[-1], q[0], q[1] - 1.0, 2.8, CUT_C, True, "C", "section_names"))
-
-    for q, nms in ends:
-        if inside(q, 2.0):
-            if len(nms) > 1:
-                items.append(R_([ring(q[0], q[1], 2.6, 24)], "FFFFFF", CUT_C, 0.3, "section_names"))
-                items.append(T_(u"/".join(n[-1] for n in nms), q[0], q[1] - 1.0, 2.4, CUT_C, True, "C",
-                                "section_names"))
-            items.append(T_(u" / ".join(nms), q[0] + 3.2, q[1] + 1.6, 2.2, CUT_C, True, "L", "section_names"))
+        s0, s1 = C.window if C in done else (0.0, C.L)
+        pa, pb = C.xy(s0), C.xy(s1)
+        dl = X["cl_project"](CL, cum, *C.xy(C.s_th))[2]
+        q0 = pgS(C.xy(C.s_th))
+        q1 = pgS((C.xy(C.s_th)[0] + dl[0], C.xy(C.s_th)[1] + dl[1]))
+        for it in G["pc_cut_mark"](pgS(pa), pgS(pb), (q1[0] - q0[0], q1[1] - q0[1]), C.name, layer="section_names"):
+            if it[0] == "text":                           # two cuts sharing an end (N1): one name there
+                if any(G["pc_dist"]((it[2], it[3]), q) < 5.0 for q in names_at):
+                    continue
+                names_at.append((it[2], it[3]))
+            items.append(it)
 
     # ---- transit and heritage over the plan (PageTransit / PageHeritage data and colours)
     K = D["key"]
@@ -509,12 +499,9 @@ def node_page(cfg, log):
                 P_ = D["ways"].get(wid)
                 if P_:
                     sline(P_, P["mixh"](col, P["PAPER"], 0.55), lw * 0.45, "bus_lines", dash)   # v4.4: quiet
-    stops = [(nm, xy, ln) for nm, xy, ln in G["pc_stop_groups"](D)]
     H = sorted(D["heritage"], key=lambda h: int(h["n"]))
-    framed = lambda xy: P["pip"](xy[0], xy[1], nd["corners"])
-    hs = [h for h in H if framed(h["xy"])]
-    ss = [s for s in stops if framed(s[1])]
-    sq = min((G["pc_dist"](h["xy"], s[1]), h, s) for h in hs for s in ss) if hs and ss else None
+    sq = None     # v7.1 (Aras 15:36 UTC "this marking is totally wrong"): no city-square ring; his gathering points
+    #               come from the masterplan (MasterplanBase cache, when it is ready)
     # v6.4 no-repeat (Aras 13:02 UTC "make sure nothing repeats in the slides", REUSE_MAP R4, R5): slide 5 keeps the
     # stops and the heritage loop; a node plan keeps only the bus stop of its city square and the loop stops inside
     for nm, xy, ln in ([sq[2]] if sq else []):
@@ -557,9 +544,6 @@ def node_page(cfg, log):
         sq = (h, s, d_)
         log.append(u"city square: loop stop %s %s and bus stop %s are %.0f m apart (straight line)" % (
             h["n"], h["name"], s[0], d_))
-    else:
-        log.append(u"city square: not in %s (%s)" % (node, u"no heritage loop stop in the frame" if not hs else
-                                                     u"no bus stop in the frame"))
     # ---- V1, the viewpoint of the perspective (brief: viewpoints marked on each node plan; place assumed): from the
     # city square, else from the bank end of the drawn part of section A, looking to the stream bed of the nearest cut
     vp = None
@@ -635,13 +619,11 @@ def node_page(cfg, log):
                                                                 for f_ in P["FAB_ORDER"] if f_ in shown]
     rows2 = [("hdr", None, u"EXISTING: MOVEMENT AND HERITAGE"),
              ("line", P["mixh"](K["lines"]["town"][0], P["PAPER"], 0.55), u"bus lines, quiet (OSM, ESHOT)"),
-             ("disc", INK, u"bus stop of the city square, its lines (OSM); all stops on slide 5"),
              ("disc", RED, u"heritage loop stop in the frame, loop order; the loop on slide 5"),
              ("box", K["hub"]["walk"], u"hub tile (K4, K3, T, K5, K6 as PageTransit)"),
-             ("line", CUT_C, u"section line N#-A / N#-B; bold = the part drawn"),
+             ("line", "C0392B", u"section N#-A / N#-B, the arrows look the way the section looks"),
              ("box", P["WATER_C"], u"the Selinos"),
              ("hdr", None, u"PROPOSAL MARKS"),
-             ("line", SQUARE_C, u"city square idea: loop meets transit (place not designed)"),
              ("line", SQUARE_C, u"streamside spine K4 - K5 along the Selinos (proposed path)"),
              ("disc", SQUARE_C, u"V1 viewpoint of the perspective (place assumed)")]
     rows1 += [("hdr", None, u"EXISTING: GROUND AND GREEN (MapBase)")] + MB["mb_legend"](MC, mb_cnt, {"grain": False})
@@ -672,7 +654,8 @@ def node_page(cfg, log):
             for lab, col, a_ in keep]
     # v6.2 (run 3, N2: rows ran into the credit line): as many columns as it takes to stay above y 10 mm
     per = max(1, int((bar_y - 5.0 - 10.0) / 3.0) + 1)
-    nc = max(3, -(-len(rows) // per))
+    ncmax = max(1, int(bw // 45.0))                       # v7.1 (run 8: "Mosques & sacred <" / "1%" wrapped)
+    nc = max(1, -(-len(rows) // per))
     if nc > ncmax:
         log.append(u"FLAG land use: %d rows need %d columns; rows below y 10 mm cut" % (len(rows), nc))
         nc = ncmax
@@ -738,15 +721,6 @@ def node_page(cfg, log):
            "placeholder_program")
     holder(360.0, 22.0, 406.0, 56.0, u"BUILDING PROPOSAL", u"placeholder: plan, section, elevation (if the node has one)",
            "placeholder_building")
-    if sq:
-        h, s, d_ = sq
-        para(B, items, u"City square idea: loop stop %s %s and bus stop %s (%s) %.0f m apart, straight line." % (
-            h["n"], h["name"], s[0], u" ".join(sorted(s[2], key=lambda r: (len(r), r))), d_), 310.0, 18.5, 2.0, 96.0,
-            SQUARE_C, True, 2.7, "diagrams")
-    else:
-        para(B, items, u"No heritage loop stop and bus stop share this node: no city square here.", 310.0, 18.5, 2.0,
-             96.0, GREY, False, 2.7, "diagrams")
-
     # ---- title band and credit
     items.append(T_(u"C  NODES IN DETAIL · SLIDE %d" % cfg["SLIDE"], 14.0, 288.0, 2.6, INK, True))
     items.append(T_(u"%s · %s" % (node, nd["name"]), 14.0, 278.5, 7.5, INK, True))
