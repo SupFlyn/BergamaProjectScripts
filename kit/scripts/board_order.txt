@@ -26,6 +26,7 @@ solo: bergama_sections = Sections
 solo: bergama_page_transit = PageTransit
 solo: bergama_page_heritage = PageHeritage
 solo: bergama_page01_axo = Page01Axo
+solo: bergama_page01_free = Page01Free
 solo: bergama_p02_what_is_there = Page02
 solo: bergama_node_n1 = NodeN1
 solo: bergama_node_n2 = NodeN2

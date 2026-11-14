@@ -169,3 +169,9 @@ bergama_page01_axo: Data/bergama_access_heritage.json  # hand, 14 Nov
 bergama_page01_axo: scripts/bergama_basemap_v14.py  # hand, 14 Nov
 bergama_page01_axo: scripts/bergama_mapbase_v1_2.py  # hand, 14 Nov
 bergama_page01_axo: cached/bergama_mapbase/mapbase.json  # hand, 14 Nov
+bergama_page01_free: Data/bergama_pages_common.py  # hand, 14 Nov
+bergama_page01_free: Data/bergama_access_heritage.json  # hand, 14 Nov
+bergama_page01_free: Data/selinus_board_data.py  # hand, 14 Nov
+bergama_page01_free: scripts/bergama_basemap_v14.py  # hand, 14 Nov
+bergama_page01_free: scripts/bergama_mapbase_v1_2.py  # hand, 14 Nov
+bergama_page01_free: cached/bergama_mapbase/mapbase.json  # hand, 14 Nov
