@@ -67,6 +67,10 @@ fabric and shop shades, WorldCover, the 2023 satellite land cover, OSM areas, st
 drawn by MapBase (scripts/bergama_mapbase_v*.py, mb_draw) from its cache: press MapBase once before this page. This
 page keeps its own look (MapBase's default style is this page's). The land-use ring counts MapBase's buildings.
 
+v2.6 (14 Nov 2026, check loop of the first laptop run of v2.5): the GROUND AND GREEN key ran into the credit. Rows of
+the same colour are now one row (WorldCover and the 2023 image share a colour), the OpenStreetMap areas and contours
+get a column of their own (four key columns), and a FLAG is written if any key column reaches the credit.
+
 Component: Rhino 8 > Grasshopper > Python 3 Script (the board builder places it from the cloud kit).
   input  run     Button (or the previous script's done text)
   output log / done   as every Bergama script
@@ -81,7 +85,7 @@ Writes ~/Downloads/Bergama/output/bergama_p02/Page02_What_is_there.pdf, Page02_W
 import os, time, json, math, re, glob
 
 # ---- SETTINGS ----
-VERSION = "v2.5"
+VERSION = "v2.6"
 SLIDE = 1                          # output/presentation/1.pdf (Aras 14 Nov 11:22 UTC; slide 1 = analysis)
 GH_LABEL = "Page02"
 OUT_FOLDER = "bergama_p02"
@@ -635,22 +639,33 @@ def main():
     items.append(("text", u"Plan 01 · what is there today · 1:%s" % format(den, ",d"), MAP_X, ky, 2.6, INK, True, "L",
                   "key", None, None))
     ky -= 6.0
-    rows1 = [("hdr", None, u"BUILDINGS · URBAN FABRIC (share of the site frame's built footprint) · left: no shop "
-                           u"recorded, right: a shop, office or workshop on the plot (OSM; floor not recorded)")]
+    rows1 = [("hdr", None, u"BUILDINGS · URBAN FABRIC (% of the site frame's built footprint)"),
+             ("hdr", None, u"left swatch: no shop recorded; right: a shop, office or workshop on the plot (OSM, floor "
+                           u"not recorded)")]
     for f_ in FAB_ORDER:
         if shares.get(f_, 0.0) > 0 or any(u["fab"] == f_ for u in units):
             rows1.append(("box2", (FAB[f_], FAB_COM[f_]), u"%s · %s" % (FAB_WORDS[f_], (u"%.0f%%" % shares[f_]) if shares[f_] >= 0.5
                                                          else u"< 1%")))
-    rows2 = [("hdr", None, u"GROUND AND GREEN")] + MBL["mb_legend"](C, drawn)
+    mrg = []                                              # v2.6: one row per colour
+    for kd, col, txt in MBL["mb_legend"](C, drawn):
+        hit = next((i_ for i_, r_ in enumerate(mrg) if r_[0] == kd and r_[1] == col), None)
+        if hit is None:
+            mrg.append((kd, col, txt))
+        else:
+            mrg[hit] = (kd, col, mrg[hit][2] + u" · " + txt)
+    rows2 = [("hdr", None, u"GROUND AND GREEN")] + [r_ for r_ in mrg if u"(OSM)" not in r_[2] and r_[0] != "line"]
     rows2 += [("box", STREET_C, u"Streets (surveyed surface; OSM where the survey has none)"), ("box", WATER_C, u"The stream")]
     rows3 = [("hdr", None, u"LINES AND MARKS"),
              ("line", WALL_C, u"Walls (survey)"), ("line", HER_WALL, u"City walls"),
              ("line", STUDY_C, u"Study area (calisma_alan)"), ("line", INK, u"Analysis frame (site_alan)"),
              ("line", NODE_C, u"Nodes N1-N6"), ("line", CUT_C, u"Section cuts N1-A ... N6-B"),
              ("disc", BRIDGE_C, u"Bridge, upstream to downstream"), ("disc", CLASH_C, u"Where stream and town clash")]
-    cw = MAP_MAX_W / 3.0
-    for ci, rows in enumerate((rows1, rows2, rows3)):
-        draw_rows(B, items, rows, MAP_X + ci * cw, ky, cw - 3.0)
+    rows4 = [("hdr", None, u"OPENSTREETMAP AREAS AND RELIEF")] + [r_ for r_ in mrg if u"(OSM)" in r_[2] or r_[0] == "line"]
+    cw = MAP_MAX_W / 4.0                                  # v2.6: four key columns
+    for ci, rows in enumerate((rows1, rows2, rows4, rows3)):
+        y_end = draw_rows(B, items, rows, MAP_X + ci * cw, ky, cw - 3.0, step=3.6, ts=2.4)
+        if y_end < 33.0:                                  # v2.6: the credit starts at 30 mm
+            log.append(u"FLAG key column %d runs into the credit (ends at %.1f mm, the credit at 30 mm)" % (ci + 1, y_end))
     ycr = 30.0
     for ln in wrap(B, CREDIT, 1.9, MAP_MAX_W):
         items.append(("text", ln, MAP_X, ycr, 1.9, "6E675E", False, "L", "credit", None, None))
