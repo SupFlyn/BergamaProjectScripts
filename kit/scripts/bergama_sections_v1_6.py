@@ -45,7 +45,7 @@ Writes ~/Downloads/Bergama/output/bergama_sections/Sections.pdf          ONE pag
 import os, time, json, math, bisect, glob
 
 # ---- SETTINGS ----
-VERSION = "v1.6.8"
+VERSION = "v1.6.9"
 GH_LABEL = "Sections"
 OUT_FOLDER = "bergama_sections"
 LOG_NAME = "bergama_sections_log.txt"
@@ -1901,12 +1901,21 @@ def _r2(o):
 def cut_cache(E, C):
     """v1.6.4 (Aras 12:38 UTC "don't ever do the same job twice ... cache it"): the cut drawn once more at each
     node-page scale, unshifted, so the node pages read cached/bergama_sections/cuts.json instead of redoing it"""
-    items, k0 = {}, E.get("K")
+    items, k0, S = {}, E.get("K"), None
     for d in NODE_SCALES:
-        pg = draw_cut(E, C, SEASON, d, 0.0, 0.0)[0]
-        items[str(d)] = dict(bbox=[round(v, 2) for v in items_bbox(pg.items)], items=_r2(pg.items))
+        pg, S, _y = draw_cut(E, C, SEASON, d, 0.0, 0.0)
+        # v1.6.9 (four-seasons thread, Aras 13:06 UTC: the season cuts reuse this base with other assets): the page
+        # mapping, so a reader places its own assets: x = X0 + (s - lo) * K, y = Y0 + (z - zb) * K (mm)
+        items[str(d)] = dict(bbox=[round(v, 2) for v in items_bbox(pg.items)], items=_r2(pg.items),
+                             map=dict(X0=round(S.X0, 3), Y0=round(S.Y0, 3), K=S.K, lo=S.lo, zb=round(S.zb, 3)))
     E["K"] = k0
+    ppl = people_for(S, SEASON, E)[0]
     return dict(items=items, z_th=round(C.z_th, 3), window=list(C.window),
+                season=SEASON, layers_season=[u"water", u"levels", u"planting", u"people", u"trees", u"callouts"],
+                surface=_r2(S.V), channel=_r2(list(S.channel)), walled=_r2(list(S.walled)) if S.walled else None,
+                strip=_r2(list(S.strip)) if S.has_strip else None,
+                planting=dict((k, _r2(S.d[k])) for k in (u"grass", u"reeds", u"iris", u"trees")),
+                people=[[round(q[0], 2), q[1], bool(q[2])] for q in ppl],
                 levels=dict((k if isinstance(k, str) else u"%s|%s" % k, [round(v[0], 3), v[1]])
                             for k, v in C.levels.items()),
                 bld=[dict(s=[round(t[0], 2), round(t[1], 2)], h=t[3], cut=t[4], behind_m=round(t[5], 1))
