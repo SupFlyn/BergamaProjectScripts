@@ -17,13 +17,11 @@ Reads the newest scripts/bergama_basemap_v*, bergama_p02_what_is_there_v*, berga
 """
 import os, re, glob, json, math, time
 
-NC_VERSION = "v6.7"   # v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
+NC_VERSION = "v7"   # v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
 ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 PAGE_W, PAGE_H = 420.0, 297.0
 NODE_MARGIN_M = 25.0                       # m of town round the node frame on the plan
 PLAN_BOX = (14.0, 100.0, 200.0, 264.0)     # mm: x0, y0, x1, y1 of the plan's room
-DEN_STEPS = (1000, 1250, 1500, 2000, 2500, 3000, 4000, 5000)
-SEC_DENS = (1000, 1500, 2000, 2500, 3000)  # v6.2: Sections v1.6.6 cache scales; the first that fits its room
 SEC_ROOMS = ((214.0, 186.0, 406.0, 266.0), (214.0, 100.0, 406.0, 180.0))   # mm: N#-A, N#-B
 INK, GREY, RED = "2C2219", "6E675E", "8B2D2D"
 OCC_LAYERS = ("bus_stops", "heritage_loop", "city_square", "section_names", "hubs", "viewpoints", "proposed_path")
@@ -215,7 +213,6 @@ def scale_north(F, den, xr, y0):
                      INK, 0.15, "scale_north"))
     it.append(T_(u"0", xb, yb - 2.8, 2.0, INK, False, "C", "scale_north"))
     it.append(T_(u"%d m" % bar, xb + Lm, yb - 2.8, 2.0, INK, False, "C", "scale_north"))
-    it.append(T_(u"1:%d" % den, xb, yb + 3.6, 2.8, INK, True, "L", "scale_north"))
     return it
 
 
@@ -381,11 +378,11 @@ def node_page(cfg, log):
     nd = SL["nodes"][node]
     F = node_frame(B, nd["corners"])
     pw, ph = PLAN_BOX[2] - PLAN_BOX[0], PLAN_BOX[3] - PLAN_BOX[1]
-    den = next((d for d in DEN_STEPS if F.w * 1000.0 / d <= pw and F.h * 1000.0 / d <= ph), DEN_STEPS[-1])
+    den = 1000.0 / min(pw / F.w, ph / F.h)               # v7: the plan fills its box (scale not important, Aras 15:25)
     k = 1000.0 / den
     X0 = PLAN_BOX[0] + (pw - F.w * k) / 2.0
     Y0 = PLAN_BOX[3] - F.h * k
-    log.append(u"plan: %s frame %.0f x %.0f m (+%.0f m round it), 1:%d, %.0f x %.0f mm" % (
+    log.append(u"plan: %s frame %.0f x %.0f m (+%.0f m round it), 1:%.0f, %.0f x %.0f mm" % (
         node, F.w - 2 * NODE_MARGIN_M, F.h - 2 * NODE_MARGIN_M, NODE_MARGIN_M, den, F.w * k, F.h * k))
     MB = load_mb(log)
     MC = MB["mb_load"](log)
@@ -435,12 +432,13 @@ def node_page(cfg, log):
         # v6.2 (run 3: 8 of 12 cuts shrunk, mostly by the cached 13 mm title block): the cached title, scale and
         # subtitle are left out and the page prints one header line plus the "meets" line; the drawing gets the rest
         top_y = y1 - 10.0
-        for den_s in SEC_DENS:                        # the first cached scale that fits the room
-            e_ = C.J["items"].get(str(den_s))
-            if not e_:
-                continue
+        # v7 (Aras 15:25-15:27 UTC "fit every drawing into A3's like the scale is not important"): each cut fills
+        # its room: the largest cached scale that nearly fits, then stretched evenly to fit (scale bar kept, no 1:x)
+        for den_s in sorted(int(d_) for d_ in C.J["items"]):
+            e_ = C.J["items"][str(den_s)]
             LYR = {"text": 8, "poly": 6, "line": 5, "circle": 7, "image": 9}     # v6.3 (Aras 13:01 UTC): no level
-            body = [it for it in e_["items"] if not (it[0] == "text" and it[8] == "title" and it[3] > -15.0)  # stack,
+            body = [it for it in e_["items"] if not (it[0] == "text" and it[8] == "title" and (it[3] > -15.0 or
+                                                                                            it[1].startswith(u"1:")))
                     and it[LYR.get(it[0], 0)] != "levels"]                                 # a new diagram shows it
             # v6.4 no-repeat (Aras 13:02 UTC, REUSE_MAP R10): plants drawn, no species callouts (slide 4 keeps them)
             px = set(round(it[2], 2) for it in body if it[0] == "text" and it[8] == "callouts" and
@@ -453,22 +451,19 @@ def node_page(cfg, log):
                         [it[3] + it[4] for it in body if it[0] == "text"] +
                         [it[2] + it[3] for it in body if it[0] == "circle"])
             w, h = bb[2] - bb[0], bb[3] - bb[1]
-            f = min(1.0, (x1 - x0) / w, (top_y - y0) / h)
-            if f >= 0.999:
+            f = min((x1 - x0) / w, (top_y - y0) / h)
+            if f >= 0.85:
                 break
+        f = min(f, 1.3)
         items.append(T_(u"SECTION %s" % C.name, x0, y1 - 4.5, 4.5, INK, True, "L", "sections"))
         sub = next((it[1] for it in e_["items"] if it[0] == "text" and it[1].startswith(u"both banks")), u"")
-        items.append(T_(u"1:%d%s · %s" % (den_s if f >= 0.999 else den_s / f,
-                                          u"" if f >= 0.999 else u" (shrunk, approx.)", sub),
-                        x0 + 42.0, y1 - 4.5, 2.4, GREY, False, "L", "sections"))
+        items.append(T_(sub, x0 + 42.0, y1 - 4.5, 2.4, GREY, False, "L", "sections"))
         sec_ids.update(id(it) for it in items[-2:])
         its = scale_items(body, f, bb[0], bb[3], x0 - bb[0], top_y - bb[3])
         items += its
         sec_ids.update(id(it) for it in its)
-        log.append(u"section %s: %.0f x %.0f mm at 1:%d (cached)" % (C.name, w * f, h * f, den_s))
-        if f < 0.999:
-            log.append(u"FLAG section %s too large even at 1:%d: shrunk x%.2f, its printed scale is wrong" % (
-                C.name, den_s, f))
+        log.append(u"section %s: %.0f x %.0f mm, about 1:%.0f (cached 1:%d x%.2f)" % (C.name, w * f, h * f, den_s / f,
+                                                                                     den_s, f))
         done.append(C)
         nb = sum(1 for t in C.bld if t.get("cut"))
         items.append(T_(u"meets: %d building(s) cut, %d behind; %d road(s); %d survey tree(s); bed +%.2f m" % (
@@ -629,7 +624,7 @@ def node_page(cfg, log):
 
     # ---- key under the plan
     ky = Y0 - 5.0
-    items.append(T_(u"Plan · %s %s · EXISTING today, orange = PROPOSAL marks · 1:%d" % (node, nd["name"], den), PLAN_BOX[0], ky, 2.8, INK, True))
+    items.append(T_(u"Plan · %s %s · EXISTING today, orange = PROPOSAL marks" % (node, nd["name"]), PLAN_BOX[0], ky, 2.8, INK, True))
     ky -= 5.0
     shown = set(u["fab"] for u in units)
     if P.get("FAB_COM"):                                  # v4.5: Page02 v2.3+ two swatches: plain, ground-floor shops

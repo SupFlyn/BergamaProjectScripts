@@ -201,3 +201,10 @@ bergama_slide01: scripts/bergama_p02_what_is_there_v2_9.py  # hand, 14 Nov
 bergama_slide01: scripts/bergama_page01_axo_v1_5.py  # hand, 14 Nov
 bergama_slide01: scripts/bergama_page01_free_v1_5.py  # hand, 14 Nov
 bergama_slide01: scripts/bergama_page01_move_v1_3.py  # hand, 14 Nov
+bergama_page05_access: scripts/bergama_page_transit_v2_9.py  # hand, 14 Nov
+bergama_page05_access: scripts/bergama_page_heritage_v1_6.py  # hand, 14 Nov
+bergama_page05_access: Data/bergama_pages_common.py  # hand, 14 Nov
+bergama_page05_access: Data/bergama_access_heritage.json  # hand, 14 Nov
+bergama_page05_access: Data/selinos_centreline.json  # hand, 14 Nov
+bergama_page05_access: cached/bergama_mapbase/mapbase.json  # hand, 14 Nov
+bergama_page05_access: cached/bergama_basemap/basemap_layers.json  # hand, 14 Nov
