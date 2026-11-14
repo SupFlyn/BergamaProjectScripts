@@ -25,7 +25,7 @@ Items are the Basemap writer's tuples (page mm, y up):
 """
 import os, re, json, math, time, glob
 
-PC_VERSION = "v3.14"  # v3.14: pc_cut_mark = two end arrows, no line between (Aras 16:05 UTC); v3.13: v3.13: pc_mp_data (MasterplanBase: the masterplan SVG cached in survey m); v3.12: pc_cut_mark, the R01 cut symbol (two arrows, Aras 15:37 UTC); v3.11: pc_loop (the heritage loop, one code for the heritage and the transit map; Aras 15:31) and pc_station_name; v3.10: pc_a3_den / pc_a3 (a map page fitted and centred on A3 or a slide panel, Aras 15:25-15:27 UTC); v3.9: no sources in the drawings (Aras 15:23 UTC): pc_nosrc on MapBase legend rows, empty credit skipped; v3.8: a name with no free place goes where it overlaps least (run 7); v3.7: Labels.block_line / block_items (names keep off lines: run 6 review); v3.6: the outside Python runs hidden (no console window, Aras 14 Nov 12:57 UTC); v3.5: frame check skips items with any clip id; pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
+PC_VERSION = "v3.15"  # v3.15: SiteMap / pc_site_map (the map frame = site_alan turned flat, Aras 16:17 UTC "KEEP EVERY DRAWING STRICTLY IN SITE_ALAN"), pc_loop edge arrows to stops outside it, pc_north_items; v3.14: pc_cut_mark = two end arrows, no line between (Aras 16:05 UTC); v3.13: v3.13: pc_mp_data (MasterplanBase: the masterplan SVG cached in survey m); v3.12: pc_cut_mark, the R01 cut symbol (two arrows, Aras 15:37 UTC); v3.11: pc_loop (the heritage loop, one code for the heritage and the transit map; Aras 15:31) and pc_station_name; v3.10: pc_a3_den / pc_a3 (a map page fitted and centred on A3 or a slide panel, Aras 15:25-15:27 UTC); v3.9: no sources in the drawings (Aras 15:23 UTC): pc_nosrc on MapBase legend rows, empty credit skipped; v3.8: a name with no free place goes where it overlaps least (run 7); v3.7: Labels.block_line / block_items (names keep off lines: run 6 review); v3.6: the outside Python runs hidden (no console window, Aras 14 Nov 12:57 UTC); v3.5: frame check skips items with any clip id; pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
 PC_NOWIN = 0x08000000 if os.name == "nt" else 0   # v3.6: CREATE_NO_WINDOW for the review-PNG / photo subprocesses
 PC_DATA = os.path.join("Data", "bergama_access_heritage.json")
 PC_CENTRE = os.path.join("Data", "selinos_centreline.json")
@@ -73,6 +73,7 @@ def pc_lib(log):
         if need not in ns:
             raise RuntimeError(u"%s has no %s: update the kit (Bergama.bat)" % (src_, need))
     PC_STATE["to_survey"] = ns.get("to_survey")
+    PC_STATE["lib"] = ns                              # v3.15: for pc_site_map (Frame, FRAME_COPY)
     log.append(u"drawing code: %s (%s %s)" % (src_, ns.get("GH_LABEL"), ns.get("VERSION")))
     return ns
 
@@ -386,6 +387,54 @@ def pc_study(M, K, log):
     return it
 
 
+# ================================================================ v3.15: the map frame = site_alan, turned flat
+# Aras 14 Nov 16:17 UTC: "KEEP EVERY DRAWING STRICTLY IN SITE_ALAN except" Plan 01 (Page02's 1:25,000 context map).
+class SiteMap(Map):
+    """site_alan turned flat as the Basemap draws it (its Frame: long side horizontal, eastern end right); the corners
+    from the Basemap cache (frame), else the Basemap script's built-in copy (FRAME_COPY). Same use as Map"""
+
+    def __init__(self, den, log):
+        lib = PC_STATE.get("lib") or pc_lib(log)
+        corners = None
+        p = os.path.join(pc_root(), PC_STUDY_CACHE)
+        if os.path.isfile(p):
+            with open(p, encoding="utf-8") as f:
+                corners = json.load(f).get("frame")
+        if not corners:
+            corners = lib["FRAME_COPY"]
+            log.append(u"site_alan: the Basemap's built-in copy (no frame in %s)" % p)
+        self.F = lib["Frame"]([tuple(c) for c in corners])
+        self.den = float(den)
+        self.k = 1000.0 / self.den
+        self.b = None
+        self.mw, self.mh = self.F.w * self.k, self.F.h * self.k
+        self.x0, self.y0 = PC_MARGIN_MM, PC_MARGIN_MM
+        self.w = self.x0 + self.mw + 8.0 + PC_SIDE_MM + PC_MARGIN_MM
+        self.h = self.y0 + self.mh + PC_MARGIN_MM
+        self.box = (self.x0, self.y0, self.x0 + self.mw, self.y0 + self.mh)
+        self.north = self.F.north()
+        log.append(u"frame: site_alan %.0f x %.0f m turned flat; 1:%s = %.0f x %.0f mm" % (
+            self.F.w, self.F.h, format(int(den), ",d"), self.mw, self.mh))
+
+    def T(self, p):
+        u, v = self.F.local(p)
+        return (self.x0 + u * self.k, self.y0 + v * self.k)
+
+
+def pc_site_map(den, log):
+    return SiteMap(den, log)
+
+
+def pc_north_items(cx, cy, r, north, col, layer="north_scale"):
+    """a north arrow in a circle at (cx, cy), pointing along north = page direction (nx, ny) of survey north"""
+    nx, ny = north
+    ex, ey = ny, -nx
+    P = lambda a, b: (cx + a * ex + b * nx, cy + a * ey + b * ny)
+    return [P_([circle(cx, cy, r, 48)], None, col, 0.2, layer),
+            P_([[P(0, r), P(-0.45 * r, -0.5 * r), P(0, -0.22 * r), P(0.45 * r, -0.5 * r)]], col, None, 0.0, layer),
+            T_(u"N", P(0, r + 1.4)[0], P(0, r + 1.4)[1] - 0.9, 2.4, col, layer, True, "C")]
+
+
 # ================================================================ transit
 def pc_stop_lines(D):
     """{stop name: set of line refs}: OSM membership, corrected by ESHOT where the data notes a conflict"""
@@ -488,6 +537,8 @@ class Labels(object):
     def put(self, s, q, size, col, layer, bold=False, gap=1.6, halo=True):
         """try 8 places round q (right, left, above, below, the corners, then twice as far); the first free one, else
         the right-hand place anyway and a log line (a name is never left out)"""
+        if not self.M.inside(q):                         # v3.15: a point outside the frame gets no name here
+            return
         w = self.lib["text_w"](s, size, bold)
         h = size * 0.75
         cands = []
@@ -595,14 +646,31 @@ def pc_loop(M, D, K, lab, log):
     for h in H:
         q = T(h["xy"])
         if not M.inside(q):
-            log.append(u"FLAG: stop %s %s lies outside the frame" % (h["n"], h["name"]))
-            continue
+            continue                                     # v3.15: shown by an edge arrow (below)
         it.append(P_([circle(q[0], q[1], R, 32)], RED, "FFFFFF", 0.35, "loop_stops"))
         it.append(T_(h["n"], q[0], q[1] - tm["label"] * 0.36, tm["label"] + 0.2, "FFFFFF", "loop_stops", True, "C"))
         lab.block_pt(q, R + 0.6)
     qa = T(D["akropol"])
-    it.append(P_([circle(qa[0], qa[1], R * 0.8, 32)], "FFFFFF", RED, 0.6, "loop_stops"))
-    lab.block_pt(qa, R)
+    if M.inside(qa):
+        it.append(P_([circle(qa[0], qa[1], R * 0.8, 32)], "FFFFFF", RED, 0.6, "loop_stops"))
+        lab.block_pt(qa, R)
+    # v3.15: a stop outside the frame: an arrow where its leg leaves the frame, with its number and name
+    done, arrows = set(), []
+    for (kind, P), (a, b) in zip(legs, zip(H, H[1:])):
+        Q = [T(p) for p in P]
+        runs = M.clip(Q)
+        if not runs:
+            continue
+        for h, end in ((b, runs[-1][-2:]), (a, runs[0][:2][::-1])):
+            if M.inside(T(h["xy"]), -0.01) or h["n"] in done:
+                continue
+            done.add(h["n"])
+            it.append(arrow_head(end[0], end[1], RED, 2.6, "loop_stops"))
+            arrows.append((h, end[1]))
+            lab.block_pt(end[1], 1.6)
+    for h, q in arrows:
+        lab.put(u"%s %s" % (h["n"], h["name"]), q, tm["small"], RED, "loop_names", True, gap=2.4)
+        log.append(u"stop %s %s lies outside site_alan: an edge arrow" % (h["n"], h["name"]))
     return it
 
 
