@@ -198,6 +198,8 @@ bergama_page_seasons: Data/cutouts/  # hand, 14 Nov
 bergama_page_seasons: scripts/bergama_sections_v1_6.py  # hand, 14 Nov
 bergama_page_seasons: cached/bergama_sections/cuts.json  # hand, 14 Nov
 bergama_page_seasons: cached/bergama_sections/cuts/  # hand, 14 Nov
+bergama_page_seasons: Data/bergama_water_board_data.py  # hand, 14 Nov (v1.6: LEVELS literal only)
+bergama_page_seasons: scripts/bergama_water_board_v20_3.py  # hand, 14 Nov (v1.6: RAIN, PLANT_BANDS, BAND_DAYS, BAND_COL literals only)
 bergama_slide01: Data/bergama_pages_common.py  # hand, 14 Nov
 bergama_slide01: scripts/bergama_p02_what_is_there_v2_11.py  # hand, 14 Nov
 bergama_slide01: scripts/bergama_page01_axo_v1_6.py  # hand, 14 Nov
