@@ -25,7 +25,7 @@ Items are the Basemap writer's tuples (page mm, y up):
 """
 import os, re, json, math, time, glob
 
-PC_VERSION = "v3.16"  # v3.16: pc_loop names=True (stop names on the map), every stop outside the frame gets an edge arrow, the stream walk in either loop order (loop numbered from Asklepion, Aras 16:26); v3.15: SiteMap / pc_site_map (the map frame = site_alan turned flat, Aras 16:17 UTC "KEEP EVERY DRAWING STRICTLY IN SITE_ALAN"), pc_loop edge arrows to stops outside it, pc_north_items; v3.14: pc_cut_mark = two end arrows, no line between (Aras 16:05 UTC); v3.13: v3.13: pc_mp_data (MasterplanBase: the masterplan SVG cached in survey m); v3.12: pc_cut_mark, the R01 cut symbol (two arrows, Aras 15:37 UTC); v3.11: pc_loop (the heritage loop, one code for the heritage and the transit map; Aras 15:31) and pc_station_name; v3.10: pc_a3_den / pc_a3 (a map page fitted and centred on A3 or a slide panel, Aras 15:25-15:27 UTC); v3.9: no sources in the drawings (Aras 15:23 UTC): pc_nosrc on MapBase legend rows, empty credit skipped; v3.8: a name with no free place goes where it overlaps least (run 7); v3.7: Labels.block_line / block_items (names keep off lines: run 6 review); v3.6: the outside Python runs hidden (no console window, Aras 14 Nov 12:57 UTC); v3.5: frame check skips items with any clip id; pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
+PC_VERSION = "v3.17"  # v3.17: SiteMap ring + b (survey box), pc_site_den, pc_north_deg, pc_sheet cols + span (legend columns beside a site_alan strip); v3.16: pc_loop names=True (stop names on the map), every stop outside the frame gets an edge arrow, the stream walk in either loop order (loop numbered from Asklepion, Aras 16:26); v3.15: SiteMap / pc_site_map (the map frame = site_alan turned flat, Aras 16:17 UTC "KEEP EVERY DRAWING STRICTLY IN SITE_ALAN"), pc_loop edge arrows to stops outside it, pc_north_items; v3.14: pc_cut_mark = two end arrows, no line between (Aras 16:05 UTC); v3.13: v3.13: pc_mp_data (MasterplanBase: the masterplan SVG cached in survey m); v3.12: pc_cut_mark, the R01 cut symbol (two arrows, Aras 15:37 UTC); v3.11: pc_loop (the heritage loop, one code for the heritage and the transit map; Aras 15:31) and pc_station_name; v3.10: pc_a3_den / pc_a3 (a map page fitted and centred on A3 or a slide panel, Aras 15:25-15:27 UTC); v3.9: no sources in the drawings (Aras 15:23 UTC): pc_nosrc on MapBase legend rows, empty credit skipped; v3.8: a name with no free place goes where it overlaps least (run 7); v3.7: Labels.block_line / block_items (names keep off lines: run 6 review); v3.6: the outside Python runs hidden (no console window, Aras 14 Nov 12:57 UTC); v3.5: frame check skips items with any clip id; pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
 PC_NOWIN = 0x08000000 if os.name == "nt" else 0   # v3.6: CREATE_NO_WINDOW for the review-PNG / photo subprocesses
 PC_DATA = os.path.join("Data", "bergama_access_heritage.json")
 PC_CENTRE = os.path.join("Data", "selinos_centreline.json")
@@ -404,9 +404,11 @@ class SiteMap(Map):
             corners = lib["FRAME_COPY"]
             log.append(u"site_alan: the Basemap's built-in copy (no frame in %s)" % p)
         self.F = lib["Frame"]([tuple(c) for c in corners])
+        self.ring = [tuple(c[:2]) for c in corners]       # v3.17: the corners (survey m) and their bounding box
         self.den = float(den)
         self.k = 1000.0 / self.den
-        self.b = None
+        self.b = (min(c[0] for c in self.ring), min(c[1] for c in self.ring), max(c[0] for c in self.ring),
+                  max(c[1] for c in self.ring))
         self.mw, self.mh = self.F.w * self.k, self.F.h * self.k
         self.x0, self.y0 = PC_MARGIN_MM, PC_MARGIN_MM
         self.w = self.x0 + self.mw + 8.0 + PC_SIDE_MM + PC_MARGIN_MM
@@ -423,6 +425,20 @@ class SiteMap(Map):
 
 def pc_site_map(den, log):
     return SiteMap(den, log)
+
+
+def pc_site_den(M, page, side_w, below_h=0.0, step=500.0):
+    """v3.17: the smallest round scale at which the site_alan map (M: a SiteMap at any scale) + side_w mm right of it
+    (legend columns) fit the page across, with below_h mm kept under the map"""
+    fw = page[0] - 2 * PC_MARGIN_MM - 8.0 - side_w
+    fh = page[1] - 2 * PC_MARGIN_MM - below_h
+    den = max(M.F.w * 1000.0 / max(fw, 1.0), M.F.h * 1000.0 / max(fh, 1.0))
+    return int(math.ceil(den / step) * step)
+
+
+def pc_north_deg(north):
+    """v3.17: a SiteMap's north (page vector) as pc_sheet's north angle (deg clockwise)"""
+    return math.degrees(math.atan2(north[0], north[1]))
 
 
 def pc_north_items(cx, cy, r, north, col, layer="north_scale"):
@@ -720,45 +736,57 @@ def pc_cut_mark(a, b, look, name, col="C0392B", layer="section_lines", ts=2.5):
 
 
 # ================================================================ sheet furniture (right-hand column)
-def pc_sheet(M, K, lib, title, sub, legend, notes, credit, north=0.0, bar_note=None):
+def pc_sheet(M, K, lib, title, sub, legend, notes, credit, north=0.0, bar_note=None, cols=1, span=None):
     """legend = [(draw(x, y) -> items, label)], swatch 10 x 5 mm; (None, text) = a bold header row; notes = [text];
-    returns items"""
+    v3.17: cols = legend columns side by side (title across them, notes in the last); span = (bottom, top) page y of
+    the column when it is taller than the map (a strip map: north and scale at the span's foot); returns items"""
     it = []
     tm = K["text_mm"]
     INK = K["ink"]
     tw = lib["text_w"]
     x = M.box[2] + 8.0
     W = PC_SIDE_MM
-    y = M.box[3] - tm["title"]
-    for ln in wrap(title.upper(), tm["title"], W, tw, True):
+    ybot, ytop = span if span else (M.box[1], M.box[3])
+    y = ytop - tm["title"]
+    for ln in wrap(title.upper(), tm["title"], W * cols + 6.0 * (cols - 1), tw, True):
         it.append(T_(ln, x, y, tm["title"], INK, "title", True))
         y -= tm["title"] * 1.25
     y -= 1.0
-    for ln in wrap(sub, tm["sub"], W, tw):
+    for ln in wrap(sub, tm["sub"], W * cols + 6.0 * (cols - 1), tw):
         it.append(T_(ln, x, y, tm["sub"], INK, "title"))
         y -= tm["sub"] * 1.4
     y -= 5.0
-    for draw, label in legend:
-        if draw is None:                                 # a header row (EXISTING ... / PROPOSAL MARKS), as the node pages
-            y -= 1.5
-            it.append(T_(label, x, y, tm["legend"], INK, "legend", True))
-            y -= 6.0
-            continue
-        it += draw(x + 5.0, y + 1.0)
-        lines = wrap(label, tm["legend"], W - 14.0, tw)
-        yy = y
-        for ln in lines:
-            it.append(T_(ln, x + 13.0, yy, tm["legend"], INK, "legend"))
-            yy -= tm["legend"] * 1.3
-        y = min(y - 6.0, yy - 2.0)
+    n_ = len(legend)
+    cut = [int(round(n_ * i / float(cols))) for i in range(cols + 1)]
+    for i in range(1, cols):                             # v3.17: a column never ends with a header row
+        while 0 < cut[i] < n_ and legend[cut[i] - 1][0] is None:
+            cut[i] -= 1
+    y_leg, x0c = y, x
+    for c_ in range(cols):
+        x = x0c + c_ * (W + 6.0)
+        y = y_leg
+        for draw, label in legend[cut[c_]:cut[c_ + 1]]:
+            if draw is None:                             # a header row (EXISTING ... / PROPOSAL MARKS), as the node pages
+                y -= 1.5
+                it.append(T_(label, x, y, tm["legend"], INK, "legend", True))
+                y -= 6.0
+                continue
+            it += draw(x + 5.0, y + 1.0)
+            lines = wrap(label, tm["legend"], W - 14.0, tw)
+            yy = y
+            for ln in lines:
+                it.append(T_(ln, x + 13.0, yy, tm["legend"], INK, "legend"))
+                yy -= tm["legend"] * 1.3
+            y = min(y - 6.0, yy - 2.0)
     y -= 3.0
     for nt in notes:
         for ln in wrap(nt, tm["small"] + 0.2, W, tw):
             it.append(T_(ln, x, y, tm["small"] + 0.2, INK, "notes"))
             y -= (tm["small"] + 0.2) * 1.4
         y -= 1.5
+    x = x0c
     # north arrow + scale bar under the column, above the credit
-    yb = M.box[1] + 30.0
+    yb = ybot + 30.0
     cx, cy, r = x + 7.0, yb + 7.0, 5.5
     it.append(P_([circle(cx, cy, r, 48)], None, INK, 0.2, "north_scale"))
     ca_, sa_ = math.cos(math.radians(north)), math.sin(math.radians(north))   # v3.5: north turned clockwise (deg)
@@ -777,7 +805,7 @@ def pc_sheet(M, K, lib, title, sub, legend, notes, credit, north=0.0, bar_note=N
     it.append(T_(u"1:%s" % format(int(M.den), ",d"), xb, yb2 + 4.0, 3.2, INK, "north_scale", True))
     if bar_note:
         it.append(T_(bar_note, xb, yb2 - 6.2, 2.0, INK, "north_scale"))
-    yc = M.box[1] + 20.0
+    yc = ybot + 20.0
     for ln in (wrap(credit, tm["small"], W, tw) if credit else []):   # v3.9: no credit line (no sources)
         it.append(T_(ln, x, yc, tm["small"], "6E6C66", "credit"))
         yc -= tm["small"] * 1.4
