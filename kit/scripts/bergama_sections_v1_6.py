@@ -2083,7 +2083,7 @@ def _scale_it(it, f, o=(0.0, 0.0), lw=False):
 # The plan pieces come from the MasterplanBase cache (his B19_setB_layers259.svg in survey m, built once by the slide 2
 # chain); each layer the cut crosses is given a designed section form (DESIGN INTENT, ours: the plan holds no levels).
 # The existing context stays survey data.
-MP_CACHE = os.path.join(BERGAMA_ROOT, "cached", "bergama_masterplan_base", "masterplan_layers.json")
+MP_CACHE = os.path.join(BERGAMA_ROOT, "cached", "bergama_masterplanbase", "masterplan.json")   # MasterplanBase v1
 MP_KIND = {"teras": "terrace", "iskele_kenari": "deck", "kanopi": "canopy", "teras_-_canopy": "canopy",
            "desings": "pavilion", "kopruler": "bridge", "istinaat": "wall", "yuruyus": "walk", "normal": "walk",
            "yol_kenar": "walk", "path": "bridge", "duzenlenmis": "plaza", "yeni": "cycle", "bisiklet": "cycle",
@@ -2106,12 +2106,14 @@ def mp_load(log):
     except (IOError, OSError, ValueError) as ex:
         log.append(u"FLAG masterplan: no MasterplanBase cache (%s): the sections show the survey only" % ex)
         return {}
-    L = J.get("layers", J)
+    # MasterplanBase v1: {"layers": {"a/b/c": [[kind, fill, stroke, width_m, [[x, y], ...]], ...]}}; the innermost id
+    # names the thing; kind r = ring, l = open line, a = clip outline of a picture group (its area), s = a loose stamp
     out = {}
-    for lid, pieces in L.items():
+    for key, pieces in J.get("layers", {}).items():
+        lid = key.split("/")[-1]
         if lid in MP_KIND:
-            out[lid] = [(bool(p.get("closed", True)), [tuple(q) for q in p.get("ring") or p.get("pts") or []])
-                        if isinstance(p, dict) else (True, [tuple(q) for q in p]) for p in pieces]
+            out.setdefault(lid, []).extend((p[0] != "l", [tuple(q) for q in p[4]]) for p in pieces
+                                           if p[0] in ("r", "l", "a") and len(p[4]) >= 2)
     log.append(u"masterplan: %s, %s" % (MP_CACHE, u", ".join(u"%s %d" % (k, len(v)) for k, v in sorted(out.items()))))
     return out
 
