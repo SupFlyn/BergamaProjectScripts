@@ -45,7 +45,7 @@ Writes ~/Downloads/Bergama/output/bergama_sections/Sections.pdf          ONE pag
 import os, re, time, json, math, bisect, glob, random
 
 # ---- SETTINGS ----
-VERSION = "v1.7"   # v1.7 (Aras 14 Nov 15:25-15:35): all 12 cuts on ONE A3 landscape sheet, no 1:x printed; planting drawn at 1:75 and scaled to the page (true proportions), no soil root hairs; cut houses as plain silhouettes; houses behind more detailed (plinth, tiles, chimney, sills, glazing bars, shutters, balconies, door hood) and up to 200 m behind
+VERSION = "v1.8"   # v1.8 (Aras 14 Nov 15:38-15:41): the sections are the masterplan in 3D: every piece of his plan the cut crosses (MasterplanBase cache of B19_setB_layers259.svg) drawn as a designed form (stepped terraces as the finished ground, promenade and cycle paving, retaining walls, boulders, water decks, lens footbridges, saddle-shell canopies on steel trees, sedum-roof pavilions; canopies and pavilions behind the cut in elevation), heights design intent; v1.7 (Aras 14 Nov 15:25-15:35): all 12 cuts on ONE A3 landscape sheet, no 1:x printed; planting drawn at 1:75 and scaled to the page (true proportions), no soil root hairs; cut houses as plain silhouettes; houses behind more detailed (plinth, tiles, chimney, sills, glazing bars, shutters, balconies, door hood) and up to 200 m behind
 GH_LABEL = "Sections"
 OUT_FOLDER = "bergama_sections"
 LOG_NAME = "bergama_sections_log.txt"
@@ -764,8 +764,10 @@ class Sec(object):
         self.channel = (C.s_th, C.s_th)
         if not C.is_s4 and WALL_BED[0] <= C.z_th <= WALL_BED[1]:
             self._wall_channel()
+        mp_surface(self)                                    # v1.8: the plan's terraces become the ground
         if not C.is_s4:
             self._rule_planting(sea)
+        mp_planting(self)
 
     def _wall_channel(self):
         """v1.6.2: the walled town reach as a walled channel (run 2 drew 0.6 m posts standing on the pre-wall survey
@@ -867,7 +869,8 @@ class Sec(object):
     def built(self, s):
         """on a road or inside a building the line cuts: no planting, no people"""
         C = self.C
-        return any(a <= s <= b for a, b in C.roads) or any(t[4] and t[0] <= s <= t[1] for t in C.bld)
+        return (any(a <= s <= b for a, b in C.roads) or any(t[4] and t[0] <= s <= t[1] for t in C.bld)
+                or any(t[4] and t[0] in HARD and t[1] <= s <= t[2] for t in getattr(C, "mp", [])))
 
     def _rule_planting(self, sea):
         """design intention (ours): reeds and iris on the wet bed (up to WET_BAND_M above the bed, never in the strip),
@@ -1137,6 +1140,7 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
         pg.poly([[S.P(x, min(S.surf(x), base)) for x in gs] + [S.P(b, base), S.P(a, base)]], fill=BACK_FILL, stroke=None,
                 layer="ground behind")
         house(pg, S, a, b, base, h, fl, dist)
+    mp_structures(pg, S, C, True)                       # v1.8: canopies / pavilions behind the cut
     done_ = []
     for a, b, zb_, h, is_cut, dist, fl in C.bld:
         a, b = max(a, S.lo), min(b, S.hi)
@@ -1195,6 +1199,7 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
         top = [(a + (b - a) * i / n) for i in range(n + 1)]
         ring = [S.P(x, S.surf(x)) for x in top] + [S.P(x, S.surf(x) - ROAD_T) for x in reversed(top)]
         pg.poly([ring], fill=ROAD_FILL, stroke=None, layer="context roads")
+    mp_ground(pg, S, C)                                 # v1.8: paving, terrace nosings, walls, boulders
     def _plants(pg_):
         for a, b in d["grass"]:
             a, b = max(a, S.lo + 0.1), min(b, S.hi - 0.1)               # v1.6.7: blades stay inside the frame
@@ -1217,6 +1222,7 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
         joined_level(E, pg, S, C.z_th, u"continuous strip %+.2f, 0.30 m (design)" % C.z_th, None,
                      colour=E["FLOOD"], fill=True, line=not filled)
     wl = max([C.z_th if held else -99.0] + [w[0] for w in filled])
+    mp_structures(pg, S, C, False)                      # v1.8: the plan's structures on the cut, over the water
     for s, kind, flip in people:
         g = S.surf(s)
         if g < wl + 0.02 and kind != 8:
@@ -2056,6 +2062,278 @@ def _scale_it(it, f, o=(0.0, 0.0), lw=False):
     return it
 
 
+# ================================================================ v1.8 the masterplan in section (Aras 14 Nov 15:38-15:41)
+# "please take these from the masterplan that i have given you anything that concerns masterplans that should use it";
+# "sections should be 3Dified version of the masterplan"; "if things that we have drawn does not have a 3D version of
+# them like canopies be creative with them"; "feel free to invent there for our proposals"; "things that you propose
+# should look like competition buildings or canopies ... designed by starchitects"; "make them as detailed as you can".
+# The plan pieces come from the MasterplanBase cache (his B19_setB_layers259.svg in survey m, built once by the slide 2
+# chain); each layer the cut crosses is given a designed section form (DESIGN INTENT, ours: the plan holds no levels).
+# The existing context stays survey data.
+MP_CACHE = os.path.join(BERGAMA_ROOT, "cached", "bergama_masterplan_base", "masterplan_layers.json")
+MP_KIND = {"teras": "terrace", "iskele_kenari": "deck", "kanopi": "canopy", "teras_-_canopy": "canopy",
+           "desings": "pavilion", "kopruler": "bridge", "istinaat": "wall", "yuruyus": "walk", "normal": "walk",
+           "yol_kenar": "walk", "path": "bridge", "duzenlenmis": "plaza", "yeni": "cycle", "bisiklet": "cycle",
+           "kesin_yesil": "green", "belki_yesil": "green", "su_bitkii": "reeds", "tas": "stones"}
+MP_BEHIND_M = 60.0                 # m: canopies and pavilions this far behind the cut are drawn in elevation
+MP_LABEL = {"terrace": u"Stepped terraces", "deck": u"Water deck", "canopy": u"Canopy", "pavilion": u"Pavilion",
+            "bridge": u"Footbridge", "wall": u"Retaining wall", "walk": u"Promenade", "plaza": u"Square",
+            "cycle": u"Cycle path"}
+HARD = ("terrace", "deck", "walk", "plaza", "cycle", "pavilion")
+RISE_M, SEAT_TREAD_M = 0.45, 0.9   # terrace seat steps (design)
+P_CONC, P_CONC_LT, P_TIMBER, P_STEEL = "BDB7AA", "D9D4C8", "A9794B", "4F5559"
+P_GLASS, P_SHELL, P_GREEN, P_PAVE, P_CYCLE = "B9CDD3", "F5F3EE", "8E9E6A", "C9C0AE", "B3735A"
+
+
+def mp_load(log):
+    """{layer id: [(closed, [(x, y), ...]), ...]} in survey m from the MasterplanBase cache; {} when missing"""
+    try:
+        with open(MP_CACHE, encoding="utf-8") as f:
+            J = json.load(f)
+    except (IOError, OSError, ValueError) as ex:
+        log.append(u"FLAG masterplan: no MasterplanBase cache (%s): the sections show the survey only" % ex)
+        return {}
+    L = J.get("layers", J)
+    out = {}
+    for lid, pieces in L.items():
+        if lid in MP_KIND:
+            out[lid] = [(bool(p.get("closed", True)), [tuple(q) for q in p.get("ring") or p.get("pts") or []])
+                        if isinstance(p, dict) else (True, [tuple(q) for q in p]) for p in pieces]
+    log.append(u"masterplan: %s, %s" % (MP_CACHE, u", ".join(u"%s %d" % (k, len(v)) for k, v in sorted(out.items()))))
+    return out
+
+
+def mp_for(C, MP):
+    """C.mp = [(kind, s0, s1, distance behind, cut?)]: the plan pieces the line cuts (even-odd spans of closed rings,
+    crossing points of open lines) and canopies / pavilions up to MP_BEHIND_M behind it"""
+    C.mp = []
+    w0, w1 = C.window
+    for lid, pieces in MP.items():
+        kind = MP_KIND[lid]
+        for closed, r in pieces:
+            if len(r) < 2:
+                continue
+            so = [C.su(q[0], q[1]) for q in r]
+            segs = list(zip(so, so[1:] + so[:1])) if closed else list(zip(so[:-1], so[1:]))
+            xs = sorted(sa + (sb - sa) * (0.0 - oa) / (ob - oa) for (sa, oa), (sb, ob) in segs if (oa < 0.0) != (ob < 0.0))
+            if not closed:
+                C.mp += [(kind, x - 0.3, x + 0.3, 0.0, True) for x in xs if w0 < x < w1]
+                continue
+            for a, b in zip(xs[0::2], xs[1::2]):
+                a, b = max(a, w0), min(b, w1)
+                if b - a > 0.3:
+                    C.mp.append((kind, a, b, 0.0, True))
+            if not xs and kind in ("canopy", "pavilion"):
+                omin = min(o for _, o in so)
+                a, b = max(min(s for s, _ in so), w0), min(max(s for s, _ in so), w1)
+                if 0.0 < omin <= MP_BEHIND_M and b - a > 1.0:
+                    C.mp.append((kind, a, b, omin, False))
+    C.mp.sort(key=lambda t: (-t[3], t[1]))
+    n = {}
+    for t in C.mp:
+        n[t[0]] = n.get(t[0], 0) + 1
+    C.notes.append(u"line %d masterplan pieces on the cut: %s (forms and heights: design intent, ours)" % (
+        C.n, u", ".join(u"%s %d" % kv for kv in sorted(n.items())) or u"none"))
+
+
+def mp_surface(S):
+    """the terraces the plan draws on this cut become the finished ground: seat steps of RISE_M stepping down toward
+    the stream from the plan edge's survey level to the summer water (design intent)"""
+    C = S.C
+    for kind, a, b, dist, cut in getattr(C, "mp", []):
+        if kind != "terrace" or not cut:
+            continue
+        down = 1.0 if abs(b - C.s_th) < abs(a - C.s_th) else -1.0     # the end nearer the stream is the low end
+        hi_s, lo_s = (a, b) if down > 0 else (b, a)
+        z_hi, z_lo = S.ex(hi_s), max(S.ex(lo_s), C.z_th + 0.3)
+        if z_hi - z_lo < RISE_M:
+            continue
+        if S.walled and a < S.walled[1] and b > S.walled[0]:
+            continue                                                    # never inside the walled channel
+        n = max(1, min(int((z_hi - z_lo) / RISE_M), int(abs(b - a) / 0.6)))
+        r_, t_ = (z_hi - z_lo) / n, abs(b - a) / n
+        pts = []
+        for i in range(n):
+            s0, z0 = hi_s + down * i * t_, z_hi - i * r_
+            pts += [(s0, z0), (s0 + down * t_, z0), (s0 + down * t_, z0 - r_)]
+        if down < 0:
+            pts.reverse()
+        V = [p for p in S.V if p[0] < a - 1e-6] + [(a, S.surf(a))] + pts + [(b, S.surf(b))]
+        S.V = V + [p for p in S.V if p[0] > b + 1e-6]
+        S._xs = None
+        S.d.setdefault("mp_steps", []).append((a, b, n, r_, t_, down, z_hi))
+
+
+def _sh(pg, ring, fill, layer, stroke=None, lw=0.08):
+    pg.poly([ring], fill=fill, stroke=stroke, lw=lw, layer=layer)
+
+
+def mp_ground(pg, S, C):
+    """paving, cycle path, square, terrace nosings and benches, retaining walls, boulders: on the finished ground"""
+    K = S.K
+    for kind, a, b, dist, cut in getattr(C, "mp", []):
+        if not cut:
+            continue
+        n = max(2, int((b - a) / 0.5))
+        top = [a + (b - a) * i / n for i in range(n + 1)]
+        if kind in ("walk", "plaza", "cycle"):
+            col, th = (P_CYCLE, 0.12) if kind == "cycle" else (P_PAVE, 0.25)
+            _sh(pg, [S.P(x, S.surf(x)) for x in top] + [S.P(x, S.surf(x) - th) for x in reversed(top)], col,
+                "proposal ground", INK_CUT, 0.12)
+            if 0.6 * K >= 0.6:                                              # paving joints
+                for x in top[1:-1]:
+                    pg.line([S.P(x, S.surf(x)), S.P(x, S.surf(x) - th)], INK_CUT, 0.04, layer="proposal ground")
+        elif kind == "wall":
+            m = (a + b) / 2.0
+            zl, zh = min(S.ex(m - 1.5), S.ex(m + 1.5)), max(S.ex(m - 1.5), S.ex(m + 1.5))
+            _sh(pg, [S.P(m - 0.35, zl - 0.8), S.P(m + 0.35, zl - 0.8), S.P(m + 0.35, zh + 0.9), S.P(m - 0.35, zh + 0.9)],
+                WALL_FILL, "proposal ground", INK_CUT, 0.25)
+            _sh(pg, [S.P(m - 0.45, zh + 0.9), S.P(m + 0.45, zh + 0.9), S.P(m + 0.45, zh + 1.02),
+                     S.P(m - 0.45, zh + 1.02)], P_CONC_LT, "proposal ground")            # coping
+        elif kind == "stones":
+            rg = random.Random(u"%.1f" % a)
+            x = a + 0.4
+            while x < b - 0.4:
+                r_ = 0.25 + 0.35 * rg.random()
+                cx, cy = S.P(x, S.surf(x))
+                pg.poly([[(cx + r_ * K * math.cos(t) * 1.3, cy + r_ * K * (0.75 * math.sin(t) + 0.45))
+                          for t in [k * math.pi / 8 for k in range(16)]]], fill="9C968A", stroke="6E675E", lw=0.04,
+                        layer="proposal ground")
+                x += 2 * r_ + 0.3 + 1.2 * rg.random()
+    for a, b, n, r_, t_, down, z_hi in S.d.get("mp_steps", []):
+        for i in range(n):                                              # precast nosing on every riser, a timber
+            s0 = (a if down > 0 else b) + down * (i + 1) * t_         # bench top on every second tread
+            z0 = z_hi - (i + 1) * r_
+            _sh(pg, [S.P(s0 - 0.12 * down, z0 - 0.0), S.P(s0, z0), S.P(s0, z0 + r_), S.P(s0 - 0.12 * down, z0 + r_)],
+                P_CONC_LT, "proposal ground", INK_CUT, 0.06)
+            if i % 2 == 0 and t_ >= SEAT_TREAD_M * 0.6:
+                zt = z0 + r_
+                _sh(pg, [S.P(s0 - down * t_ * 0.85, zt), S.P(s0 - down * 0.15, zt), S.P(s0 - down * 0.15, zt + 0.06),
+                         S.P(s0 - down * t_ * 0.85, zt + 0.06)], P_TIMBER, "proposal ground")
+
+
+def _canopy(pg, S, a, b, g, fade, layer, rg):
+    """a signature canopy: a thin saddle shell rising to its two ends (3.6 m low, 6.0 m tips), tapering from 0.35 m
+    to a 0.08 m edge, on branching steel trees every ~9 m; timber ribs on its soffit (design intent, ours)"""
+    K = S.K
+    n = max(8, int((b - a) / 0.5))
+    ts = [i / float(n) for i in range(n + 1)]
+    zt = [g + 3.6 + 2.4 * (2 * t - 1) ** 2 for t in ts]
+    th = [0.08 + 0.27 * (1 - abs(2 * t - 1)) for t in ts]
+    xs = [a + (b - a) * t for t in ts]
+    shell, steel, rib = _mix(P_SHELL, SKY_LOW, fade), _mix(P_STEEL, SKY_LOW, fade), _mix(P_TIMBER, SKY_LOW, fade)
+    m = max(1, int(round((b - a) / 9.0)))
+    for j in range(m):                                                   # the steel trees
+        x = a + (b - a) * (j + 0.5) / m
+        t = (x - a) / (b - a)
+        zr = g + 3.6 + 2.4 * (2 * t - 1) ** 2 - 0.3
+        zk = g + (zr - g) * 0.55
+        pg.line([S.P(x, g), S.P(x, zk)], steel, max(0.05, 0.28 * K), layer=layer)
+        for dx in (-2.2, 0.0, 2.2):
+            pg.line([S.P(x, zk), S.P(x + dx, zr)], steel, max(0.04, 0.14 * K), layer=layer)
+    if 0.8 * K >= 0.5:
+        for x, z, h in zip(xs, zt, th):
+            pg.line([S.P(x, z - h), S.P(x, z - h - 0.18)], rib, 0.05, layer=layer)
+    _sh(pg, [S.P(x, z) for x, z in zip(xs, zt)] + [S.P(x, z - h) for x, z, h in reversed(list(zip(xs, zt, th)))],
+        shell, layer, _mix(INK_CUT, SKY_LOW, fade), 0.12)
+
+
+def _pavilion(pg, S, a, b, g, fade, layer, rg, towards):
+    """a competition pavilion: a timber-and-glass hall under a sedum roof blade that sweeps up toward the stream and
+    cantilevers 4 m past the glass, on slender columns, vertical fins (design intent, ours)"""
+    K = S.K
+    lo_h, hi_h = 4.2, 7.5
+    ga, gb = a + (b - a) * 0.12, b - (b - a) * 0.12
+    def zr(x):
+        t = (x - a) / max(b - a, 1e-6)
+        t = t if towards > 0 else 1 - t
+        return g + lo_h + (hi_h - lo_h) * t ** 1.6
+    glass, steel, green = _mix(P_GLASS, SKY_LOW, fade), _mix(P_STEEL, SKY_LOW, fade), _mix(P_GREEN, SKY_LOW, fade)
+    shell, timber = _mix(P_SHELL, SKY_LOW, fade), _mix(P_TIMBER, SKY_LOW, fade)
+    _sh(pg, [S.P(ga, g), S.P(gb, g), S.P(gb, zr(gb) - 0.5), S.P(ga, zr(ga) - 0.5)], glass, layer, steel, 0.08)
+    x = ga
+    while x < gb - 0.1:                                                  # fins
+        if 1.2 * K >= 0.6:
+            pg.line([S.P(x, g), S.P(x, zr(x) - 0.5)], timber, max(0.04, 0.12 * K), layer=layer)
+        x += 1.2
+    n = max(6, int((b - a) / 0.5))
+    xs = [a + (b - a) * i / n for i in range(n + 1)]
+    _sh(pg, [S.P(x, zr(x)) for x in xs] + [S.P(x, zr(x) - 0.45) for x in reversed(xs)], shell, layer,
+        _mix(INK_CUT, SKY_LOW, fade), 0.12)
+    _sh(pg, [S.P(x, zr(x) + 0.12) for x in xs] + [S.P(x, zr(x)) for x in reversed(xs)], green, layer)
+    c = ga + 0.3
+    while c < gb:                                                        # slender columns
+        pg.line([S.P(c, g), S.P(c, zr(c) - 0.45)], steel, max(0.04, 0.2 * K), layer=layer)
+        c += 6.0
+    _sh(pg, [S.P(a, g - 0.15), S.P(b, g - 0.15), S.P(b, g), S.P(a, g)], P_CONC, layer)
+
+
+def _bridge(pg, S, a, b, layer):
+    """a footbridge as a thin lens: a 0.35 m timber deck on a shallow steel lens 1.2 m deep at mid-span, blade posts
+    and a handrail (design intent, ours)"""
+    K = S.K
+    z = max(S.ex(a), S.ex(b)) + 0.2
+    n = max(8, int((b - a) / 0.5))
+    xs = [a + (b - a) * i / n for i in range(n + 1)]
+    low = [z - 0.35 - 1.2 * math.sin(math.pi * i / n) for i in range(n + 1)]
+    _sh(pg, [S.P(x, z) for x in xs] + [S.P(x, l_) for x, l_ in reversed(list(zip(xs, low)))], P_STEEL, layer, INK_CUT, 0.2)
+    _sh(pg, [S.P(a, z), S.P(b, z), S.P(b, z - 0.12), S.P(a, z - 0.12)], P_TIMBER, layer)
+    pg.line([S.P(a, z + 1.1), S.P(b, z + 1.1)], P_STEEL, max(0.05, 0.06 * K), layer=layer)
+    x = a
+    while x <= b and 1.5 * K >= 0.4:
+        pg.line([S.P(x, z), S.P(x, z + 1.1)], P_STEEL, 0.04, layer=layer)
+        x += 1.5
+
+
+def _deck(pg, S, a, b, layer):
+    """a water deck cantilevered from the bank: timber on a tapering steel bracket, glass balustrade (design intent)"""
+    K = S.K
+    z = max(S.surf(a), S.surf(b))
+    _sh(pg, [S.P(a, z), S.P(b, z), S.P(b, z - 0.12), S.P(a, z - 0.6)], P_STEEL, layer, INK_CUT, 0.15)
+    _sh(pg, [S.P(a, z), S.P(b, z), S.P(b, z - 0.08), S.P(a, z - 0.08)], P_TIMBER, layer)
+    _sh(pg, [S.P(a, z), S.P(b, z), S.P(b, z + 1.1), S.P(a, z + 1.1)], P_GLASS, layer, P_STEEL, max(0.04, 0.05 * K))
+
+
+def mp_structures(pg, S, C, behind):
+    """canopies, pavilions (behind the cut: in elevation, toned with distance; on the cut: in front), bridges, decks"""
+    for kind, a, b, dist, cut in getattr(C, "mp", []):
+        if behind == cut:
+            continue
+        rg = random.Random(u"%s%.1f" % (kind, a))
+        fade = H_FADE * min(1.0, dist / BACK_M) if not cut else 0.0
+        layer = "proposal behind" if not cut else "proposal structures"
+        g = max(S.surf((a + b) / 2.0), S.ex((a + b) / 2.0)) if cut else (max(S.surf(a), S.surf(b)))
+        towards = 1.0 if C.s_th > (a + b) / 2.0 else -1.0
+        if kind == "canopy":
+            _canopy(pg, S, a, b, g, fade, layer, rg)
+        elif kind == "pavilion":
+            _pavilion(pg, S, a, b, g, fade, layer, rg, towards)
+        elif cut and kind == "bridge":
+            _bridge(pg, S, a, b, layer)
+        elif cut and kind == "deck":
+            _deck(pg, S, a, b, layer)
+
+
+def mp_planting(S):
+    """the plan's green and water planting on the cut: meadow, a tree every ~9 m on 'kesin yesil' (sure green), reeds
+    on 'su bitkii' (design intent)"""
+    d = S.d
+    for kind, a, b, dist, cut in getattr(S.C, "mp", []):
+        if not cut:
+            continue
+        if kind == "green":
+            d["grass"].append((a, b))
+            x = a + 4.0
+            while x < b - 3.0:
+                d["trees"].append((x, 3.0, 9.0, 0))
+                x += 9.0
+        elif kind == "reeds":
+            d["reeds"].append((a, b, 2.0))
+    for kind in set(k for k, a, b, dist, cut in getattr(S.C, "mp", []) if cut and k in MP_LABEL):
+        a, b = max(((t[1], t[2]) for t in S.C.mp if t[0] == kind and t[4]), key=lambda r: r[1] - r[0])
+        d["callouts"].append(((a + b) / 2.0, None, MP_LABEL[kind]))
+
+
 PLANT_DEN = 75.0                   # v1.7: the engine's planting pieces are sized for 1:75 (engine SCALE)
 
 
@@ -2147,6 +2425,7 @@ def main():
                 C.is_s4 = True
         cuts.append(C)
     BM = load_basemap(log)
+    MP = mp_load(log)                                   # v1.8: the masterplan (MasterplanBase cache)
     # the survey is read ONCE for all lines (build once, Aras 29 Oct): the box holds every line's corridor
     pad = max(CORRIDOR_STEPS[-1], SLOPE_HALF + 20.0) + HYD_HALF
     xs = [p[0] for C in cuts for p in (C.A, C.B)]
@@ -2160,6 +2439,7 @@ def main():
         try:
             C.survey = survey
             build_cut(C, CL, cum, E, log, BM)
+            mp_for(C, MP)
             pages.append(C)
         except Exception as ex:
             import traceback as _tb
