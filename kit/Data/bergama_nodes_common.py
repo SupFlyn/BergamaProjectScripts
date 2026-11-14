@@ -17,7 +17,7 @@ Reads the newest scripts/bergama_basemap_v*, bergama_p02_what_is_there_v*, berga
 """
 import os, re, glob, json, math, time
 
-NC_VERSION = "v7.4"   # v7.4: cut marks = two end arrows, no line between (pages_common v3.14); v7.3: v7.3: scale + north ignore the node frame line; v7.2: v7.2: the proposal from his masterplan SVG (MasterplanBase cache); v7.1: v7.1: R01 cut arrows (pc_cut_mark), no city-square ring, land-use columns >= 45 mm; v7: v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
+NC_VERSION = "v7.5"   # v7.5: section_lines v2 (B along the bank: looks at the stream, no water bars); v7.4: v7.4: cut marks = two end arrows, no line between (pages_common v3.14); v7.3: v7.3: scale + north ignore the node frame line; v7.2: v7.2: the proposal from his masterplan SVG (MasterplanBase cache); v7.1: v7.1: R01 cut arrows (pc_cut_mark), no city-square ring, land-use columns >= 45 mm; v7: v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
 ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 PAGE_W, PAGE_H = 420.0, 297.0
 NODE_MARGIN_M = 25.0                       # m of town round the node frame on the plan
@@ -123,6 +123,7 @@ class Cut(object):
             u = ((a[0] - self.A[0]) * (self.B[1] - self.A[1]) - (a[1] - self.A[1]) * (self.B[0] - self.A[0])) / d
             if 0.0 <= t <= 1.0 and 0.0 <= u <= 1.0 and (sc is None or t < sc):
                 sc = t
+        self.crosses = sc is not None                     # v7.5: section_lines v2: B runs along the bank
         self.s_th = (sc if sc is not None else 0.5) * self.L
 
     def xy(self, s):
@@ -501,7 +502,12 @@ def node_page(cfg, log):
     for C in cuts:
         s0, s1 = C.window if C in done else (0.0, C.L)
         pa, pb = C.xy(s0), C.xy(s1)
-        dl = X["cl_project"](CL, cum, *C.xy(C.s_th))[2]
+        if C.crosses:                                     # across the stream: looking downstream
+            dl = X["cl_project"](CL, cum, *C.xy(C.s_th))[2]
+        else:                                             # v7.5 along the bank (section_lines v2 B): at the stream
+            mid = C.xy((s0 + s1) / 2.0)
+            near = min(CL, key=lambda c_: G["pc_dist"](c_, mid))
+            dl = (near[0] - mid[0], near[1] - mid[1])
         q0 = pgS(C.xy(C.s_th))
         q1 = pgS((C.xy(C.s_th)[0] + dl[0], C.xy(C.s_th)[1] + dl[1]))
         for it in G["pc_cut_mark"](pgS(pa), pgS(pb), (q1[0] - q0[0], q1[1] - q0[1]), C.name, layer="section_names"):
@@ -690,7 +696,7 @@ def node_page(cfg, log):
     # ---- water depth over the bed by season, both cuts (the Sections code's levels)
     dx0, dy1 = 214.0, 94.0
     items.append(T_(u"WATER OVER THE BED, BY SEASON", dx0, dy1 - 3.0, 2.8, INK, True, "L", "diagrams"))
-    items.append(T_(u"m above the lowest bed point of each cut; Manning n 0.050 (calculated)", dx0, dy1 - 6.8, 2.0,
+    items.append(T_(u"m above the lowest bed point of the cut across the stream; Manning n 0.050 (calculated)", dx0, dy1 - 6.8, 2.0,
                     GREY, False, "L", "diagrams"))
     SW = X["SEASON_WATER"]
     rows_w = []
@@ -699,7 +705,8 @@ def node_page(cfg, log):
             rows_w.append((u"%s · %s m3/s" % (sea, (u"%.3g" % Q)), (sea, Q)))
     rows_w += [(u"Q100 · %.1f m3/s (DSI)" % X["Q100"], "q100"), (u"Q500 · %.1f m3/s (DSI)" % X["Q500"], "q500")]
     dep = {}
-    for C in done:
+    wdone = [C for C in done if C.levels]                 # v7.5: a cut along the bank has no water levels
+    for C in wdone:
         for lab, key in rows_w:
             lv = C.levels.get(key)
             if lv:
@@ -709,7 +716,7 @@ def node_page(cfg, log):
     cA, cB = "5C7A86", "A2B6B5"
     for lab, key in rows_w:
         items.append(T_(lab, dx0, yy - 0.6, 2.0, INK, False, "L", "diagrams"))
-        for j, (C, col) in enumerate(zip(done, (cA, cB))):
+        for j, (C, col) in enumerate(zip(wdone, (cA, cB))):
             v = dep.get((C.name, key))
             yb = yy - 2.6 - j * 2.6
             if v is None:
@@ -718,8 +725,8 @@ def node_page(cfg, log):
             w_ = 44.0 * max(v, 0.0) / dmax
             items.append(R_([box(dx0 + 34.0, yb, dx0 + 34.0 + w_, yb + 2.0)], col, None, 0.0, "diagrams"))
             items.append(T_(u"%.2f" % v, dx0 + 35.0 + w_, yb + 0.3, 1.8, INK, False, "L", "diagrams"))
-        yy -= 3.0 + 2.6 * max(1, len(done))
-    for j, (C, col) in enumerate(zip(done, (cA, cB))):
+        yy -= 3.0 + 2.6 * max(1, len(wdone))
+    for j, (C, col) in enumerate(zip(wdone, (cA, cB))):
         items.append(R_([box(dx0 + j * 30.0, 15.0, dx0 + j * 30.0 + 4.0, 17.0)], col, None, 0.0, "diagrams"))
         items.append(T_(C.name, dx0 + j * 30.0 + 5.5, 15.3, 2.2, INK, False, "L", "diagrams"))
     items.append(T_(u"summer: no flow figure; the held strip 4.0 x 0.30 m is the design's", dx0, 11.5, 1.8, GREY,
