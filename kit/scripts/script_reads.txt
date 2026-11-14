@@ -182,3 +182,11 @@ bergama_page01_move: Data/bergama_places.geojson  # hand, 14 Nov
 bergama_page01_move: scripts/bergama_basemap_v14.py  # hand, 14 Nov
 bergama_page01_move: scripts/bergama_mapbase_v1_2.py  # hand, 14 Nov
 bergama_page01_move: cached/bergama_mapbase/mapbase.json  # hand, 14 Nov
+bergama_page_spine: Data/bergama_pages_common.py  # hand, 14 Nov
+bergama_page_spine: Data/bergama_access_heritage.json  # hand, 14 Nov
+bergama_page_spine: Data/section_lines.json  # hand, 14 Nov
+bergama_page_spine: Data/selinos_centreline.json  # hand, 14 Nov
+bergama_page_spine: scripts/bergama_basemap_v14.py  # hand, 14 Nov
+bergama_page_spine: cached/bergama_basemap/basemap_layers.json  # hand, 14 Nov
+bergama_page_spine: scripts/bergama_mapbase_v1_2.py  # hand, 14 Nov
+bergama_page_spine: cached/bergama_mapbase/mapbase.json  # hand, 14 Nov
