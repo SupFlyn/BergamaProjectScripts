@@ -31,6 +31,7 @@ solo: bergama_page01_axo = Page01Axo
 solo: bergama_page01_free = Page01Free
 solo: bergama_page01_move = Page01Move
 solo: bergama_p02_what_is_there = Page02
+solo: bergama_slide01 = Slide01
 solo: bergama_node_n1 = NodeN1
 solo: bergama_node_n2 = NodeN2
 solo: bergama_node_n3 = NodeN3
