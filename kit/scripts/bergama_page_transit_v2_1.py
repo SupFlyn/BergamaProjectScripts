@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-"""Bergama Group 6: PAGE TRANSIT v1.1 (14 Nov 2026; v1.1 = fixes after the first run's review PNGs: heritage dots
-were drawn over the K4 / K3 tiles; walking links too faint (now 0.6 / 0.5 mm dashes); Yıldız Garajı drawn as two
-overlapping squares (OSM station + its unnamed building, now one); Turkish letters in the regional-line legend row
-(data file)). v1: the public-transport hubs, stops and lines round the streamside
+"""Bergama Group 6: PAGE TRANSIT v2.1 (14 Nov 2026; v2.1 = fixes after the first run's review PNGs: heritage dots were
+drawn over the K4 / K3 tiles; walking links too faint (now 0.6 / 0.5 mm dashes); Yıldız Garajı drawn as two overlapping
+squares (OSM station + its unnamed building, now one); Turkish letters in the regional-line legend row (data file).
+v2: also output/presentation/5.pdf): the public-transport hubs, stops and lines round the streamside
 spine, as one map (a page script of the new set: one script per page, Aras 14 Nov 10:46 UTC).
 
 Aras 14 Nov 10:44 UTC, on CityLink's p09 "The streamside spine, hub by hub": "we need to make this diagram more clear.
@@ -36,7 +36,8 @@ Basemap once). Grasshopper: a Button on any input runs it; input `scale` (defaul
 """
 import os, time
 
-VERSION = "v1.1"
+VERSION = "v2.1"
+SLIDE = 5                          # output/presentation/5.pdf (Aras 14 Nov 11:22 UTC)
 GH_LABEL = "PageTransit"
 OUT_FOLDER = "bergama_page_transit"
 LOG_NAME = "bergama_page_transit_log.txt"
@@ -111,7 +112,7 @@ def main():
                               (q[0] - 1.4, q[1] + 1.4)]], K["cable"], "FFFFFF", 0.2, "gondola"))
             lab.block_pt(q, 1.8)
 
-    # bus stations (OSM amenity=bus_station); v1.1: a station and its unnamed building within 20 m are one square
+    # bus stations (OSM amenity=bus_station); v2.1: a station and its unnamed building within 20 m are one square
     bus_st = []
     for s in sorted([s for s in D["stations"] if s["kind"] == "bus_station"], key=lambda s: s.get("name") is None):
         if not any(dist(s["xy"], o["xy"]) < 20.0 for o in bus_st):
@@ -140,7 +141,7 @@ def main():
         items.append(P_([circle(q[0], q[1], r, 24)], "FFFFFF", INK if hub else sc, 0.45 if hub else 0.3, "bus_stops"))
         lab.block_pt(q, r + 0.4)
 
-    # heritage places: red dots, names, no numbers (v1.1: drawn before the hub tiles, so a tile is never covered)
+    # heritage places: red dots, names, no numbers (v2.1: drawn before the hub tiles, so a tile is never covered)
     her = [(h["name"], h["xy"]) for h in D["heritage"]] + [(u"Akropol", D["akropol"])] + \
           [(h["name"], h["xy"]) for h in D.get("heritage_dots", [])]
     for nm, xy in her:
@@ -261,7 +262,10 @@ def main():
     items += G["pc_sheet"](M, K, lib, u"Public transport round the spine",
                            u"Bus lines, stops, stations and the Teleferik, and how the hubs reach them on foot",
                            legend, notes, credit)
-    G["pc_write"](lib, M, items, OUT_DIR, NAME, u"Public transport round the spine, 1:%d" % den, log)
+    paths = G["pc_write"](lib, M, items, OUT_DIR, NAME, u"Public transport round the spine, 1:%d" % den, log)
+    pdfs = [p_ for p_ in paths if p_.lower().endswith(".pdf")]
+    if pdfs:
+        G["pc_present"](pdfs[0], SLIDE, log)
     flags = [l for l in log if l.startswith(u"FLAG")]
     return u"%s\n%s %s, %d FLAG line(s), %.1f s" % (u"\n".join(log), GH_LABEL, VERSION, len(flags), time.time() - t0)
 
