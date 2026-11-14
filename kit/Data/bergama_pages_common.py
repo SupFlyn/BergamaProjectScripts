@@ -25,7 +25,7 @@ Items are the Basemap writer's tuples (page mm, y up):
 """
 import os, re, json, math, time, glob
 
-PC_VERSION = "v3.11"   # v3.11: pc_cut_mark, the R01 cut symbol (two arrows, Aras 15:37 UTC); v3.10: pc_a3_den / pc_a3 (a map page fitted and centred on A3 or a slide panel, Aras 15:25-15:27 UTC); v3.9: no sources in the drawings (Aras 15:23 UTC): pc_nosrc on MapBase legend rows, empty credit skipped; v3.8: a name with no free place goes where it overlaps least (run 7); v3.7: Labels.block_line / block_items (names keep off lines: run 6 review); v3.6: the outside Python runs hidden (no console window, Aras 14 Nov 12:57 UTC); v3.5: frame check skips items with any clip id; pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
+PC_VERSION = "v3.12"  # v3.12: pc_cut_mark, the R01 cut symbol (two arrows, Aras 15:37 UTC); v3.11: pc_loop (the heritage loop, one code for the heritage and the transit map; Aras 15:31) and pc_station_name; v3.10: pc_a3_den / pc_a3 (a map page fitted and centred on A3 or a slide panel, Aras 15:25-15:27 UTC); v3.9: no sources in the drawings (Aras 15:23 UTC): pc_nosrc on MapBase legend rows, empty credit skipped; v3.8: a name with no free place goes where it overlaps least (run 7); v3.7: Labels.block_line / block_items (names keep off lines: run 6 review); v3.6: the outside Python runs hidden (no console window, Aras 14 Nov 12:57 UTC); v3.5: frame check skips items with any clip id; pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
 PC_NOWIN = 0x08000000 if os.name == "nt" else 0   # v3.6: CREATE_NO_WINDOW for the review-PNG / photo subprocesses
 PC_DATA = os.path.join("Data", "bergama_access_heritage.json")
 PC_CENTRE = os.path.join("Data", "selinos_centreline.json")
@@ -527,6 +527,60 @@ def pc_selinos(a, b):
     if ia > ib:
         S = S[::-1]
     return [tuple(a)] + S + [tuple(b)]
+
+
+# ================================================================ v3.10: the heritage loop, drawn by one code on both maps
+# Aras 14 Nov 15:31 UTC: "the bold connection between the heritage should stay there just like the old diagram" (on the
+# transit map too); 12:38: "don't ever do the same job twice in two scripts".
+def pc_station_name(s):
+    """an OSM station name as both maps print it (Turkish letters: 'Teleferik, Yukarı İstasyon')"""
+    return (s.get("name") or u"").replace(u"Akropolis Teleferik - ", u"Teleferik, ").replace(u" ( ", u" (").replace(
+        u" )", u")")
+
+
+def pc_loop(M, D, K, lab, log):
+    """the loop 1..7: bold red legs stop to stop (3 -> 4 along the Selinos: the stream walk), dotted on foot from the
+    upper Teleferik station to Akropol, red numbered badges, Akropol a red ring; lines and badges kept free of names
+    (lab). Returns items"""
+    T, it = M.T, []
+    RED, W, R, tm = K["heritage"], K["heritage_w"], K["heritage_r"], K["text_mm"]
+    H = sorted(D["heritage"], key=lambda h: int(h["n"]))
+    legs = []
+    for a, b in zip(H, H[1:]):
+        if (a["key"], b["key"]) == ("tabak_koprusu", "ulucami_onu"):
+            sw = pc_selinos(a["xy"], b["xy"])
+            if sw:
+                legs.append(("walk", sw))
+                log.append(u"stream walk: Tabak Köprüsü -> Ulucami Önü along the Selinos, %.0f m" % sum(
+                    pc_dist(p, q) for p, q in zip(sw, sw[1:])))
+                continue
+            log.append(u"FLAG: the Selinos line is over 80 m from stop 3 or 4: the stream walk is drawn straight")
+        legs.append(("leg", [a["xy"], b["xy"]]))
+    for kind, P in legs:
+        for run in M.clip([T(p) for p in P]):
+            it.append(L_(run, "FFFFFF", W + 0.6, "loop"))
+            it.append(L_(run, RED, W + (0.6 if kind == "walk" else 0.0), "loop"))
+            if kind == "walk":
+                it.append(L_(run, "FFFFFF", 0.3, "loop", (1.2, 1.2)))
+            lab.block_line(run, W / 2.0 + 0.6)
+    upper = next((s for s in D["stations"] if s["kind"] == "gondola" and u"Yukarı" in (s["name"] or u"")), None)
+    if upper:
+        for run in M.clip([T(upper["xy"]), T(D["akropol"])]):
+            it.append(L_(run, RED, 0.5, "loop", (0.01, 1.0)))
+    log.append(u"loop: %d stops, %d legs, %.0f m stop to stop (straight legs; the walk along the stream)" % (
+        len(H), len(legs), sum(pc_dist(p, q) for _k, P in legs for p, q in zip(P, P[1:]))))
+    for h in H:
+        q = T(h["xy"])
+        if not M.inside(q):
+            log.append(u"FLAG: stop %s %s lies outside the frame" % (h["n"], h["name"]))
+            continue
+        it.append(P_([circle(q[0], q[1], R, 32)], RED, "FFFFFF", 0.35, "loop_stops"))
+        it.append(T_(h["n"], q[0], q[1] - tm["label"] * 0.36, tm["label"] + 0.2, "FFFFFF", "loop_stops", True, "C"))
+        lab.block_pt(q, R + 0.6)
+    qa = T(D["akropol"])
+    it.append(P_([circle(qa[0], qa[1], R * 0.8, 32)], "FFFFFF", RED, 0.6, "loop_stops"))
+    lab.block_pt(qa, R)
+    return it
 
 
 def pc_cut_mark(a, b, look, name, col="C0392B", layer="section_lines", ts=2.5):
