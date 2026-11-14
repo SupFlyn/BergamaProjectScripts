@@ -26,6 +26,13 @@ scripts/bergama_page_transit_v1.py
 scripts/bergama_page_heritage_v1.py
 Data/bergama_pages_common.py
 Data/bergama_access_heritage.json
+scripts/bergama_node_n1_v1.py
+scripts/bergama_node_n2_v1.py
+scripts/bergama_node_n3_v1.py
+scripts/bergama_node_n4_v1.py
+scripts/bergama_node_n5_v1.py
+scripts/bergama_node_n6_v1.py
+Data/bergama_nodes_common.py
 scripts/bergama_p02_what_is_there_v1.py
 Data/bergama_style.json
 scripts/bergama_zone_base_v12.py
