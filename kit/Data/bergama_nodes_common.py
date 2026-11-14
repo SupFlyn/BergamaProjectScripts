@@ -273,7 +273,7 @@ def load_mb(log):
     pth = _newest("bergama_mapbase_v*.py")
     with open(pth, encoding="utf-8") as f:
         code = f.read()
-    end = "# ================================================================ main"
+    end = "\n# ================================================================ main\n"
     ns = {"__name__": "bergama_mapbase_lib"}
     exec(compile(code[:code.index(end)], pth, "exec"), ns)
     ns["BERGAMA_ROOT"] = ROOT
