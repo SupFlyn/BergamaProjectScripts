@@ -99,7 +99,7 @@ Writes ~/Downloads/Bergama/output/bergama_p02/Page02_What_is_there.pdf, Page02_W
 import os, time, json, math, re, glob, ast
 
 # ---- SETTINGS ----
-VERSION = "v2.13"  # v2.13 (overnight check, PDF at 300 dpi): the corner scale reads "1:25,000" like its caption (was "1/25000"); v2.12  # v2.12 (Aras 21:31 UTC "all the diagrams are awful"): the land-use ring is redrawn to library/diagram_style/DIAGRAM_STYLE.md with pages_common pc_dg_kit: one long strip, one claim title, greys + water only, at most 4 bracket labels
+VERSION = "v2.14"  # v2.14 (overnight review): study-area line a dark warm grey (was purple 6A4C93, Aras dislikes purple); the strip title states the claim without repeating the bracket's %; v2.13  # v2.13 (overnight check, PDF at 300 dpi): the corner scale reads "1:25,000" like its caption (was "1/25000"); v2.12  # v2.12 (Aras 21:31 UTC "all the diagrams are awful"): the land-use ring is redrawn to library/diagram_style/DIAGRAM_STYLE.md with pages_common pc_dg_kit: one long strip, one claim title, greys + water only, at most 4 bracket labels
 SLIDE = 1                          # output/presentation/1.pdf (Aras 14 Nov 11:22 UTC; slide 1 = analysis)
 GH_LABEL = "Page02"
 OUT_FOLDER = "bergama_p02"
@@ -171,7 +171,7 @@ WALL_C = "B0AC9C"
 WATER_C, WATER_LINE = "6B9FB8", "3F6F86"   # v2.4: stronger (was 91ADB4, 5D7F8D)
 HER_WALL = "B08870"
 BRIDGE_C, CLASH_C = "84573E", "8B3A3F"
-STUDY_C = "6A4C93"
+STUDY_C = "5C5550"   # v2.14: was purple 6A4C93
 NODE_C, CUT_C = "4A3F35", "C0392B"   # v2.1: node frames (ink) and section cuts (the key-map cut red)
 
 HERITAGE_WORDS = (u"tarihi", u"harabe", u"harap", u"kalıntı", u"kalinti", u"hamam", u" han ", u"bedesten", u"arasta",
@@ -720,7 +720,7 @@ def main():
     SW, SH = CWID, 26.0                                   # the strip box (page mm): title, strip, two label rows
     cy0 = y_end - 8.0 if compact else 255.0
     ytop = cy0
-    items.append(("text", u"%s IS THE LARGEST SHARE OF THE SITE: %.0f%%" % (big[0], 100.0 * big[1] / lu_tot),
+    items.append(("text", u"%s IS THE LARGEST SHARE OF THE SITE" % big[0],
                   CX, ytop, 2.8, INK, True, "L", "ring", None, None))
     DG = _pk["pc_dg_kit"](items, CX, ytop - SH, SW, SH, layer="ring", lw=SW, lh=SH)
     sy0, sy1 = 13.0, 20.0                                 # strip bottom / top in the kit box
