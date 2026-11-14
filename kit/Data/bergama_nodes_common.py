@@ -17,7 +17,7 @@ Reads the newest scripts/bergama_basemap_v*, bergama_p02_what_is_there_v*, berga
 """
 import os, re, glob, json, math, time
 
-NC_VERSION = "v9.5"   # v9.5: diagram levels run to the banks, N5 town band lower and label over its move; cuts packed from the top, why-here block follows, perspective room grows; V1 clear of stops, names and its arrows; v9.4: v9.4: at least 30 % (or 90 m) of a cut in view, so flat cuts get taller; v9.3: v9.3: section fit by the drawing without its sky, at least 55 % (or 150 m) of the cut in view, sky cut to the room; v9.2: v9.2 (fresh review of run 4): sections fill their rooms (cropped round the stream, own scale bar), no intro line, short key words, V1 in ink, land use = 5 classes + other with names on one row, program brief under the story, diagram arrows start at their cause, slots as voids, FLAG count includes carried FLAGs; v9.1: v9.1: diagrams to DIAGRAM_STYLE v2 (Niarchos measured: low ground, names under it, small accent); v9: v9: why-here diagrams redrawn on the shared diagram kit (pc_dg_kit, DIAGRAM_STYLE.md; Aras 21:30 UTC); v8.4: v8.4: scale + north above the plan (off his drawing), intro wording; v8.3: v8.3: B cut subtitle "along the bank", N3 diagram label clear of the dots; v8.2: v8.2: 4-corner picture rectangles of the masterplan left out (no solid green blocks), the river filled as water; v8.1: v8.1: masterplan sheet / texture frames (> 0.1 km2) left out, legend columns balanced, intro without the old levels text; v8: plan = his masterplan drawing; why-here story + one concept diagram per node; water bars and meets line gone; v7.5: v7.5: section_lines v2 (B along the bank: looks at the stream, no water bars); v7.4: v7.4: cut marks = two end arrows, no line between (pages_common v3.14); v7.3: v7.3: scale + north ignore the node frame line; v7.2: v7.2: the proposal from his masterplan SVG (MasterplanBase cache); v7.1: v7.1: R01 cut arrows (pc_cut_mark), no city-square ring, land-use columns >= 45 mm; v7: v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
+NC_VERSION = "v9.6"   # v9.6: program brief under the land-use bar when it fits, perspective the full right half; v9.5: v9.5: diagram levels run to the banks, N5 town band lower and label over its move; cuts packed from the top, why-here block follows, perspective room grows; V1 clear of stops, names and its arrows; v9.4: v9.4: at least 30 % (or 90 m) of a cut in view, so flat cuts get taller; v9.3: v9.3: section fit by the drawing without its sky, at least 55 % (or 150 m) of the cut in view, sky cut to the room; v9.2: v9.2 (fresh review of run 4): sections fill their rooms (cropped round the stream, own scale bar), no intro line, short key words, V1 in ink, land use = 5 classes + other with names on one row, program brief under the story, diagram arrows start at their cause, slots as voids, FLAG count includes carried FLAGs; v9.1: v9.1: diagrams to DIAGRAM_STYLE v2 (Niarchos measured: low ground, names under it, small accent); v9: v9: why-here diagrams redrawn on the shared diagram kit (pc_dg_kit, DIAGRAM_STYLE.md; Aras 21:30 UTC); v8.4: v8.4: scale + north above the plan (off his drawing), intro wording; v8.3: v8.3: B cut subtitle "along the bank", N3 diagram label clear of the dots; v8.2: v8.2: 4-corner picture rectangles of the masterplan left out (no solid green blocks), the river filled as water; v8.1: v8.1: masterplan sheet / texture frames (> 0.1 km2) left out, legend columns balanced, intro without the old levels text; v8: plan = his masterplan drawing; why-here story + one concept diagram per node; water bars and meets line gone; v7.5: v7.5: section_lines v2 (B along the bank: looks at the stream, no water bars); v7.4: v7.4: cut marks = two end arrows, no line between (pages_common v3.14); v7.3: v7.3: scale + north ignore the node frame line; v7.2: v7.2: the proposal from his masterplan SVG (MasterplanBase cache); v7.1: v7.1: R01 cut arrows (pc_cut_mark), no city-square ring, land-use columns >= 45 mm; v7: v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
 ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 PAGE_W, PAGE_H = 420.0, 297.0
 NODE_MARGIN_M = 25.0                       # m of town round the node frame on the plan
@@ -966,19 +966,34 @@ def node_page(cfg, log):
             yy_ -= 2.6
     # v9.2 (review: "a 66 x 38 mm empty area under the story"): the program brief fills the story column under the
     # text, the perspective and the building proposal share the right half
-    holder(310.0, 31.0, 406.0, (y_story if st else 54.0), u"V1 · PERSPECTIVE · %s" % node,
-           u"placeholder: Aras's render (Archicad, Unreal 5) from V1 on the plan", "placeholder_perspective")
+    # v9.6 (run 9: 60-90 mm empty under the land-use bar on N1, N3, N4): the program brief goes there when it fits;
+    # the building proposal then takes the story column and the perspective the whole right half
+    ys_ = (y_story if st else 54.0)
     yp = (yy if st else 54.0) - 1.0
-    if yp - 12.0 >= 12.0:
-        holder(214.0, 12.0, 304.0, yp, u"PROGRAM BRIEF", u"placeholder: what happens here, for whom, in which season",
+    yl = bar_y - 5.2 - 2.6 * 2 - 6.0
+    if yl - 12.0 >= 22.0:
+        holder(14.0, 12.0, 200.0, yl, u"PROGRAM BRIEF", u"placeholder: what happens here, for whom, in which season",
                "placeholder_program")
-        holder(310.0, 12.0, 406.0, 28.0, u"BUILDING PROPOSAL",
-               u"placeholder: plan, section, elevation (if the node has one)", "placeholder_building")
+        holder(310.0, 12.0, 406.0, ys_, u"V1 · PERSPECTIVE · %s" % node,
+               u"placeholder: Aras's render (Archicad, Unreal 5) from V1 on the plan", "placeholder_perspective")
+        if yp - 12.0 >= 12.0:
+            holder(214.0, 12.0, 304.0, yp, u"BUILDING PROPOSAL",
+                   u"placeholder: plan, section, elevation (if the node has one)", "placeholder_building")
+        else:
+            log.append(u"FLAG no room for the building proposal placeholder under the story of %s" % node)
     else:
-        holder(310.0, 12.0, 356.0, 28.0, u"PROGRAM BRIEF", u"placeholder: what happens here, for whom, in which season",
-               "placeholder_program")
-        holder(360.0, 12.0, 406.0, 28.0, u"BUILDING PROPOSAL",
-               u"placeholder: plan, section, elevation (if the node has one)", "placeholder_building")
+        holder(310.0, 31.0, 406.0, ys_, u"V1 · PERSPECTIVE · %s" % node,
+               u"placeholder: Aras's render (Archicad, Unreal 5) from V1 on the plan", "placeholder_perspective")
+        if yp - 12.0 >= 12.0:
+            holder(214.0, 12.0, 304.0, yp, u"PROGRAM BRIEF", u"placeholder: what happens here, for whom, in which season",
+                   "placeholder_program")
+            holder(310.0, 12.0, 406.0, 28.0, u"BUILDING PROPOSAL",
+                   u"placeholder: plan, section, elevation (if the node has one)", "placeholder_building")
+        else:
+            holder(310.0, 12.0, 356.0, 28.0, u"PROGRAM BRIEF",
+                   u"placeholder: what happens here, for whom, in which season", "placeholder_program")
+            holder(360.0, 12.0, 406.0, 28.0, u"BUILDING PROPOSAL",
+                   u"placeholder: plan, section, elevation (if the node has one)", "placeholder_building")
     # ---- title band and credit
     items.append(T_(u"C  NODES IN DETAIL · SLIDE %d" % cfg["SLIDE"], 14.0, 288.0, 2.6, INK, True))
     items.append(T_(u"%s · %s" % (node, nd["name"]), 14.0, 278.5, 7.5, INK, True))
