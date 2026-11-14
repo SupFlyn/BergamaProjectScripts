@@ -45,7 +45,7 @@ Writes ~/Downloads/Bergama/output/bergama_sections/Sections.pdf          ONE pag
 import os, time, json, math, bisect, glob
 
 # ---- SETTINGS ----
-VERSION = "v1.6.11"
+VERSION = "v1.6.12"
 GH_LABEL = "Sections"
 OUT_FOLDER = "bergama_sections"
 LOG_NAME = "bergama_sections_log.txt"
@@ -955,7 +955,9 @@ class Sec(object):
             d["callouts"].append(((a + b) / 2, None, u"Road"))
         for x in C.streets:
             d["callouts"].append((x, None, u"Street"))
-        back = [t for t in C.bld if not t[4] and not (t[0] < ch1 + 1.0 and t[1] > ch0 - 1.0)]
+        cut_ = [(t[0], t[1]) for t in C.bld if t[4]]
+        back = [t for t in C.bld if not t[4] and not (t[0] < ch1 + 1.0 and t[1] > ch0 - 1.0)
+                and sum(max(0.0, min(t[1], y) - max(t[0], x)) for x, y in cut_) <= 0.5 * (t[1] - t[0])]
         if back:
             t = max(back, key=lambda t: t[1] - t[0])
             d["callouts"].append(((t[0] + t[1]) / 2, (t[2] if t[2] is not None else self.ex((t[0] + t[1]) / 2)) + t[3],
@@ -1086,8 +1088,9 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
             items[-1] = (items[-1][0], None, items[-1][2] + u"; " + t_)   # v1.6.10: N3-B / N5-A lost "Common reed"
         else:
             items.append((s_, z_, t_))
+    # v1.6.12: placed with 20 % wider text (the engine's text_w runs short: N3-B labels ran into each other)
     placed = E["place_labels"](S, [(S.X(s) + 0.002 * i, 0.0, txt) for i, (s, z, txt) in enumerate(items)],
-                               size) if items else []
+                               size * 1.2) if items else []
     rows = (max(p["row"] for p in placed) + 1) if placed else 0
     gap = size * 2 * 1.25 + 3.0
     title_h = 16.0 if with_text else 0.0
@@ -1119,7 +1122,8 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
         if is_cut or b - a < 0.5 or (a < ch[1] + 1.0 and b > ch[0] - 1.0) or _cover(a, b, cuts_) > 0.5:
             continue
         n_ = max(2, int((b - a) / 0.5))
-        base = max(zb_ if zb_ is not None else -99.0, max(S.surf(a + (b - a) * i / n_) for i in range(n_ + 1)))
+        # v1.6.12: the lowest cut ground of the span (v1.6.10's highest left houses on stilts over N1 slopes)
+        base = max(zb_ if zb_ is not None else -99.0, min(S.surf(a + (b - a) * i / n_) for i in range(n_ + 1)))
         house(pg, S, a, b, base, h, fl, dist)
     done_ = []
     for a, b, zb_, h, is_cut, dist, fl in C.bld:
