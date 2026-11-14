@@ -55,6 +55,12 @@ too many gaps in the main drawing"; "dont put a opaque background on scale and n
   not white paper; OpenStreetMap footprints that overlap no drawn building are added everywhere (osm_fill), not only in
   cells without survey lines. Scale bar and north arrow: no background box (overview and inset).
 
+v2.4 (14 Nov 2026, Aras 12:14 UTC "drawings do flows outside of it"): every map layer is CUT to its frame by a clip
+path in the PDF and SVG (clip ids "overview" and "inset"; strokes and wide OSM streets no longer pass the frame line);
+a marker or name with no free spot is pulled inside its frame; frame_check FLAGs any map mark still outside its frame. Aras 12:15 UTC "it is not eye catching enough like the lines are
+too thin": heavier pens (P02_HAIR 0.09, LW), building outlines darker (P02_EDGE_DARK 0.5), land cover stronger
+(LC_LIGHT 0.25), streets, street edges and the stream in more contrast.
+
 Component: Rhino 8 > Grasshopper > Python 3 Script (the board builder places it from the cloud kit).
   input  run     Button (or the previous script's done text)
   output log / done   as every Bergama script
@@ -69,7 +75,7 @@ Writes ~/Downloads/Bergama/output/bergama_p02/Page02_What_is_there.pdf, Page02_W
 import os, time, json, math, re, glob
 
 # ---- SETTINGS ----
-VERSION = "v2.3"
+VERSION = "v2.4"
 SLIDE = 1                          # output/presentation/1.pdf (Aras 14 Nov 11:22 UTC; slide 1 = analysis)
 GH_LABEL = "Page02"
 OUT_FOLDER = "bergama_p02"
@@ -88,8 +94,11 @@ DEN_STEPS = (25000, 30000, 40000, 50000)
 COL_X, COL_W = 210.0, 196.0        # mm: the right column
 MARGIN_M = 15.0                    # m of paper round the survey's extent (as the site board's whole_frame)
 
-P02_HAIR = 0.05                    # mm: the one pen of every building outline and survey wall (1.25 m at 1:25,000)
-P02_EDGE_DARK = 0.35               # a building outline = its fabric colour mixed this far toward the ink (ours)
+P02_HAIR = 0.09                    # mm: the one pen of every building outline and survey wall (v2.4: was 0.05, Aras
+                                   # 12:15 UTC "the lines are too thin")
+LW = {"water": 0.25, "osm_water": 0.22, "her_wall": 0.3, "bridge": 0.3, "study": 0.45, "node": 0.35, "cut": 0.45,
+      "site": 0.3, "frame": 0.35}   # v2.4: heavier pens (were 0.12 / 0.12 / 0.12 / 0.12 / 0.35 / 0.18 / 0.25 / 0.12 / 0.25)
+P02_EDGE_DARK = 0.5                # a building outline = its fabric colour mixed this far toward the ink (ours)
 BEYOND_CELL = 50.0                 # m: OpenStreetMap is drawn only where no survey line lies in its cell or the 8 round it
 BEYOND_W = {"motorway": 10.0, "trunk": 9.0, "primary": 8.0, "secondary": 7.0, "tertiary": 6.0, "unclassified": 5.0,
             "residential": 5.0, "living_street": 4.0, "service": 3.5, "pedestrian": 4.0}   # m drawn (ours: OSM has none)
@@ -125,10 +134,10 @@ FAB_RULE = {"monument": u"survey heritage layers, heritage names, OSM historic t
 LC = {"trees": ("74804F", u"Woods & tree cover"), "orchard": ("8F966A", u"Orchards (inferred)"),
       "shrub": ("A7AC86", u"Shrubs"), "grass": ("ABB287", u"Grass"), "farmland": ("BDB57A", u"Fields")}
 LC_ORDER = ("farmland", "grass", "shrub", "orchard", "trees")
-LC_LIGHT = 0.45                    # land cover mixed this far toward the paper on the map (the buildings read first)
-STREET_C, STREET_EDGE = "E9E6DE", "B0AC9C"
+LC_LIGHT = 0.25                    # land cover mixed this far toward the paper on the map (the buildings read first)
+STREET_C, STREET_EDGE = "F1EEE6", "8F8A7A"   # v2.4: more contrast (was E9E6DE, B0AC9C)
 WALL_C = "B0AC9C"
-WATER_C, WATER_LINE = "91ADB4", "5D7F8D"
+WATER_C, WATER_LINE = "6B9FB8", "3F6F86"   # v2.4: stronger (was 91ADB4, 5D7F8D)
 HER_WALL = "B08870"
 BRIDGE_C, CLASH_C = "84573E", "8B3A3F"
 STUDY_C = "6A4C93"
@@ -694,11 +703,18 @@ def main():
     cnt = {"st": 0, "pa": 0}
     taken = []                                            # v2.2: boxes (page mm) of the inset's names and markers
 
-    def draw_map(X0, Y0, k, box, names):
+    clips = {}                                            # v2.4: clip id -> [[frame ring]] (page mm)
+    frames = []                                           # v2.4: (clip id, page box) for frame_check
+
+    def draw_map(X0, Y0, k, box, names, cid):
         """one drawing of the map layers: box (frame m) at 1000/k, its lower-left corner at page (X0, Y0) mm;
         names = the inset (names and markers, each at a free spot)"""
         def pg(q):
             return (X0 + (q[0] - box[0]) * k, Y0 + (q[1] - box[1]) * k)
+        fb = (X0, Y0, X0 + (box[2] - box[0]) * k, Y0 + (box[3] - box[1]) * k)
+        clips[cid] = [[[(fb[0], fb[1]), (fb[2], fb[1]), (fb[2], fb[3]), (fb[0], fb[3])]]]
+        frames.append((cid, fb))
+        n0 = len(items)
 
         def poly(rings, fill, layer, stroke=None, lw=0.0):
             rr = [R for R in (B["clip_ring"](R_, box) for R_ in rings) if len(R) >= 3]
@@ -738,7 +754,7 @@ def main():
                         cnt["pa"] += 1
                 run = []
         poly([Q for cl, Q, a, b in L.get("river", [])], "~" + WATER_C, "water")
-        for key, w_ in (("stream_banks", 0.12), ("ponds", 0.08)):
+        for key, w_ in (("stream_banks", LW["water"]), ("ponds", LW["water"] * 0.7)):
             for cl, Q, a, b in L.get(key, []):
                 line(Q + ([Q[0]] if cl else []), WATER_LINE, w_, "water")
         for P, tg in O["ways"]:                               # OpenStreetMap streams beyond the survey
@@ -750,18 +766,18 @@ def main():
                         run.append(q)
                         continue
                     if len(run) >= 2:
-                        line(run, WATER_LINE, 0.12, "water")
+                        line(run, WATER_LINE, LW["osm_water"], "water")
                     run = []
         for key in ("walls",):                                # survey walls: one pale hairline (they were 0.16 dark ink)
             for cl, Q, a, b in L.get(key, []):
                 line(Q, WALL_C, P02_HAIR, "walls")
         for cl, Q, a, b in L.get("heritage_walls", []):
-            line(Q, HER_WALL, 0.12, "heritage_walls")
+            line(Q, HER_WALL, LW["her_wall"], "heritage_walls")
         for P, tg in O["ways"]:                               # city walls beyond the survey (OSM historic=citywalls)
             if tg.get("historic") == "citywalls" or tg.get("barrier") == "city_wall":
                 Q = [F.local(p) for p in P]
                 if all(free(q) for q in Q):
-                    line(Q, HER_WALL, 0.12, "heritage_walls")
+                    line(Q, HER_WALL, LW["her_wall"], "heritage_walls")
         # buildings: every outline at twice the hairline first, every fill over them (shared walls covered)
         for u in units:
             col = (FAB_COM if u.get("com") else FAB)[u["fab"]]
@@ -777,20 +793,26 @@ def main():
                     items.append(("poly", [[pg(q) for q in R] for R in rr[i0:i0 + 400]], (FAB_COM if cm else FAB)[f_],
                                   None, 0.0, None, "buildings_" + f_ + ("_shops" if cm else ""), 1, None, None))
         for cl, Q, a, b in L.get("bridges", []):
-            line(Q, INK, 0.12, "bridges")
+            line(Q, INK, LW["bridge"], "bridges")
         for R in D.get("calisma") or []:                      # the study area
             Q = [F.local(p) for p in R]
-            line(Q + [Q[0]], STUDY_C, 0.35, "study_area")
+            line(Q + [Q[0]], STUDY_C, LW["study"], "study_area")
         for nid, nd in sorted((secs.get("nodes") or {}).items()):
             Q = [F.local(p) for p in nd.get("corners") or []]
             if len(Q) >= 3:
-                line(Q + [Q[0]], NODE_C, 0.18, "nodes")
+                line(Q + [Q[0]], NODE_C, LW["node"], "nodes")
         for cid, ab in sorted((secs.get("lines") or {}).items()):
             if len(ab) >= 2:
-                line([F.local(ab[0]), F.local(ab[1])], CUT_C, 0.25, "section_cuts")
-        line(sb + [sb[0]], INK, 0.12, "site_alan")
+                line([F.local(ab[0]), F.local(ab[1])], CUT_C, LW["cut"], "section_cuts")
+        line(sb + [sb[0]], INK, LW["site"], "site_alan")
+        for i_ in range(n0, len(items)):                  # v2.4: every map layer cut to the frame
+            t_ = items[i_]
+            if t_[0] == "poly" and t_[9] is None:
+                items[i_] = t_[:9] + (cid,)
+            elif t_[0] == "line" and t_[4] is None:
+                items[i_] = t_[:4] + (cid,) + t_[5:]
         items.append(("line", [pg((box[0], box[1])), pg((box[2], box[1])), pg((box[2], box[3])), pg((box[0], box[3])),
-                               pg((box[0], box[1]))], INK, 0.25, None, "map_frame", 1))
+                               pg((box[0], box[1]))], INK, LW["frame"], None, "map_frame", 1))
         if not names:
             return
         lim = (X0, Y0, X0 + (box[2] - box[0]) * k, Y0 + (box[3] - box[1]) * k)
@@ -807,13 +829,13 @@ def main():
             if len(ab) >= 2:
                 place_text(B, items, taken, lim, [pg(F.local(ab[0])), pg(F.local(ab[1]))], cid, 1.8, CUT_C,
                            "section_cuts", log)
-    draw_map(MAP_X, MAP_TOP - F.h * k, k, box, False)     # the overview: lines only
+    draw_map(MAP_X, MAP_TOP - F.h * k, k, box, False, "overview")     # the overview: lines only
     X0, Y0 = MAP_X, MAP_TOP - F.h * k
     ki = 1000.0 / INSET_DEN
     INS_Y0 = 42.0
     items.append(("text", u"The site frame (site_alan) · nodes, cuts, bridges and clashes · 1:%s" % format(INSET_DEN, ",d"),
                   COL_X, INS_Y0 + (sbox[3] - sbox[1]) * ki + 3.0, 3.2, INK, True, "L", "inset", None, None))
-    draw_map(COL_X, INS_Y0, ki, sbox, True)
+    draw_map(COL_X, INS_Y0, ki, sbox, True, "inset")
     items += _no_box(B["corner_block"](F, S, INSET_DEN, COL_X + (sbox[2] - sbox[0]) * ki, INS_Y0))
     log.append(u"inset: site frame %.0f x %.0f m at 1:%s, %.1f x %.1f mm; %d names and markers placed" % (
         sbox[2] - sbox[0], sbox[3] - sbox[1], format(INSET_DEN, ",d"), (sbox[2] - sbox[0]) * ki,
@@ -903,9 +925,10 @@ def main():
                u"%d paths" % (BEYOND_CELL, n_beyond, n_st, n_pa))
     if not n_beyond:
         log.append(u"FLAG beyond the survey: no OpenStreetMap building drawn: the top left of the map stays land cover only")
+    frame_check(B, items, frames, log)
     os.makedirs(OUT_DIR, exist_ok=True)
     name = u"Page02_What_is_there"
-    p = B["write_pdf"](os.path.join(OUT_DIR, name + u".pdf"), PAGE_W, PAGE_H, items, u"Page 02, " + TITLE, None)
+    p = B["write_pdf"](os.path.join(OUT_DIR, name + u".pdf"), PAGE_W, PAGE_H, items, u"Page 02, " + TITLE, clips)
     log.append(B["out_line"](p, PAGE_W, PAGE_H, den, items, u""))
     try:                                                  # output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
         _pc = {"__name__": "bergama_pages_common"}
@@ -917,7 +940,7 @@ def main():
     except Exception as _ex:
         log.append(u"FLAG presentation copy not written (%s: %s)" % (type(_ex).__name__, _ex))
     try:
-        q = B["write_svg"](os.path.join(OUT_DIR, name + u".svg"), PAGE_W, PAGE_H, items, u"Page 02, " + TITLE, None)
+        q = B["write_svg"](os.path.join(OUT_DIR, name + u".svg"), PAGE_W, PAGE_H, items, u"Page 02, " + TITLE, clips)
         log.append(u"%s  %s (a group per layer)" % (q, time.strftime("%H:%M:%S")))
     except Exception as e:
         log.append(u"FLAG %s.svg not written (%s: %s); the PDF is complete" % (name, type(e).__name__, e))
@@ -957,8 +980,10 @@ def place_marker(items, taken, lim, p, txt, col, layer):
                 taken.append(bx)
                 marker(items, x, y, txt, col, layer)
                 return
-    taken.append((p[0] - r, p[1] - r, p[0] + r, p[1] + r))
-    marker(items, p[0], p[1], txt, col, layer)
+    x = min(max(p[0], lim[0] + r), lim[2] - r)           # v2.4: no free spot: on its point, pulled inside the frame
+    y = min(max(p[1], lim[1] + r), lim[3] - r)
+    taken.append((x - r, y - r, x + r, y + r))
+    marker(items, x, y, txt, col, layer)
 
 
 def place_text(B, items, taken, lim, anchors, txt, size, col, layer, log):
@@ -976,7 +1001,35 @@ def place_text(B, items, taken, lim, anchors, txt, size, col, layer, log):
                     return
     p = anchors[0]
     log.append(u"FLAG inset: no free spot for %s: set at its point (it may touch another name)" % txt)
-    items.append(("text", txt, p[0] + 0.8, p[1] + 0.3, size, col, True, "L", layer, None, None))
+    x = min(max(p[0] + 0.8, lim[0] + 0.3), lim[2] - w - 0.3)   # v2.4: pulled inside the frame
+    y = min(max(p[1] + 0.3, lim[1] + 0.4), lim[3] - size - 0.3)
+    items.append(("text", txt, x, y, size, col, True, "L", layer, None, None))
+
+
+MAP_MARKS = ("bridge_numbers", "clashes", "nodes", "section_cuts")
+
+
+def frame_check(B, items, frames, log):
+    """v2.4: FLAG any unclipped map mark (marker, name) whose box leaves every map frame (Aras 12:14 UTC)"""
+    bad = []
+    for t in items:
+        if t[0] == "text" and t[8] in MAP_MARKS:
+            w = B["text_w"](t[1], t[4], bool(t[6]))
+            bx = (t[2], t[3], t[2] + w, t[3] + t[4])
+        elif t[0] in ("poly", "line") and (t[6] if t[0] == "poly" else t[5]) in MAP_MARKS and \
+                (t[9] if t[0] == "poly" else t[4]) is None:
+            pts = [q for R_ in t[1] for q in R_] if t[0] == "poly" else t[1]
+            bx = (min(q[0] for q in pts), min(q[1] for q in pts), max(q[0] for q in pts), max(q[1] for q in pts))
+        else:
+            continue
+        if not any(fb[0] - 0.05 <= bx[0] and bx[2] <= fb[2] + 0.05 and fb[1] - 0.05 <= bx[1] and bx[3] <= fb[3] + 0.05
+                   for cid, fb in frames):
+            bad.append(t[1] if t[0] == "text" else t[6] if t[0] == "poly" else t[5])
+    if bad:
+        log.append(u"FLAG frame check: %d map mark(s) outside their frame: %s" % (len(bad), u", ".join(
+            str(b_) for b_ in bad[:12])))
+    else:
+        log.append(u"frame check: every map layer is cut to its frame; all %d frame(s) clean" % len(frames))
 
 
 def _survey_key(F, q):
