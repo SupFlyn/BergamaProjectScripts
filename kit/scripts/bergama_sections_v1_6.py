@@ -235,9 +235,9 @@ def context_for(C, BM, tin, ox, oy, lg):
         a, b = max(a, w0), min(b, w1)
         if b - a < 0.5:
             continue
-        if h <= 0.0:
-            no_h += 1
-            continue
+        if h <= 0.0:                                   # v1.8 (N6 drew no houses behind): no floor count in the
+            no_h += 1                                  # data = drawn as 1 floor (ASSUMED, counted in the log)
+            h, fl = STOREY_M, 1
         cx, cy = sum(q[0] for q in r) / len(r), sum(q[1] for q in r) / len(r)
         zb = None if is_cut else tin.z(cx - ox, cy - oy)
         C.bld.append((a, b, zb, h, is_cut, max(0.0, omin), fl))
@@ -286,7 +286,7 @@ def context_for(C, BM, tin, ox, oy, lg):
         else:
             C.roads.append((a, b))
     C.streets = [x for x in sorted(C.streets) if not any(a - 0.5 <= x <= b + 0.5 for a, b in C.roads)]
-    lg.append(u"context %s: %d building(s) cut, %d behind within %.0f m, %d without a height left out; %d road(s) %s; %d "
+    lg.append(u"context %s: %d building(s) cut, %d behind within %.0f m, %d without a floor count drawn as 1 floor (assumed); %d road(s) %s; %d "
               u"street line(s) without survey edges (marked, no width)" % (
                   C.name, sum(1 for t in C.bld if t[4]), sum(1 for t in C.bld if not t[4]), BACK_M, no_h, len(C.roads),
                   u", ".join(u"%.1f-%.1f m" % r for r in C.roads), len(C.streets)))
@@ -1195,6 +1195,9 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
         E["walls_and_slabs"](pg, _Bank(S, b))
     E["existing_ground"](pg, S)
     for a, b in S.roads:                               # the road surface on the ground line
+        a, b = max(a, S.lo), min(b, S.hi)                  # v1.8: inside the frame
+        if b - a < 0.2:
+            continue
         n = max(2, int((b - a) / DS))
         top = [(a + (b - a) * i / n) for i in range(n + 1)]
         ring = [S.P(x, S.surf(x)) for x in top] + [S.P(x, S.surf(x) - ROAD_T) for x in reversed(top)]
@@ -1435,7 +1438,17 @@ def ground_fill(pg, S):
     V = S.V
     ring = [S.P(*p) for p in V] + [S.P(V[-1][0], S.zb), S.P(V[0][0], S.zb)]
     pg.poly([ring], fill=GROUND_FILL, stroke=None, layer="poche")
-    pts = [S.P(*p) for p in V]
+    # v1.8 (run of v1.7): only inside the frame (a 2 mm stub ran past the right edge, N5 / N6), points closer than
+    # 0.3 mm merged and the width eased with the scale (the summer strip and wall corners read as a black scribble
+    # at 1:2000 and smaller)
+    x0, x1 = S.X(S.lo), S.X(S.hi)
+    pts = []
+    for p in V:
+        q = S.P(*p)
+        if x0 - 1e-6 <= q[0] <= x1 + 1e-6 and (not pts or math.hypot(q[0] - pts[-1][0], q[1] - pts[-1][1]) >= 0.3):
+            pts.append(q)
+    if len(pts) < 2:
+        return
     # v1.6.13: the round caps of the cut line showed as dark stubs at the frame ends (the band covers the rest):
     # the line starts and ends 1.5 mm in, under the band
     while len(pts) > 2 and pts[1][0] - pts[0][0] < 1.5:
@@ -1443,7 +1456,7 @@ def ground_fill(pg, S):
     while len(pts) > 2 and pts[-1][0] - pts[-2][0] < 1.5:
         pts.pop()
     pts[0], pts[-1] = (pts[0][0] + 1.5, pts[0][1]), (pts[-1][0] - 1.5, pts[-1][1])
-    pg.line(pts, S.E["INK"], 0.5, layer="cut line")
+    pg.line(pts, S.E["INK"], min(0.5, max(0.18, 0.1 + 0.25 * S.K)), layer="cut line")
 
 
 def town_walls(pg, S, C):
