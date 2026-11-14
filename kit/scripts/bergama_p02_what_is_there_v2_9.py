@@ -46,8 +46,9 @@ low rise and small irregular is too close to ground and green colours. So indust
 should have one colour Heritage should be one colour and they should be different shade underneath"; "diffrentiate
 which buildings have ground floor as commercial ... they should be grouped with their previous ones"; "there is still
 too many gaps in the main drawing"; "dont put a opaque background on scale and north sign".
-  COLOUR FAMILIES: heritage (monuments, mosques) = wine red, buildings (old town, blocks, planned low-rise, small
-  irregular, under construction) = umber brown, civic & industrial = violet; the types are lightness steps of their
+  COLOUR FAMILIES: (v2.9: MapBase's palette, from the masterplan SVG) heritage (monuments, mosques) = its
+  heritage reds, buildings (old town, blocks, planned low-rise, small irregular, under construction) = its stone greys,
+  civic & industrial = its slate; the types are lightness steps of their
   family's hue (FAB). COMMERCIAL: a building with an OpenStreetMap shop, office, craft or trade amenity point inside it
   or within COM_NEAR m of its outline (or a shop-tagged OSM footprint centre inside it) is filled in the vivid shade of
   its own type (FAB_COM). OSM does not record the floor: "ground floor" is NOT verified, the key says "shop on the plot".
@@ -88,10 +89,10 @@ Writes ~/Downloads/Bergama/output/bergama_p02/Page02_What_is_there.pdf, Page02_W
        ~/Downloads/Bergama/cached/bergama_p02/ (OpenStreetMap houses over the whole map)
        ~/Downloads/Bergama/logs/bergama_p02_log.txt
 """
-import os, time, json, math, re, glob
+import os, time, json, math, re, glob, ast
 
 # ---- SETTINGS ----
-VERSION = "v2.8"
+VERSION = "v2.9"
 SLIDE = 1                          # output/presentation/1.pdf (Aras 14 Nov 11:22 UTC; slide 1 = analysis)
 GH_LABEL = "Page02"
 OUT_FOLDER = "bergama_p02"
@@ -125,13 +126,20 @@ AREA_CELL = 1.0                    # m: cells of the land-use count of the site 
 # colours (the round 9 hue table of the board set; FAB = building fabric, in its rank order)
 INK = "2C2219"
 PAPER = "F7F5EF"
-# v2.3: three families, one hue each (heritage wine 352 deg, buildings umber 22 deg, civic & industrial violet 270 deg);
-# the types are lightness steps (HSL S 0.50 / 0.25 / 0.25); FAB_COM = the same type with shops (hue +10, S 0.8, L +0.04)
-FAB = {"monument": "732630", "sacred": "AC3949", "traditional": "4C392E", "block": "735645", "regular": "99725C",
-       "selfbuilt": "AF8D79", "large": "6B5086", "construction": "C6AD9F"}
-FAB_COM = {"monument": "A0120D", "sacred": "E71A13", "traditional": "814B0E", "block": "B86B14", "regular": "E78B23",
-           "selfbuilt": "ECA351", "large": "9123C7", "construction": "F2C088"}
-GROUND_C = "DCD6CB"                # v2.3: the map ground where WorldCover has no vegetation (built-up, bare)
+# v2.9: FAB, FAB_COM and GROUND_C are MapBase's (the one palette of the set, from the masterplan SVG; Aras 14 Nov 15:20)
+def _mb_colours():
+    found = glob.glob(os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "scripts", "bergama_mapbase_v*.py"))
+    src_ = max(found, key=lambda p: [int(n) for n in re.findall(r"\d+", os.path.basename(p))])
+    with open(src_, encoding="utf-8") as f:
+        code = f.read()
+    ns = {}
+    for name in ("FAB", "FAB_COM", "GROUND_C"):
+        m = re.search(r"^%s = (\{[^}]*\}|\"[0-9A-F]{6}\")" % name, code, re.M)
+        ns[name] = ast.literal_eval(m.group(1))
+    return ns["FAB"], ns["FAB_COM"], ns["GROUND_C"]
+
+
+FAB, FAB_COM, GROUND_C = _mb_colours()
 COM_NEAR = 5.0                     # m: a shop point this close to an outline belongs to it (OSM vs survey offset; ours)
 COM_SHOP_AMENITY = ("restaurant", "cafe", "bank", "pharmacy", "fast_food", "bar", "pub", "marketplace", "fuel",
                     "ice_cream", "bureau_de_change", "money_transfer")

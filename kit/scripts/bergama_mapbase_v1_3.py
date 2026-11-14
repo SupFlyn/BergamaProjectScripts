@@ -61,7 +61,7 @@ Writes ~/Downloads/Bergama/cached/bergama_mapbase/mapbase.json (+ its OSM house 
 import os, time, json, math, re, glob
 
 # ---- SETTINGS ----
-VERSION = "v1.2"
+VERSION = "v1.3"
 GH_LABEL = "MapBase"
 OUT_FOLDER = "bergama_mapbase"
 LOG_NAME = "bergama_mapbase_log.txt"
@@ -86,13 +86,17 @@ P02_EDGE_DARK = 0.5                # a building outline = its fill mixed this fa
 # colours (the round 9 hue table of the board set; FAB = building fabric, in its rank order)
 INK = "2C2219"
 PAPER = "F7F5EF"
-# v2.3: three families, one hue each (heritage wine 352 deg, buildings umber 22 deg, civic & industrial violet 270 deg);
-# the types are lightness steps (HSL S 0.50 / 0.25 / 0.25); FAB_COM = the same type with shops (hue +10, S 0.8, L +0.04)
-FAB = {"monument": "732630", "sacred": "AC3949", "traditional": "4C392E", "block": "735645", "regular": "99725C",
-       "selfbuilt": "AF8D79", "large": "6B5086", "construction": "C6AD9F"}
-FAB_COM = {"monument": "A0120D", "sacred": "E71A13", "traditional": "814B0E", "block": "B86B14", "regular": "E78B23",
-           "selfbuilt": "ECA351", "large": "9123C7", "construction": "F2C088"}
-GROUND_C = "DCD6CB"                # v2.3: the map ground where WorldCover has no vegetation (built-up, bare)
+# MapBase v1.3 (Aras 14 Nov 15:20-15:21 UTC: "purple looks awful"; "match the colours of the .svg masterplan in the
+# urban fabric"; "have all the colours that masterplan has at least"; "and shade those"): THE one fabric palette of the
+# set (Page02, the axo and the node pages read it from here). Taken from B19_setB_layers259.svg: heritage B8483A /
+# E4877A (its heritage fills), buildings its stone greys 5E5D5A / 7B7770 / 989991 / B1B2AB / D9D6CF, civic & industrial
+# its slate 6B7A80; shops = the masterplan's bike-lane terracotta B56D61 mixed 60 % into each grey and the heritage reds
+# darkened (L -0.12, S +0.15), civic & industrial shops its navy 304168; the map ground its lightest stone E7E5DF.
+FAB = {"monument": "B8483A", "sacred": "E4877A", "traditional": "5E5D5A", "block": "7B7770", "regular": "989991",
+       "selfbuilt": "B1B2AB", "large": "6B7A80", "construction": "D9D6CF"}
+FAB_COM = {"monument": "972B1E", "sacred": "EA4D37", "traditional": "91574B", "block": "9F6052", "regular": "AD6C5B",
+           "selfbuilt": "B77667", "large": "304168", "construction": "C68576"}
+GROUND_C = "E7E5DF"                # the map ground where WorldCover has no vegetation (built-up, bare)
 COM_NEAR = 5.0                     # m: a shop point this close to an outline belongs to it (OSM vs survey offset; ours)
 COM_SHOP_AMENITY = ("restaurant", "cafe", "bank", "pharmacy", "fast_food", "bar", "pub", "marketplace", "fuel",
                     "ice_cream", "bureau_de_change", "money_transfer")
