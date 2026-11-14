@@ -45,7 +45,7 @@ Writes ~/Downloads/Bergama/output/bergama_sections/Sections.pdf          ONE pag
 import os, re, time, json, math, bisect, glob, random
 
 # ---- SETTINGS ----
-VERSION = "v1.15.2"   # v1.15.2: sheet fix (KeyError on the smallest scale, v1.15.1 crashed before the PDF and the cache); v1.15.1 v1.15.1: dashed water levels 0.1 mm, water surface line and wall outlines thin at small scales (600 dpi read of the v1.14 PDF); v1.15 v1.15 (Aras 21:33 "do a proper check"): each cut on the A3 sheet at its own largest scale, fitted to its cell (the sheet was about 60 % empty), titles one size, cut line heavier (0.4-0.6 mm); v1.14 v1.14 (Aras 21:31 "please remove these kind of showings"): no floating text labels with dashed leader lines over the cuts (Road, Canopy, Building n floors, ...); cut houses drawn like the background houses, light (Aras 21:32); v1.13 (Aras 21:26 "drawings flows out fix that"): every fill cut at the cut frame, clouds / cutouts / circles crossing it left out; v1.12 (recheck of v1.11 output): footbridges only on cuts that cross the stream; canopy edge thin at small scales; v1.11: masterplan read right (no 2.1 km2 texture frame as "green", open lines only for walls, kopruler = bridges), plan trees 12-20 m apart, drawing lines cut at the frame; v1.10: channel walls only to the bank ground + a 0.9 m parapet (Aras 16:23); masterplan spans merged per kind, a progress file logs/bergama_sections_progress.txt (v1.9 ran > 17 min); v1.9 (Aras 14 Nov 16:12-16:13): section_lines.json v2: per node A square to the stream and B along the bank crossing it, both from frame edge to frame edge (drawn whole), looking different ways; v1.8 (Aras 14 Nov 15:38-15:41): the sections are the masterplan in 3D: every piece of his plan the cut crosses (MasterplanBase cache of B19_setB_layers259.svg) drawn as a designed form (stepped terraces as the finished ground, promenade and cycle paving, retaining walls, boulders, water decks, lens footbridges, saddle-shell canopies on steel trees, sedum-roof pavilions; canopies and pavilions behind the cut in elevation), heights design intent; v1.7 (Aras 14 Nov 15:25-15:35): all 12 cuts on ONE A3 landscape sheet, no 1:x printed; planting drawn at 1:75 and scaled to the page (true proportions), no soil root hairs; cut houses as plain silhouettes; houses behind more detailed (plinth, tiles, chimney, sills, glazing bars, shutters, balconies, door hood) and up to 200 m behind
+VERSION = "v1.16"   # v1.16 (600 dpi read of the v1.15.2 PDF): one-line titles and a tighter band / scale bar (drawings larger), bridges at bank level (N2-A on the bed), seat walls where the ground is flat, water ripples only inside water, thinner water surface; v1.15.2: v1.15.2: sheet fix (KeyError on the smallest scale, v1.15.1 crashed before the PDF and the cache); v1.15.1 v1.15.1: dashed water levels 0.1 mm, water surface line and wall outlines thin at small scales (600 dpi read of the v1.14 PDF); v1.15 v1.15 (Aras 21:33 "do a proper check"): each cut on the A3 sheet at its own largest scale, fitted to its cell (the sheet was about 60 % empty), titles one size, cut line heavier (0.4-0.6 mm); v1.14 v1.14 (Aras 21:31 "please remove these kind of showings"): no floating text labels with dashed leader lines over the cuts (Road, Canopy, Building n floors, ...); cut houses drawn like the background houses, light (Aras 21:32); v1.13 (Aras 21:26 "drawings flows out fix that"): every fill cut at the cut frame, clouds / cutouts / circles crossing it left out; v1.12 (recheck of v1.11 output): footbridges only on cuts that cross the stream; canopy edge thin at small scales; v1.11: masterplan read right (no 2.1 km2 texture frame as "green", open lines only for walls, kopruler = bridges), plan trees 12-20 m apart, drawing lines cut at the frame; v1.10: channel walls only to the bank ground + a 0.9 m parapet (Aras 16:23); masterplan spans merged per kind, a progress file logs/bergama_sections_progress.txt (v1.9 ran > 17 min); v1.9 (Aras 14 Nov 16:12-16:13): section_lines.json v2: per node A square to the stream and B along the bank crossing it, both from frame edge to frame edge (drawn whole), looking different ways; v1.8 (Aras 14 Nov 15:38-15:41): the sections are the masterplan in 3D: every piece of his plan the cut crosses (MasterplanBase cache of B19_setB_layers259.svg) drawn as a designed form (stepped terraces as the finished ground, promenade and cycle paving, retaining walls, boulders, water decks, lens footbridges, saddle-shell canopies on steel trees, sedum-roof pavilions; canopies and pavilions behind the cut in elevation), heights design intent; v1.7 (Aras 14 Nov 15:25-15:35): all 12 cuts on ONE A3 landscape sheet, no 1:x printed; planting drawn at 1:75 and scaled to the page (true proportions), no soil root hairs; cut houses as plain silhouettes; houses behind more detailed (plinth, tiles, chimney, sills, glazing bars, shutters, balconies, door hood) and up to 200 m behind
 CUT_HOUSE_DIST_M = 60.0   # v1.14: cut houses toned like a house 60 m behind (light, quiet; drawing value, ours)
 LEVEL_LW = 0.1   # v1.15: dashed water levels as hairlines (mm)
 CALLOUTS = False   # v1.14: leader-line labels over the cuts left out (Aras 21:31 UTC)
@@ -1071,6 +1071,16 @@ def season_water(C, sea):
     return out
 
 
+def _in_ring(x, y, ring):
+    """v1.16: point in polygon (even-odd)"""
+    inside = False
+    for i in range(len(ring)):
+        (ax, ay), (bx, by) = ring[i - 1], ring[i]
+        if (ay > y) != (by > y) and x < ax + (y - ay) * (bx - ax) / (by - ay):
+            inside = not inside
+    return inside
+
+
 def _clip_x(ring, x0, x1):
     """a closed ring cut to x0 <= x <= x1 (Sutherland-Hodgman, two vertical edges)"""
     for edge, inside in ((x0, lambda q: q[0] >= x0), (x1, lambda q: q[0] <= x1)):
@@ -1128,17 +1138,17 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
                                size * 1.2) if items else []
     rows = (max(p["row"] for p in placed) + 1) if placed else 0
     gap = size * 2 * 1.25 + 3.0
-    title_h = 16.0 if with_text else 0.0
+    title_h = 7.0 if with_text else 0.0                # v1.16: one title line (was 16 mm), more room for the drawing
     label_h = rows * gap + (4.0 if rows else 0.0)
-    S.Y0 = y_top - title_h - label_h - (z_top - S.zb) * K - (6.0 if with_text else 0.0)
+    S.Y0 = y_top - title_h - label_h - (z_top - S.zb) * K - (2.0 if with_text else 0.0)
     by_x = dict((round(S.X(s) + 0.002 * i, 3), (s, z)) for i, (s, z, txt) in enumerate(items))
     for p in placed:
         s, z = by_x[round(p["x"], 3)]
         p["y"] = S.Y(S.surf(s) + 0.02 if z is None else z)
     if with_text:
-        pg.text(u"SECTION %s" % C.name, x_left, y_top - 6.0, 5.0, E["INK"], bold=True, layer="title")
+        pg.text(u"SECTION %s" % C.name, x_left, y_top - 4.5, 3.6, E["INK"], bold=True, layer="title")
         pg.text(u"SCALE 1:%d" % den, x_left, y_top - 11.5, 3.6, E["INK"], layer="title")
-        pg.text(u"both banks · looking %s" % C.look, x_left + 34.0, y_top - 11.5, 2.0, E["INK2"], layer="title")
+        pg.text(u"both banks · looking %s" % C.look, x_left + 30.0, y_top - 4.5, 2.0, E["INK2"], layer="title")
     # v1.6 back to front: sky and clouds, the ground behind the cut, the houses behind (far to near), then the cut
     sky(pg, S, C, z_top)
     back_ground(pg, S, C)
@@ -1265,6 +1275,7 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
     x0_, x1_ = S.X(S.lo), S.X(S.hi)
     keep = ("title", "callouts", "levels", "text", "landuse", "land use")
     out_ = []
+    water_rings_ = [r for it in pg.items if it[0] == "poly" and it[6] == "water" for r in it[1]]
     for it in pg.items:
         # v1.15 (review of the v1.14 PDF at 600 dpi: the stacked 0.25 mm dashed flood levels read as a row of blue
         # blobs across N2-A): dashed water levels as hairlines (DIAGRAM_STYLE v2: higher levels dashed 0.10)
@@ -1272,7 +1283,13 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
             it = it[:3] + (LEVEL_LW,) + it[4:]
         # v1.15.1: the 0.3 mm water surface line drawn thinner at small scales (thick blue bars on N4-A / N6-A)
         if it[0] == "line" and it[5] == "water" and it[3] >= 0.25:
-            it = it[:3] + (min(it[3], 0.1 + 0.15 * S.K),) + it[4:]
+            it = it[:3] + (min(it[3], 0.05 + 0.1 * S.K),) + it[4:]     # v1.16: thinner still (0.2 mm on N2-A)
+        # v1.16 (600 dpi read of v1.15.2: ripples under a thin water sheet fell into the ground on N2-A): a ripple
+        # stays only inside a water fill
+        if it[0] == "line" and it[5] == "water" and it[3] <= 0.09 and it[2] == E["FLOOD"]:
+            mx, my = (it[1][0][0] + it[1][-1][0]) / 2.0, (it[1][0][1] + it[1][-1][1]) / 2.0
+            if not any(_in_ring(mx, my, r) for r in water_rings_):
+                continue
         # v1.13 (Aras 21:26 "drawings flows out fix that"): fills cut at the frame too, clouds / cutouts / circles
         # that cross it left out
         if it[0] == "poly" and it[6] not in keep and not all(x0_ <= q[0] <= x1_ for r in it[1] for q in r):
@@ -1319,9 +1336,9 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
     y_band = S.Y(S.zb) - 3.0
     if with_text:
         landuse_band(pg, S, y_band - LU_H, LU_H)          # v1.6: the land-use band of the 27 Oct site board p04-05
-        y_band -= LU_H + 8.0
+        y_band -= LU_H + 3.0                             # v1.16: tighter (was 8 mm)
         bar = 10.0 if den <= 500 else 50.0              # scale bar beside the drawing (SCRIPT_STANDARD s.8)
-        xb, yb = S.X(S.lo), y_band - 4.0
+        xb, yb = S.X(S.lo), y_band - 1.5
         pg.line([(xb, yb), (xb + bar * K, yb)], E["INK"], 0.3, layer="title")
         for i in (0.0, 0.5, 1.0):
             pg.line([(xb + bar * K * i, yb), (xb + bar * K * i, yb + 1.2)], E["INK"], 0.2, layer="title")
@@ -2309,10 +2326,13 @@ def mp_ground(pg, S, C):
         elif kind == "wall":
             m = (a + b) / 2.0
             zl, zh = min(S.ex(m - 1.5), S.ex(m + 1.5)), max(S.ex(m - 1.5), S.ex(m + 1.5))
-            _sh(pg, [S.P(m - 0.35, zl - 0.8), S.P(m + 0.35, zl - 0.8), S.P(m + 0.35, zh + 0.9), S.P(m - 0.35, zh + 0.9)],
-                WALL_FILL, "proposal ground", INK_CUT, 0.25)
-            _sh(pg, [S.P(m - 0.45, zh + 0.9), S.P(m + 0.45, zh + 0.9), S.P(m + 0.45, zh + 1.02),
-                     S.P(m - 0.45, zh + 1.02)], P_CONC_LT, "proposal ground")            # coping
+            # v1.16 (600 dpi read: free-standing dark posts on flat ground): where the ground holds no step the
+            # plan's wall is a 0.45 m seat wall; the outline thin at sheet scales
+            up = 0.9 if zh - zl >= 0.3 else 0.45
+            _sh(pg, [S.P(m - 0.35, zl - 0.8), S.P(m + 0.35, zl - 0.8), S.P(m + 0.35, zh + up), S.P(m - 0.35, zh + up)],
+                WALL_FILL, "proposal ground", INK_CUT, min(0.25, max(0.04, 0.12 * K)))
+            _sh(pg, [S.P(m - 0.45, zh + up), S.P(m + 0.45, zh + up), S.P(m + 0.45, zh + up + 0.12),
+                     S.P(m - 0.45, zh + up + 0.12)], P_CONC_LT, "proposal ground")            # coping
         elif kind == "stones":
             rg = random.Random(u"%.1f" % a)
             x = a + 0.4
@@ -2395,11 +2415,24 @@ def _bridge(pg, S, a, b, layer):
     """a footbridge as a thin lens: a 0.35 m timber deck on a shallow steel lens 1.2 m deep at mid-span, blade posts
     and a handrail (design intent, ours)"""
     K = S.K
-    z = max(S.ex(a), S.ex(b)) + 0.2
+    # v1.16 (600 dpi read of v1.15.2: N2-A's bridge lay on the stream bed, its plan ends being inside the channel):
+    # the deck at the higher bank top within 8 m of each end, the span run out until it lands on the bank
+    zl = max(S.ex(a - 0.5 * k) for k in range(17))
+    zr = max(S.ex(b + 0.5 * k) for k in range(17))
+    z = max(zl, zr) + 0.2
+    for _ in range(30):
+        if S.ex(a) >= z - 0.4 or a - 0.5 < S.lo:
+            break
+        a -= 0.5
+    for _ in range(30):
+        if S.ex(b) >= z - 0.4 or b + 0.5 > S.hi:
+            break
+        b += 0.5
     n = max(8, int((b - a) / 0.5))
     xs = [a + (b - a) * i / n for i in range(n + 1)]
     low = [z - 0.35 - 1.2 * math.sin(math.pi * i / n) for i in range(n + 1)]
-    _sh(pg, [S.P(x, z) for x in xs] + [S.P(x, l_) for x, l_ in reversed(list(zip(xs, low)))], P_STEEL, layer, INK_CUT, 0.2)
+    _sh(pg, [S.P(x, z) for x in xs] + [S.P(x, l_) for x, l_ in reversed(list(zip(xs, low)))], P_STEEL, layer, INK_CUT,
+        min(0.2, max(0.04, 0.1 * K)))
     _sh(pg, [S.P(a, z), S.P(b, z), S.P(b, z - 0.12), S.P(a, z - 0.12)], P_TIMBER, layer)
     pg.line([S.P(a, z + 1.1), S.P(b, z + 1.1)], P_STEEL, max(0.05, 0.06 * K), layer=layer)
     x = a
