@@ -45,7 +45,7 @@ Writes ~/Downloads/Bergama/output/bergama_sections/Sections.pdf          ONE pag
 import os, time, json, math, bisect, glob
 
 # ---- SETTINGS ----
-VERSION = "v1.6.6"
+VERSION = "v1.6.7"
 GH_LABEL = "Sections"
 OUT_FOLDER = "bergama_sections"
 LOG_NAME = "bergama_sections_log.txt"
@@ -760,6 +760,8 @@ class Sec(object):
             self.d["pergola"] = E["SECTIONS"][1].get("pergola")
         self.V = self._surface(left, right)
         self.walled = None
+        self.roads = list(C.roads)
+        self.channel = (C.s_th, C.s_th)
         if not C.is_s4 and WALL_BED[0] <= C.z_th <= WALL_BED[1]:
             self._wall_channel()
         if not C.is_s4:
@@ -890,6 +892,8 @@ class Sec(object):
         if self.walled:
             ch0, ch1 = self.walled[0], self.walled[1]
         self.channel = (ch0, ch1)
+        # v1.6.7 (check of run 4: N3-A / N5-A roads ran down the bank into the bed): no road surface in the channel
+        self.roads = [r for a, b in C.roads for r in ((a, min(b, ch0)), (max(a, ch1), b)) if r[1] - r[0] > 0.5]
         runs, cur, kind = [], None, None
         s = self.lo
         while s <= self.hi + 1e-9:
@@ -930,8 +934,8 @@ class Sec(object):
         if wet:                                           # v1.4: one log line per section, not one per tree
             C.notes.append(u"line %d: %d survey tree(s) not drawn, they stand below Q100 (at s %s m)" % (
                 C.n, len(wet), u", ".join(u"%.1f" % s for s in wet)))
-        if d["reeds"]:
-            r0 = max(d["reeds"], key=lambda r: abs(r[1] - r[0]))
+        if d["reeds"]:                                    # v1.6.7: away from the strip's label (same x lost one)
+            r0 = max(d["reeds"], key=lambda r: (abs((r[0] + r[1]) / 2 - C.s_th) > 2.0, abs(r[1] - r[0])))
             d["callouts"].append(((r0[0] + r0[1]) / 2, None, u"Common reed (Kamış)"))
         if d["iris"]:
             i0 = max(d["iris"], key=lambda r: abs(r[1] - r[0]))
@@ -943,7 +947,7 @@ class Sec(object):
             d["callouts"].append((s, None, u"Tree (survey point)"))
         if self.has_strip:
             d["callouts"].append((C.s_th, None, u"Summer water strip 4.0 × 0.30 m"))
-        for a, b in C.roads:
+        for a, b in self.roads:
             d["callouts"].append(((a + b) / 2, None, u"Road"))
         for x in C.streets:
             d["callouts"].append((x, None, u"Street"))
@@ -985,7 +989,11 @@ def people_for(S, sea_key, E):
     n = 0
     while s < S.hi - 4.0:
         g = S.surf(s)
-        if abs(S.surf(s + 0.5) - S.surf(s - 0.5)) < 0.25 and not any(t[4] and t[0] <= s <= t[1] for t in S.C.bld):
+        ch = getattr(S, "channel", (S.C.s_th, S.C.s_th))
+        q100 = S.C.levels.get("q100", (None,))[0]
+        if abs(S.surf(s + 0.5) - S.surf(s - 0.5)) < 0.25 and not any(t[4] and t[0] - 1.5 <= s <= t[1] + 1.5
+                                                                     for t in S.C.bld) \
+                and not ch[0] - 1.5 <= s <= ch[1] + 1.5 and (q100 is None or g >= q100):
             out.append((s, kinds[n % len(kinds)], n % 2 == 1))
             n += 1
             s += 9.0
@@ -993,6 +1001,47 @@ def people_for(S, sea_key, E):
             s += 1.0
         _ = g
     return out, []
+
+
+def joined(S, z):
+    """v1.6.7 (check of run 4: Q lines ran over whole banks at ground height, water past the wall): the stretch of
+    the cut where water at level z stands, joined to the bed low point; a wall holds it while z is below its top"""
+    C = S.C
+    if S.surf(C.s_th) >= z:
+        return None
+    wl = getattr(S, "walled", None)
+    ends = []
+    for sg in (-1.0, 1.0):
+        s = C.s_th
+        while S.lo < s + sg * 0.1 < S.hi and S.surf(s + sg * 0.1) < z:
+            if wl and z <= (wl[2] if sg < 0 else wl[3]) and not wl[0] <= s + sg * 0.1 <= wl[1]:
+                break
+            s += sg * 0.1
+        ends.append(s)
+    return ends[0], ends[1]
+
+
+def joined_level(E, pg, S, z, label, dash, colour=None, fill=False, line=True):
+    """the engine's level_line (and water) limited to the joined stretch: s_from / s_to and the surface held to it"""
+    j = joined(S, z)
+    if not j:
+        return
+    keep = (S.d["s_from"], S.d["s_to"], S.V, getattr(S, "_xs", None))
+    S.d["s_from"], S.d["s_to"] = j
+    try:
+        if fill:
+            S.V = [(j[0], max(S.surf(j[0]), z))] + [p for p in keep[2] if j[0] < p[0] < j[1]] + \
+                  [(j[1], max(S.surf(j[1]), z))]
+            S._xs = None
+            E["water"](pg, S, z)
+            S.V, S._xs = keep[2], keep[3]
+        if line:
+            if colour is None:
+                E["level_line"](pg, S, z, label, dash)
+            else:
+                E["level_line"](pg, S, z, label, dash, colour=colour)
+    finally:
+        S.d["s_from"], S.d["s_to"], S.V, S._xs = keep
 
 
 def season_water(C, sea):
@@ -1028,13 +1077,14 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
     z_top = max(tops) + SKY_ABOVE_M
     S.X0 = x_left
     items = list(d["callouts"]) if with_text else []
-    placed = E["place_labels"](S, [(S.X(s), 0.0, txt) for s, z, txt in items], size) if items else []
+    placed = E["place_labels"](S, [(S.X(s) + 0.002 * i, 0.0, txt) for i, (s, z, txt) in enumerate(items)],
+                               size) if items else []
     rows = (max(p["row"] for p in placed) + 1) if placed else 0
     gap = size * 2 * 1.25 + 3.0
     title_h = 16.0 if with_text else 0.0
     label_h = rows * gap + (4.0 if rows else 0.0)
     S.Y0 = y_top - title_h - label_h - (z_top - S.zb) * K - (6.0 if with_text else 0.0)
-    by_x = dict((round(S.X(s), 3), (s, z)) for s, z, txt in items)
+    by_x = dict((round(S.X(s) + 0.002 * i, 3), (s, z)) for i, (s, z, txt) in enumerate(items))
     for p in placed:
         s, z = by_x[round(p["x"], 3)]
         p["y"] = S.Y(S.surf(s) + 0.02 if z is None else z)
@@ -1045,14 +1095,23 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
     # v1.6 back to front: sky and clouds, the ground behind the cut, the houses behind (far to near), then the cut
     sky(pg, S, C, z_top)
     back_ground(pg, S, C)
+    # v1.6.7 (check of run 4): everything inside the frame; no house behind drawn over the channel (it read as
+    # standing in the stream); a house behind stands at least on the cut ground in front of it (half-buried houses
+    # with the road across their windows); cut buildings rise from the ground line (not from the frame bottom)
+    ch = S.channel
     for a, b, zb_, h, is_cut, dist, fl in C.bld:
-        if not is_cut:
-            base = zb_ if zb_ is not None else min(S.ex(a), S.ex(b))
-            house(pg, S, a, b, base, h, fl, dist)
+        a, b = max(a, S.lo + EAVE_M), min(b, S.hi - EAVE_M)
+        if is_cut or b - a < 0.5 or (a < ch[1] + 1.0 and b > ch[0] - 1.0):
+            continue
+        base = max(zb_ if zb_ is not None else -99.0, min(S.surf(a), S.surf(b)))
+        house(pg, S, a, b, base, h, fl, dist)
     for a, b, zb_, h, is_cut, dist, fl in C.bld:
-        if is_cut:
+        a, b = max(a, S.lo), min(b, S.hi)
+        if is_cut and b - a > 0.3:
             base = min(S.ex(a), S.ex(b))
-            ring = [S.P(a, S.zb), S.P(b, S.zb), S.P(b, base + h), S.P(a, base + h)]
+            n_ = max(2, int((b - a) / DS))
+            ring = [S.P(a + (b - a) * i / n_, S.surf(a + (b - a) * i / n_)) for i in range(n_ + 1)]
+            ring += [S.P(b, base + h), S.P(a, base + h)]
             pg.poly([ring], fill=BLD_CUT_FILL, stroke=INK_CUT, lw=0.35, layer="context buildings")
             if fl and fl > 1 and (b - a) * K > 3.0:
                 for i in range(1, fl):
@@ -1077,25 +1136,27 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
     if bal:
         E["balcony"](pg, S, bal, on_bal)
     if q500 is not None:
-        E["level_line"](pg, S, q500, u"Q500 %+.2f (calculated on this cut)" % q500, [2.0, 1.0])
-        E["level_line"](pg, S, q100, u"Q100 %+.2f (calculated on this cut)" % q100, [0.8, 0.8])
+        joined_level(E, pg, S, q500, u"Q500 %+.2f (calculated on this cut)" % q500, [2.0, 1.0])
+        joined_level(E, pg, S, q100, u"Q100 %+.2f (calculated on this cut)" % q100, [0.8, 0.8])
     sw = season_water(C, sea)
     for z, fill_, lab, dash in sw:
         if not fill_:
-            E["level_line"](pg, S, z, lab, dash, colour=E["WATER_LINE"])
+            joined_level(E, pg, S, z, lab, dash, colour=E["WATER_LINE"])
     ground_fill(pg, S)                                  # v1.6: solid fill (booklet p22), no stipple, no hatch
     E["soft_ground"](pg, S)
     town_walls(pg, S, C)
     for b in S.banks:
         E["walls_and_slabs"](pg, _Bank(S, b))
     E["existing_ground"](pg, S)
-    for a, b in C.roads:                               # the road surface on the ground line
+    for a, b in S.roads:                               # the road surface on the ground line
         n = max(2, int((b - a) / DS))
         top = [(a + (b - a) * i / n) for i in range(n + 1)]
         ring = [S.P(x, S.surf(x)) for x in top] + [S.P(x, S.surf(x) - ROAD_T) for x in reversed(top)]
         pg.poly([ring], fill=ROAD_FILL, stroke=None, layer="context roads")
     for a, b in d["grass"]:
-        E["tufts"](pg, S, a, b)
+        a, b = max(a, S.lo + 1.2 / K), min(b, S.hi - 1.2 / K)         # v1.6.7: blades stay inside the frame
+        if b > a:
+            E["tufts"](pg, S, a, b)
     for a, b in d["lavender"]:
         E["lavender"](pg, S, a, b)
     for s, h, w in d["shrubs"]:
@@ -1106,14 +1167,11 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
         E["iris"](pg, S, a, b)
     filled = [w for w in sw if w[1]]
     for z, fill_, lab, dash in filled:
-        E["water"](pg, S, z)
-        E["level_line"](pg, S, z, lab, None, colour=E["FLOOD"])
+        joined_level(E, pg, S, z, lab, None, colour=E["FLOOD"], fill=True)
     held = STRIP_HELD[sea] and S.has_strip
     if held:
-        E["water"](pg, S, C.z_th)
-        if not filled:
-            E["level_line"](pg, S, C.z_th, u"continuous strip %+.2f, 0.30 m (design)" % C.z_th, None,
-                            colour=E["FLOOD"])
+        joined_level(E, pg, S, C.z_th, u"continuous strip %+.2f, 0.30 m (design)" % C.z_th, None,
+                     colour=E["FLOOD"], fill=True, line=not filled)
     wl = max([C.z_th if held else -99.0] + [w[0] for w in filled])
     for s, kind, flip in people:
         g = S.surf(s)
@@ -1333,12 +1391,12 @@ def landuse_band(pg, S, y, h):
         m = (s + e) / 2.0
         if any(a <= m <= b for a, b in getattr(C, "walls", [])):
             k = "wall"
-        elif any(a <= m <= b for a, b in C.roads):
+        elif ch[0] <= m <= ch[1]:                        # v1.6.7: the channel before streets (N3-A street in the bed)
+            k = "stream"
+        elif any(a <= m <= b for a, b in getattr(S, "roads", C.roads)):
             k = "street"
         elif any(t[4] and t[0] <= m <= t[1] for t in C.bld):
             k = "building"
-        elif ch[0] <= m <= ch[1]:
-            k = "stream"
         else:
             k = "open"
         if cur and cur[2] == k:
@@ -1377,16 +1435,30 @@ def spread_levels(E, pg, S, short=False, gap=2.6):
     # v1.6 (fix 2): the texts sit just right of where the water lines end (the channel), not at the cut's far end
     ends = [max(p[0] for p in it[1]) for it in pg.items if it[0] == "line" and it[5] == "levels" and len(it[1]) == 2
             and abs(it[1][0][1] - it[1][1][1]) < 1e-6]
+    starts = [min(p[0] for p in it[1]) for it in pg.items if it[0] == "line" and it[5] == "levels" and len(it[1]) == 2
+              and abs(it[1][0][1] - it[1][1][1]) < 1e-6]
     if ends:
         x_end = min(x_end, max(ends))
-    xr = x_end + 3.0
+    # v1.6.7 (check of run 4: labels past the frame, struck through by the bank, people on them): the stack goes
+    # right of the water lines, or left of them when it would leave the frame; it rises clear of the ground (+2 m:
+    # a person) over its own width
+    rows = [(it, it[1].split(u" (")[0] if short else it[1]) for it in sorted(lv, key=lambda t: -t[3])]
+    tw = max(text_w_any(t, it[4], it[6]) for it, t in rows) + 3.4
+    right = x_end + 3.0 + tw <= S.X(S.hi) - 0.5 or not starts
+    x_tick = x_end if right else min(starts)
+    xr = x_tick + 3.0 if right else x_tick - 3.0 - tw
+    xr = max(S.X(S.lo) + 0.5, xr)
+    s0, s1 = S.lo + (xr - S.X0) / S.K, S.lo + (xr + tw - S.X0) / S.K
+    n_ = max(2, int((s1 - s0) / 0.5))
+    y_clear = S.Y(max(S.surf(s0 + (s1 - s0) * i / n_) for i in range(n_ + 1)) + 2.0) + 0.6
     y_prev = None
-    for it in sorted(lv, key=lambda t: -t[3]):
-        txt = it[1].split(u" (")[0] if short else it[1]
+    for it, txt in rows:
         y0 = it[3] - 0.6
-        y = y0 if y_prev is None else min(y0, y_prev - gap)
+        y = max(y0, y_clear + gap * (len(rows) - 1)) if y_prev is None else min(y0, y_prev - gap)
+        y = max(y, y_clear) if y_prev is None or y_prev - gap >= y_clear else y_prev - gap
         y_prev = y
-        pg.line([(x_end + 0.3, y0), (xr - 0.5, y)], it[5], 0.08, layer="levels")
+        pg.line([(x_tick + (0.3 if right else -0.3), y0), ((xr - 0.5) if right else (xr + tw + 0.5), y)], it[5],
+                0.08, layer="levels")
         X = xr + 1.3                                     # the level sign beside its value
         pg.poly([[(X - 1.3, y + 1.9), (X + 1.3, y + 1.9), (X, y)]], fill=None, stroke=it[5], lw=0.2, layer="levels")
         pg.line([(X - 0.8, y - 0.6), (X + 0.8, y - 0.6)], it[5], 0.2, layer="levels")
