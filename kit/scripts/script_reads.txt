@@ -205,6 +205,8 @@ bergama_slide01: scripts/bergama_page01_free_v1_7.py  # hand, 14 Nov
 bergama_slide01: scripts/bergama_page01_move_v1_4.py  # hand, 14 Nov
 bergama_page05_access: scripts/bergama_page_transit_v2_10.py  # hand, 14 Nov
 bergama_page05_access: scripts/bergama_page_heritage_v1_7.py  # hand, 14 Nov
+bergama_slide01: scripts/bergama_page01_move_v1_3.py  # hand, 14 Nov
+bergama_page05_access: scripts/bergama_page_transit_v2_11.py  # hand, 14 Nov
 bergama_page05_access: Data/bergama_pages_common.py  # hand, 14 Nov
 bergama_page05_access: Data/bergama_access_heritage.json  # hand, 14 Nov
 bergama_page05_access: Data/selinos_centreline.json  # hand, 14 Nov

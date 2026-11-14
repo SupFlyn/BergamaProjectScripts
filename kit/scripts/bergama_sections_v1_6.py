@@ -45,7 +45,7 @@ Writes ~/Downloads/Bergama/output/bergama_sections/Sections.pdf          ONE pag
 import os, re, time, json, math, bisect, glob, random
 
 # ---- SETTINGS ----
-VERSION = "v1.9"   # v1.9 (Aras 14 Nov 16:12-16:13): section_lines.json v2: per node A square to the stream and B along the bank crossing it, both from frame edge to frame edge (drawn whole), looking different ways; v1.8 (Aras 14 Nov 15:38-15:41): the sections are the masterplan in 3D: every piece of his plan the cut crosses (MasterplanBase cache of B19_setB_layers259.svg) drawn as a designed form (stepped terraces as the finished ground, promenade and cycle paving, retaining walls, boulders, water decks, lens footbridges, saddle-shell canopies on steel trees, sedum-roof pavilions; canopies and pavilions behind the cut in elevation), heights design intent; v1.7 (Aras 14 Nov 15:25-15:35): all 12 cuts on ONE A3 landscape sheet, no 1:x printed; planting drawn at 1:75 and scaled to the page (true proportions), no soil root hairs; cut houses as plain silhouettes; houses behind more detailed (plinth, tiles, chimney, sills, glazing bars, shutters, balconies, door hood) and up to 200 m behind
+VERSION = "v1.10"   # v1.10: channel walls only to the bank ground + a 0.9 m parapet (Aras 16:23); masterplan spans merged per kind, a progress file logs/bergama_sections_progress.txt (v1.9 ran > 17 min); v1.9 (Aras 14 Nov 16:12-16:13): section_lines.json v2: per node A square to the stream and B along the bank crossing it, both from frame edge to frame edge (drawn whole), looking different ways; v1.8 (Aras 14 Nov 15:38-15:41): the sections are the masterplan in 3D: every piece of his plan the cut crosses (MasterplanBase cache of B19_setB_layers259.svg) drawn as a designed form (stepped terraces as the finished ground, promenade and cycle paving, retaining walls, boulders, water decks, lens footbridges, saddle-shell canopies on steel trees, sedum-roof pavilions; canopies and pavilions behind the cut in elevation), heights design intent; v1.7 (Aras 14 Nov 15:25-15:35): all 12 cuts on ONE A3 landscape sheet, no 1:x printed; planting drawn at 1:75 and scaled to the page (true proportions), no soil root hairs; cut houses as plain silhouettes; houses behind more detailed (plinth, tiles, chimney, sills, glazing bars, shutters, balconies, door hood) and up to 200 m behind
 GH_LABEL = "Sections"
 OUT_FOLDER = "bergama_sections"
 LOG_NAME = "bergama_sections_log.txt"
@@ -802,7 +802,9 @@ class Sec(object):
         V += [p for p in self.V if p[0] > sR + 1e-6]
         self.V = V
         self._xs = None
-        self.walled = (sL, sR, max(self.ex(sL), top), max(self.ex(sR), top))
+        # v1.10 (Aras 16:23 "u sure that there is walls like that"): the wall retains the bank, so its top is the bank
+        # ground beside it (plus a parapet when drawn), never bed + 5 m standing free above a lower bank
+        self.walled = (sL, sR, self.ex(sL - WALL_T_M - 0.5), self.ex(sR + WALL_T_M + 0.5))
         C.notes.append(u"line %d: walled channel s %.1f-%.1f m (%.1f m wide), bed %+.2f, wall tops %+.2f / %+.2f "
                        u"(REPORT s.2: 5.0 m above the bed; the survey bank here is pre-wall)" % (
                            C.n, sL, sR, sR - sL, zt, self.walled[2], self.walled[3]))
@@ -870,7 +872,7 @@ class Sec(object):
         """on a road or inside a building the line cuts: no planting, no people"""
         C = self.C
         return (any(a <= s <= b for a, b in C.roads) or any(t[4] and t[0] <= s <= t[1] for t in C.bld)
-                or any(t[4] and t[0] in HARD and t[1] <= s <= t[2] for t in getattr(C, "mp", [])))
+                or any(a <= s <= b for a, b in getattr(C, "mp_hard", ())))
 
     def _rule_planting(self, sea):
         """design intention (ours): reeds and iris on the wet bed (up to WET_BAND_M above the bed, never in the strip),
@@ -1280,6 +1282,7 @@ FLAT_ROOF_FLOORS = 4               # 4 floors and more: a flat concrete roof wit
 WIN_W, WIN_H, WIN_SILL, WIN_STEP = 1.2, 1.4, 0.9, 3.0     # m, window rows per floor (drawing rule)
 WALL_BED = (55.5, 73.5)            # the walled town reach by bed level (REPORT s.2: upstream entry +73.1 ... Uc Kemer +55.6)
 WALL_H_M, WALL_T_M, WALL_FILL = 5.0, 0.6, "BDB6A6"
+PARAPET_M = 0.9                    # v1.10: a low parapet on the channel wall (drawing rule, ours)
 WALL_MAX_W = 30.0                  # m: v1.6.1: a wider low flat is not the walled channel
 WALL_SEARCH_M = 20.0               # m from the bed low point: v1.6.2 the wall stands where the ground reaches its top
 DSI_BED_W = 20.0                   # m: DSI planned channel width (SYGM 2019 summary p.75, measure 155)
@@ -1468,8 +1471,8 @@ def town_walls(pg, S, C):
     C.walls = []
     for s, side, top in ((sL, -1, tL), (sR, 1, tR)):
         sa, sb = sorted((s, s + side * WALL_T_M))
-        pg.poly([[S.P(sa, C.z_th - 0.6), S.P(sb, C.z_th - 0.6), S.P(sb, top), S.P(sa, top)]], fill=WALL_FILL,
-                stroke=INK_CUT, lw=0.3, layer="walls")
+        pg.poly([[S.P(sa, C.z_th - 0.6), S.P(sb, C.z_th - 0.6), S.P(sb, top + PARAPET_M), S.P(sa, top + PARAPET_M)]],
+                fill=WALL_FILL, stroke=INK_CUT, lw=min(0.3, max(0.12, 0.15 * S.K)), layer="walls")
         C.walls.append((sa, sb))
 
 
@@ -2026,6 +2029,7 @@ def cut_cache(E, C):
     node-page scale, unshifted, so the node pages read cached/bergama_sections/cuts.json instead of redoing it"""
     items, k0, S = {}, E.get("K"), None
     for d in NODE_SCALES:
+        prog(u"%s: draw 1:%d" % (C.name, d))
         pg, S, _y = draw_cut(E, C, SEASON, d, 0.0, 0.0)
         # v1.6.9 (four-seasons thread, Aras 13:06 UTC: the season cuts reuse this base with other assets): the page
         # mapping, so a reader places its own assets: x = X0 + (s - lo) * K, y = Y0 + (z - zb) * K (mm)
@@ -2098,6 +2102,15 @@ P_CONC, P_CONC_LT, P_TIMBER, P_STEEL = "BDB7AA", "D9D4C8", "A9794B", "4F5559"
 P_GLASS, P_SHELL, P_GREEN, P_PAVE, P_CYCLE = "B9CDD3", "F5F3EE", "8E9E6A", "C9C0AE", "B3735A"
 
 
+def prog(msg):
+    """v1.10: one progress line, written at once (the log is written only at the end; a slow run showed nothing)"""
+    try:
+        with open(os.path.join(BERGAMA_ROOT, "logs", "bergama_sections_progress.txt"), "a", encoding="utf-8") as f:
+            f.write(u"%s %s\n" % (time.strftime("%H:%M:%S"), msg))
+    except Exception:
+        pass
+
+
 def mp_load(log):
     """{layer id: [(closed, [(x, y), ...]), ...]} in survey m from the MasterplanBase cache; {} when missing"""
     try:
@@ -2143,7 +2156,17 @@ def mp_for(C, MP):
                 a, b = max(min(s for s, _ in so), w0), min(max(s for s, _ in so), w1)
                 if 0.0 < omin <= MP_BEHIND_M and b - a > 1.0:
                     C.mp.append((kind, a, b, omin, False))
+    # v1.10 (the v1.8 / v1.9 runs ran > 17 min): overlapping pieces of one kind on the cut merged into one span
+    cut_, rest = {}, [t for t in C.mp if not t[4]]
+    for t in sorted(t for t in C.mp if t[4]):
+        m = cut_.setdefault(t[0], [])
+        if m and t[1] <= m[-1][2] + 0.3:
+            m[-1] = (t[0], m[-1][1], max(m[-1][2], t[2]), 0.0, True)
+        else:
+            m.append(t)
+    C.mp = rest + [t for v in cut_.values() for t in v]
     C.mp.sort(key=lambda t: (-t[3], t[1]))
+    C.mp_hard = [(t[1], t[2]) for t in C.mp if t[4] and t[0] in HARD]
     n = {}
     for t in C.mp:
         n[t[0]] = n.get(t[0], 0) + 1
@@ -2441,6 +2464,10 @@ def main():
                 C = Cut(i + 1, s4a, s4b, u"S4", u"S4")
                 C.is_s4 = True
         cuts.append(C)
+    if not any(C.is_s4 for C in cuts):                  # v1.10 (four-seasons page, Aras 16:37 wants the S4 look
+        C = Cut(len(cuts) + 1, s4a, s4b, u"S4", u"S4")  # back): S4 cached every run, not on the sheet
+        C.is_s4, C.cache_only = True, True
+        cuts.append(C)
     BM = load_basemap(log)
     MP = mp_load(log)                                   # v1.8: the masterplan (MasterplanBase cache)
     # the survey is read ONCE for all lines (build once, Aras 29 Oct): the box holds every line's corridor
@@ -2455,9 +2482,13 @@ def main():
     for C in cuts:
         try:
             C.survey = survey
+            prog(u"%s: build" % C.name)
             build_cut(C, CL, cum, E, log, BM)
-            mp_for(C, MP)
-            pages.append(C)
+            prog(u"%s: built (%d buildings, window %.0f m); masterplan" % (C.name, len(C.bld), C.window[1] - C.window[0]))
+            mp_for(C, MP if not C.is_s4 else {})       # S4 keeps the 27 Oct engine design
+            prog(u"%s: %d masterplan spans" % (C.name, len(C.mp)))
+            if not getattr(C, "cache_only", False):
+                pages.append(C)
         except Exception as ex:
             import traceback as _tb
             log.append(u"FLAG section %s not drawn: %s: %s | %s" % (C.name, type(ex).__name__, ex,
