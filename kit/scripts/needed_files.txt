@@ -32,7 +32,7 @@ scripts/bergama_page_heritage_v1_7.py
 scripts/bergama_page_spine_v2_2.py
 scripts/bergama_page01_axo_v1_6.py
 scripts/bergama_page01_free_v1_7.py
-scripts/bergama_page01_move_v1_3.py
+scripts/bergama_page01_move_v1_4.py
 scripts/bergama_slide01_v1_1.py
 Data/bergama_pages_common.py
 Data/bergama_access_heritage.json
