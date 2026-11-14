@@ -45,8 +45,9 @@ Writes ~/Downloads/Bergama/output/bergama_sections/Sections.pdf          ONE pag
 import os, re, time, json, math, bisect, glob, random
 
 # ---- SETTINGS ----
-VERSION = "v1.15"   # v1.15 (Aras 21:33 "do a proper check"): each cut on the A3 sheet at its own largest scale, fitted to its cell (the sheet was about 60 % empty), titles one size, cut line heavier (0.4-0.6 mm); v1.14 v1.14 (Aras 21:31 "please remove these kind of showings"): no floating text labels with dashed leader lines over the cuts (Road, Canopy, Building n floors, ...); cut houses drawn like the background houses, light (Aras 21:32); v1.13 (Aras 21:26 "drawings flows out fix that"): every fill cut at the cut frame, clouds / cutouts / circles crossing it left out; v1.12 (recheck of v1.11 output): footbridges only on cuts that cross the stream; canopy edge thin at small scales; v1.11: masterplan read right (no 2.1 km2 texture frame as "green", open lines only for walls, kopruler = bridges), plan trees 12-20 m apart, drawing lines cut at the frame; v1.10: channel walls only to the bank ground + a 0.9 m parapet (Aras 16:23); masterplan spans merged per kind, a progress file logs/bergama_sections_progress.txt (v1.9 ran > 17 min); v1.9 (Aras 14 Nov 16:12-16:13): section_lines.json v2: per node A square to the stream and B along the bank crossing it, both from frame edge to frame edge (drawn whole), looking different ways; v1.8 (Aras 14 Nov 15:38-15:41): the sections are the masterplan in 3D: every piece of his plan the cut crosses (MasterplanBase cache of B19_setB_layers259.svg) drawn as a designed form (stepped terraces as the finished ground, promenade and cycle paving, retaining walls, boulders, water decks, lens footbridges, saddle-shell canopies on steel trees, sedum-roof pavilions; canopies and pavilions behind the cut in elevation), heights design intent; v1.7 (Aras 14 Nov 15:25-15:35): all 12 cuts on ONE A3 landscape sheet, no 1:x printed; planting drawn at 1:75 and scaled to the page (true proportions), no soil root hairs; cut houses as plain silhouettes; houses behind more detailed (plinth, tiles, chimney, sills, glazing bars, shutters, balconies, door hood) and up to 200 m behind
+VERSION = "v1.15.1"   # v1.15.1: dashed water levels 0.1 mm, water surface line and wall outlines thin at small scales (600 dpi read of the v1.14 PDF); v1.15 v1.15 (Aras 21:33 "do a proper check"): each cut on the A3 sheet at its own largest scale, fitted to its cell (the sheet was about 60 % empty), titles one size, cut line heavier (0.4-0.6 mm); v1.14 v1.14 (Aras 21:31 "please remove these kind of showings"): no floating text labels with dashed leader lines over the cuts (Road, Canopy, Building n floors, ...); cut houses drawn like the background houses, light (Aras 21:32); v1.13 (Aras 21:26 "drawings flows out fix that"): every fill cut at the cut frame, clouds / cutouts / circles crossing it left out; v1.12 (recheck of v1.11 output): footbridges only on cuts that cross the stream; canopy edge thin at small scales; v1.11: masterplan read right (no 2.1 km2 texture frame as "green", open lines only for walls, kopruler = bridges), plan trees 12-20 m apart, drawing lines cut at the frame; v1.10: channel walls only to the bank ground + a 0.9 m parapet (Aras 16:23); masterplan spans merged per kind, a progress file logs/bergama_sections_progress.txt (v1.9 ran > 17 min); v1.9 (Aras 14 Nov 16:12-16:13): section_lines.json v2: per node A square to the stream and B along the bank crossing it, both from frame edge to frame edge (drawn whole), looking different ways; v1.8 (Aras 14 Nov 15:38-15:41): the sections are the masterplan in 3D: every piece of his plan the cut crosses (MasterplanBase cache of B19_setB_layers259.svg) drawn as a designed form (stepped terraces as the finished ground, promenade and cycle paving, retaining walls, boulders, water decks, lens footbridges, saddle-shell canopies on steel trees, sedum-roof pavilions; canopies and pavilions behind the cut in elevation), heights design intent; v1.7 (Aras 14 Nov 15:25-15:35): all 12 cuts on ONE A3 landscape sheet, no 1:x printed; planting drawn at 1:75 and scaled to the page (true proportions), no soil root hairs; cut houses as plain silhouettes; houses behind more detailed (plinth, tiles, chimney, sills, glazing bars, shutters, balconies, door hood) and up to 200 m behind
 CUT_HOUSE_DIST_M = 60.0   # v1.14: cut houses toned like a house 60 m behind (light, quiet; drawing value, ours)
+LEVEL_LW = 0.1   # v1.15: dashed water levels as hairlines (mm)
 CALLOUTS = False   # v1.14: leader-line labels over the cuts left out (Aras 21:31 UTC)
 GH_LABEL = "Sections"
 OUT_FOLDER = "bergama_sections"
@@ -1265,6 +1266,13 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
     keep = ("title", "callouts", "levels", "text", "landuse", "land use")
     out_ = []
     for it in pg.items:
+        # v1.15 (review of the v1.14 PDF at 600 dpi: the stacked 0.25 mm dashed flood levels read as a row of blue
+        # blobs across N2-A): dashed water levels as hairlines (DIAGRAM_STYLE v2: higher levels dashed 0.10)
+        if it[0] == "line" and it[5] == "levels" and it[4]:
+            it = it[:3] + (LEVEL_LW,) + it[4:]
+        # v1.15.1: the 0.3 mm water surface line drawn thinner at small scales (thick blue bars on N4-A / N6-A)
+        if it[0] == "line" and it[5] == "water" and it[3] >= 0.25:
+            it = it[:3] + (min(it[3], 0.1 + 0.15 * S.K),) + it[4:]
         # v1.13 (Aras 21:26 "drawings flows out fix that"): fills cut at the frame too, clouds / cutouts / circles
         # that cross it left out
         if it[0] == "poly" and it[6] not in keep and not all(x0_ <= q[0] <= x1_ for r in it[1] for q in r):
@@ -1538,7 +1546,7 @@ def town_walls(pg, S, C):
     for s, side, top in ((sL, -1, tL), (sR, 1, tR)):
         sa, sb = sorted((s, s + side * WALL_T_M))
         pg.poly([[S.P(sa, C.z_th - 0.6), S.P(sb, C.z_th - 0.6), S.P(sb, top + PARAPET_M), S.P(sa, top + PARAPET_M)]],
-                fill=WALL_FILL, stroke=INK_CUT, lw=min(0.3, max(0.12, 0.15 * S.K)), layer="walls")
+                fill=WALL_FILL, stroke=INK_CUT, lw=min(0.3, max(0.04, 0.15 * S.K)), layer="walls")   # v1.15: thin at sheet scale (dark stubs on N2)
         C.walls.append((sa, sb))
 
 
