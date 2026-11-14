@@ -17,10 +17,11 @@ Reads the newest scripts/bergama_basemap_v*, bergama_p02_what_is_there_v*, berga
 """
 import os, re, glob, json, math, time
 
-NC_VERSION = "v8"   # v8: plan = his masterplan drawing; why-here story + one concept diagram per node; water bars and meets line gone; v7.5: v7.5: section_lines v2 (B along the bank: looks at the stream, no water bars); v7.4: v7.4: cut marks = two end arrows, no line between (pages_common v3.14); v7.3: v7.3: scale + north ignore the node frame line; v7.2: v7.2: the proposal from his masterplan SVG (MasterplanBase cache); v7.1: v7.1: R01 cut arrows (pc_cut_mark), no city-square ring, land-use columns >= 45 mm; v7: v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
+NC_VERSION = "v8.1"   # v8.1: masterplan sheet / texture frames (> 0.1 km2) left out, legend columns balanced, intro without the old levels text; v8: plan = his masterplan drawing; why-here story + one concept diagram per node; water bars and meets line gone; v7.5: v7.5: section_lines v2 (B along the bank: looks at the stream, no water bars); v7.4: v7.4: cut marks = two end arrows, no line between (pages_common v3.14); v7.3: v7.3: scale + north ignore the node frame line; v7.2: v7.2: the proposal from his masterplan SVG (MasterplanBase cache); v7.1: v7.1: R01 cut arrows (pc_cut_mark), no city-square ring, land-use columns >= 45 mm; v7: v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
 ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 PAGE_W, PAGE_H = 420.0, 297.0
 NODE_MARGIN_M = 25.0                       # m of town round the node frame on the plan
+MP_MAX_M2 = 100000.0                 # m2: a bigger masterplan piece is a sheet / texture frame (v8.1)
 PLAN_BOX = (14.0, 100.0, 200.0, 264.0)     # mm: x0, y0, x1, y1 of the plan's room
 SEC_ROOMS = ((214.0, 186.0, 406.0, 266.0), (214.0, 100.0, 406.0, 180.0))   # mm: N#-A, N#-B
 INK, GREY, RED = "2C2219", "6E675E", "8B2D2D"
@@ -586,6 +587,13 @@ def node_page(cfg, log):
     mp_rows, ex_rows = [], []
     try:
         MPn, MPC = G["pc_mp_data"](log)
+        # v8.1 (run 1: the plan came out as one beige sheet): pieces over MP_MAX_M2 are his picture / texture frames
+        # (1.4 and 2.1 km2), not plan elements (the same cut as Sections v1.11); they are left out
+        ar_ = lambda P_: abs(sum(P_[i][0] * P_[i - 1][1] - P_[i - 1][0] * P_[i][1] for i in range(len(P_)))) / 2.0
+        n_big = sum(1 for v_ in MPC["layers"].values() for e_ in v_ if len(e_[4]) > 2 and ar_(e_[4]) > MP_MAX_M2)
+        MPC = dict(MPC, layers=dict((kk, [e_ for e_ in v_ if len(e_[4]) < 3 or ar_(e_[4]) <= MP_MAX_M2])
+                                    for kk, v_ in MPC["layers"].items()))
+        log.append(u"masterplan: %d sheet / texture frames over %.0f m2 left out" % (n_big, MP_MAX_M2))
         mp_cnt = MPn["mp_draw"](MPC, items, lambda xy: (X0 + F.local(xy)[0] * k, Y0 + F.local(xy)[1] * k), k,
                                 (X0, Y0, X0 + F.w * k, Y0 + F.h * k), None,
                                 layers=set(kk.split("/")[0] for kk in MPC["layers"]))
@@ -828,7 +836,7 @@ def node_page(cfg, log):
     ky -= 5.0
     if ex_rows or mp_rows:                                # v8: the key of his drawing as drawn here
         rows1 = [("hdr", None, u"EXISTING")] + ex_rows + [("box", P["WATER_C"], u"the Selinos")] * (not any(
-            r_[2] == u"the Selinos" for r_ in ex_rows))
+            r_[2] == u"the Selinos" for r_ in ex_rows)) + [("hdr", None, u"PROPOSAL")] + mp_rows   # v8.1: balanced
     else:
         rows1 = [("hdr", None, u"EXISTING: GROUND AND GREEN")] + MB["mb_legend"](MC, mb_cnt, {"grain": False})
     rows2 = [("hdr", None, u"EXISTING: MOVEMENT AND HERITAGE"),
@@ -836,8 +844,8 @@ def node_page(cfg, log):
              ("disc", RED, u"heritage loop stop in the frame, loop order; the loop on slide 5"),
              ("box", K["hub"]["walk"], u"hub tile (K4, K3, T, K5, K6)"),
              ("line", "C0392B", u"section N#-A / N#-B: its two ends, the arrows look the way the section looks"),
-             ("hdr", None, u"PROPOSAL"),
-             ] + (mp_rows or [("line", SQUARE_C, u"streamside spine K4 - K5 along the Selinos (proposed path)")]) + [
+             ] + ([] if mp_rows else [("hdr", None, u"PROPOSAL"),
+                  ("line", SQUARE_C, u"streamside spine K4 - K5 along the Selinos (proposed path)")]) + [
              ("disc", SQUARE_C, u"V1 viewpoint of the perspective (place assumed)")]
     rows1, rows2 = [[(r_[0], r_[1], no_src(r_[2])) for r_ in rr_] for rr_ in (rows1, rows2)]   # v6.7: before wrapping
     cw = (PLAN_BOX[2] - PLAN_BOX[0]) / 2.0
@@ -915,7 +923,9 @@ def node_page(cfg, log):
     # ---- title band and credit
     items.append(T_(u"C  NODES IN DETAIL · SLIDE %d" % cfg["SLIDE"], 14.0, 288.0, 2.6, INK, True))
     items.append(T_(u"%s · %s" % (node, nd["name"]), 14.0, 278.5, 7.5, INK, True))
-    para(B, items, cfg["INTRO"], 214.0, 288.0, 2.6, 192.0, INK, False, 3.6, "title")
+    intro = u"%s: why we chose this node, the node in plan (his masterplan over the town today) and its two cuts, " \
+            u"A across the Selinos and B along the bank." % cfg["INTRO"].split(u":")[0]   # v8.1: no old levels text
+    para(B, items, intro, 214.0, 288.0, 2.6, 192.0, INK, False, 3.6, "title")
     # v6.7 (Aras 14 Nov 15:23-15:24 UTC "dont give sources in the drawings at all", "no sources for nothing"):
     # sources go to the log only; every page text loses its source tags
     log.append(u"Sources: survey Bergama_Altlik.3dm; node frames and section lines Data/section_lines.json (11 Nov); "
