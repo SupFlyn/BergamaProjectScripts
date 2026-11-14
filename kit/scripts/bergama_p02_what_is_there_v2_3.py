@@ -41,6 +41,20 @@ overview map now carries no names or markers (nodes, cuts, site frame and study 
 site frame at 1:INSET_DEN in the right column carries them, each name and marker set at the nearest free spot
 (place_free: no two overlap; no leader lines, the plan rule of 4 Nov G6-4).
 
+v2.3 (14 Nov 2026, Aras 12:10 UTC on the v2.1/v2.2 run): "the stream and industrial is too close in colour. planned
+low rise and small irregular is too close to ground and green colours. So industrial should have one colour Buildings
+should have one colour Heritage should be one colour and they should be different shade underneath"; "diffrentiate
+which buildings have ground floor as commercial ... they should be grouped with their previous ones"; "there is still
+too many gaps in the main drawing"; "dont put a opaque background on scale and north sign".
+  COLOUR FAMILIES: heritage (monuments, mosques) = wine red, buildings (old town, blocks, planned low-rise, small
+  irregular, under construction) = umber brown, civic & industrial = violet; the types are lightness steps of their
+  family's hue (FAB). COMMERCIAL: a building with an OpenStreetMap shop, office, craft or trade amenity point inside it
+  or within COM_NEAR m of its outline (or a shop-tagged OSM footprint centre inside it) is filled in the vivid shade of
+  its own type (FAB_COM). OSM does not record the floor: "ground floor" is NOT verified, the key says "shop on the plot".
+  GAPS: the map ground is GROUND_C (WorldCover's non-vegetated land: built-up and bare, not in the land-cover file),
+  not white paper; OpenStreetMap footprints that overlap no drawn building are added everywhere (osm_fill), not only in
+  cells without survey lines. Scale bar and north arrow: no background box (overview and inset).
+
 Component: Rhino 8 > Grasshopper > Python 3 Script (the board builder places it from the cloud kit).
   input  run     Button (or the previous script's done text)
   output log / done   as every Bergama script
@@ -55,7 +69,7 @@ Writes ~/Downloads/Bergama/output/bergama_p02/Page02_What_is_there.pdf, Page02_W
 import os, time, json, math, re, glob
 
 # ---- SETTINGS ----
-VERSION = "v2.2"
+VERSION = "v2.3"
 SLIDE = 1                          # output/presentation/1.pdf (Aras 14 Nov 11:22 UTC; slide 1 = analysis)
 GH_LABEL = "Page02"
 OUT_FOLDER = "bergama_p02"
@@ -86,8 +100,16 @@ AREA_CELL = 1.0                    # m: cells of the land-use count of the site 
 # colours (the round 9 hue table of the board set; FAB = building fabric, in its rank order)
 INK = "2C2219"
 PAPER = "F7F5EF"
-FAB = {"monument": "AF7474", "sacred": "8B3A3F", "traditional": "4A3F35", "block": "7A6E60", "regular": "BCB794",
-       "selfbuilt": "DCD5C2", "large": "A2B6B5", "construction": "E6E0C8"}
+# v2.3: three families, one hue each (heritage wine 352 deg, buildings umber 22 deg, civic & industrial violet 270 deg);
+# the types are lightness steps (HSL S 0.50 / 0.25 / 0.25); FAB_COM = the same type with shops (hue +10, S 0.8, L +0.04)
+FAB = {"monument": "732630", "sacred": "AC3949", "traditional": "4C392E", "block": "735645", "regular": "99725C",
+       "selfbuilt": "AF8D79", "large": "6B5086", "construction": "C6AD9F"}
+FAB_COM = {"monument": "A0120D", "sacred": "E71A13", "traditional": "814B0E", "block": "B86B14", "regular": "E78B23",
+           "selfbuilt": "ECA351", "large": "9123C7", "construction": "F2C088"}
+GROUND_C = "DCD6CB"                # v2.3: the map ground where WorldCover has no vegetation (built-up, bare)
+COM_NEAR = 5.0                     # m: a shop point this close to an outline belongs to it (OSM vs survey offset; ours)
+COM_SHOP_AMENITY = ("restaurant", "cafe", "bank", "pharmacy", "fast_food", "bar", "pub", "marketplace", "fuel",
+                    "ice_cream", "bureau_de_change", "money_transfer")
 FAB_ORDER = ["monument", "sacred", "traditional", "block", "regular", "selfbuilt", "large", "construction"]
 FAB_WORDS = {"monument": u"Monuments, historic", "sacred": u"Mosques & sacred", "traditional": u"Old town fabric",
              "block": u"Apartment blocks", "regular": u"Planned low-rise", "selfbuilt": u"Small irregular",
@@ -269,7 +291,7 @@ def read_osm(B, log):
     """{"bld": [(survey ring, tags)], "ways": [(survey points, tags)], "nodes": [(x, y, tags)]} of the kit's OSM file"""
     import xml.etree.ElementTree as ET
     src = os.path.join(BERGAMA_ROOT, B["OSM_FILE"])
-    out = {"bld": [], "ways": [], "nodes": []}
+    out = {"bld": [], "ways": [], "nodes": [], "shops": []}   # v2.3: shops = (x, y) of shop / office / craft points
     if not os.path.isfile(src):
         log.append(u"FLAG OpenStreetMap: %s not found: nothing drawn beyond the survey, no OSM tags for the fabric" % src)
         return out
@@ -285,20 +307,30 @@ def read_osm(B, log):
         if tg.get("amenity") or tg.get("building") or tg.get("historic"):
             x, y = B["to_survey"](*ll)
             out["nodes"].append((x, y, tg))
+        if _is_shop(tg):
+            out["shops"].append(B["to_survey"](*ll))
     for w in root.iter("way"):
         tg = dict((t.get("k"), t.get("v")) for t in w.findall("tag"))
         refs = [nd.get("ref") for nd in w.findall("nd")]
         P = [B["to_survey"](*nodes[r]) for r in refs if r in nodes]
         if len(P) < 2:
             continue
+        if _is_shop(tg) and refs[0] == refs[-1]:          # v2.3: a shop footprint: its centre
+            out["shops"].append((sum(q[0] for q in P[:-1]) / max(1, len(P) - 1), sum(q[1] for q in P[:-1]) / max(1, len(P) - 1)))
         if "building" in tg:
             if len(refs) >= 4 and refs[0] == refs[-1] and len(P) >= 4:
                 out["bld"].append((P[:-1], tg))
             continue
         out["ways"].append((P, tg))
-    log.append(u"OpenStreetMap: %d building footprints, %d other ways, %d tagged points" % (
-        len(out["bld"]), len(out["ways"]), len(out["nodes"])))
+    log.append(u"OpenStreetMap: %d building footprints, %d other ways, %d tagged points, %d shop / office / craft places" % (
+        len(out["bld"]), len(out["ways"]), len(out["nodes"]), len(out["shops"])))
     return out
+
+
+def _is_shop(tg):
+    """v2.3: an OSM tag set of a shop, office, workshop or trade amenity (the commercial uses OSM records)"""
+    return bool(tg.get("shop") or tg.get("office") or tg.get("craft") or tg.get("amenity") in COM_SHOP_AMENITY or
+                tg.get("building") in ("commercial", "retail"))
 
 
 # ================================================================ urban fabric
@@ -435,7 +467,7 @@ def land_use(units, L, lc, box, log):
         take(LC[k_][1], LC[k_][0], lc.get(k_, []))
     tot = (box[2] - box[0]) * (box[3] - box[1])
     rest = tot - sum(a_ for _, _, a_ in out)
-    out.append((u"Other open ground", "D8D5CC", max(0.0, rest)))
+    out.append((u"Other open ground", GROUND_C, max(0.0, rest)))
     log.append(u"land use of the site frame (%.1f ha, %.0f m cells): %s" % (tot / 1e4, c, u", ".join(
         u"%s %.2f ha" % (l_, a_ / 1e4) for l_, _, a_ in out)))
     return out, tot
@@ -556,7 +588,74 @@ def main():
         u", ".join(u"%s %d" % (s_, sum(1 for u in units if u["src"] == s_)) for s_ in ("buildings", "heritage",
                                                                                        "osm_houses", "sat_houses")),
         n_beyond, n_nm, n_tg))
+    # v2.3 gaps: OpenStreetMap footprints that overlap no drawn building, anywhere on the map
+    n_fill = 0
+    for P, tg in O["bld"]:
+        Q = [F.local(p) for p in P]
+        if not all(0 <= q[0] <= F.w and 0 <= q[1] <= F.h for q in Q):
+            continue
+        A = abs(area(Q))
+        if A < 2.0:
+            continue
+        cq = (sum(q[0] for q in Q) / len(Q), sum(q[1] for q in Q) / len(Q))
+        if owner(cq) is not None or any(owner(q) is not None for q in Q):
+            continue
+        bb = (min(q[0] for q in Q), min(q[1] for q in Q), max(q[0] for q in Q), max(q[1] for q in Q))
+        hit = False
+        for i in range(int(bb[0] // 25.0), int(bb[2] // 25.0) + 1):
+            for j in range(int(bb[1] // 25.0), int(bb[3] // 25.0) + 1):
+                for i_ in gU.get((i, j), ()):
+                    V = units[i_]["P"]
+                    if any(bb[0] <= v[0] <= bb[2] and bb[1] <= v[1] <= bb[3] and pip(v[0], v[1], Q) for v in V):
+                        hit = True
+                        break
+                if hit:
+                    break
+            if hit:
+                break
+        if hit:
+            continue
+        lv = 0
+        try:
+            lv = int(float(tg.get("building:levels") or 0))
+        except ValueError:
+            lv = 0
+        units.append({"P": Q, "A": A, "fl": lv, "her": bool(tg.get("historic")), "src": "osm_fill", "tags": tg})
+        i_ = len(units) - 1
+        for i in range(int(bb[0] // 25.0), int(bb[2] // 25.0) + 1):
+            for j in range(int(bb[1] // 25.0), int(bb[3] // 25.0) + 1):
+                gU.setdefault((i, j), []).append(i_)
+        n_fill += 1
+    log.append(u"gaps: %d OpenStreetMap footprints added where no drawn building overlaps them (osm_fill)" % n_fill)
     fabric(units, log)
+    # v2.3 commercial: a shop / office / craft point inside a building, else the nearest outline within COM_NEAR m
+    n_in = n_near = n_none = 0
+    for x, y in O["shops"]:
+        q = F.local((x, y))
+        if not (0 <= q[0] <= F.w and 0 <= q[1] <= F.h):
+            continue
+        u = owner(q)
+        if u is not None:
+            u["com"] = True
+            n_in += 1
+            continue
+        best, bd = None, COM_NEAR
+        for i in range(int((q[0] - COM_NEAR) // 25.0), int((q[0] + COM_NEAR) // 25.0) + 1):
+            for j in range(int((q[1] - COM_NEAR) // 25.0), int((q[1] + COM_NEAR) // 25.0) + 1):
+                for i_ in gU.get((i, j), ()):
+                    V = units[i_]["P"]
+                    d = min(seg_d(q[0], q[1], V[m - 1], V[m]) for m in range(len(V)))
+                    if d <= bd:
+                        best, bd = units[i_], d
+        if best is not None:
+            best["com"] = True
+            n_near += 1
+        else:
+            n_none += 1
+    log.append(u"commercial (OSM shop / office / craft places on the map): %d inside a building, %d within %.0f m of one, "
+               u"%d with no building near (not drawn); buildings marked: %s" % (n_in, n_near, COM_NEAR, n_none, u", ".join(
+                   u"%s %d" % (FAB_WORDS[f_], sum(1 for u in units if u["fab"] == f_ and u.get("com")))
+                   for f_ in FAB_ORDER)))
     # ---- land cover (ESA WorldCover) in frame m
     lc = {}
     src = os.path.join(BERGAMA_ROOT, LC_FILE)
@@ -611,7 +710,7 @@ def main():
                 if len(run) >= 2:
                     items.append(("line", [pg(q) for q in run], col, lw, None, layer, 1))
         items.append(("poly", [[pg((box[0], box[1])), pg((box[2], box[1])), pg((box[2], box[3])), pg((box[0], box[3]))]],
-                      PAPER, None, 0.0, None, "map_paper", 1, None, None))
+                      GROUND_C, None, 0.0, None, "map_paper", 1, None, None))
         for k_ in LC_ORDER:                                   # land cover, light, under everything
             for R in lc.get(k_, []):
                 poly([R], "~" + mixh(LC[k_][0], PAPER, LC_LIGHT), "landcover_" + k_)
@@ -665,16 +764,18 @@ def main():
                     line(Q, HER_WALL, 0.12, "heritage_walls")
         # buildings: every outline at twice the hairline first, every fill over them (shared walls covered)
         for u in units:
-            col = FAB[u["fab"]]
+            col = (FAB_COM if u.get("com") else FAB)[u["fab"]]
             rr = B["clip_ring"](u["P"], box)
             if len(rr) >= 3:
                 items.append(("line", [pg(q) for q in rr + [rr[0]]], mixh(col, INK, P02_EDGE_DARK), 2 * P02_HAIR, None,
                               "buildings_outline", 1))
         for f_ in FAB_ORDER:
-            rr = [R for R in (B["clip_ring"](u["P"], box) for u in units if u["fab"] == f_) if len(R) >= 3]
-            for i0 in range(0, len(rr), 400):
-                items.append(("poly", [[pg(q) for q in R] for R in rr[i0:i0 + 400]], FAB[f_], None, 0.0, None,
-                              "buildings_" + f_, 1, None, None))
+            for cm in (False, True):
+                rr = [R for R in (B["clip_ring"](u["P"], box) for u in units if u["fab"] == f_ and bool(u.get("com")) == cm)
+                      if len(R) >= 3]
+                for i0 in range(0, len(rr), 400):
+                    items.append(("poly", [[pg(q) for q in R] for R in rr[i0:i0 + 400]], (FAB_COM if cm else FAB)[f_],
+                                  None, 0.0, None, "buildings_" + f_ + ("_shops" if cm else ""), 1, None, None))
         for cl, Q, a, b in L.get("bridges", []):
             line(Q, INK, 0.12, "bridges")
         for R in D.get("calisma") or []:                      # the study area
@@ -713,6 +814,7 @@ def main():
     items.append(("text", u"The site frame (site_alan) · nodes, cuts, bridges and clashes · 1:%s" % format(INSET_DEN, ",d"),
                   COL_X, INS_Y0 + (sbox[3] - sbox[1]) * ki + 3.0, 3.2, INK, True, "L", "inset", None, None))
     draw_map(COL_X, INS_Y0, ki, sbox, True)
+    items += _no_box(B["corner_block"](F, S, INSET_DEN, COL_X + (sbox[2] - sbox[0]) * ki, INS_Y0))
     log.append(u"inset: site frame %.0f x %.0f m at 1:%s, %.1f x %.1f mm; %d names and markers placed" % (
         sbox[2] - sbox[0], sbox[3] - sbox[1], format(INSET_DEN, ",d"), (sbox[2] - sbox[0]) * ki,
         (sbox[3] - sbox[1]) * ki, len(taken)))
@@ -723,7 +825,7 @@ def main():
 
     def disc(x, y, txt, col, layer):
         marker(items, x, y, txt, col, layer)
-    items += B["corner_block"](F, S, den, X0 + F.w * k, Y0)
+    items += _no_box(B["corner_block"](F, S, den, X0 + F.w * k, Y0))   # v2.3: no background box
     # ---- title band
     items.append(("text", KICKER, 14.0, 287.0, 2.6, INK, True, "L", "title", None, None))
     items.append(("text", TITLE, 14.0, 276.5, 7.5, INK, True, "L", "title", None, None))
@@ -737,12 +839,13 @@ def main():
     items.append(("text", u"Plan 01 · what is there today · 1:%s" % format(den, ",d"), MAP_X, ky, 2.6, INK, True, "L",
                   "key", None, None))
     ky -= 6.0
-    rows1 = [("hdr", None, u"BUILDINGS · URBAN FABRIC (share of the site frame's built footprint)")]
+    rows1 = [("hdr", None, u"BUILDINGS · URBAN FABRIC (share of the site frame's built footprint) · left: no shop "
+                           u"recorded, right: a shop, office or workshop on the plot (OSM; floor not recorded)")]
     for f_ in FAB_ORDER:
         if shares.get(f_, 0.0) > 0 or any(u["fab"] == f_ for u in units):
-            rows1.append(("box", FAB[f_], u"%s · %s" % (FAB_WORDS[f_], (u"%.0f%%" % shares[f_]) if shares[f_] >= 0.5
+            rows1.append(("box2", (FAB[f_], FAB_COM[f_]), u"%s · %s" % (FAB_WORDS[f_], (u"%.0f%%" % shares[f_]) if shares[f_] >= 0.5
                                                          else u"< 1%")))
-    rows2 = [("hdr", None, u"GROUND AND GREEN")]
+    rows2 = [("hdr", None, u"GROUND AND GREEN"), ("box", GROUND_C, u"Built-up and bare ground (no WorldCover vegetation)")]
     rows2 += [("box", mixh(LC[k_][0], PAPER, LC_LIGHT), LC[k_][1]) for k_ in ("trees", "orchard", "shrub", "grass",
                                                                               "farmland") if lc.get(k_)]
     rows2 += [("box", STREET_C, u"Streets (surveyed surface; OSM beyond the survey)"), ("box", WATER_C, u"The stream")]
@@ -825,6 +928,11 @@ def main():
 R_MK = 2.0                         # mm: marker radius
 
 
+def _no_box(it):
+    """v2.3 (Aras 12:10 UTC "dont put a opaque background on scale and north sign"): corner_block without its white box"""
+    return [t for t in it if not (t[0] == "poly" and t[2] == "FFFFFF" and t[3] is None)]
+
+
 def marker(items, x, y, txt, col, layer):
     items.append(("poly", [[(x + R_MK * math.cos(a_ * math.pi / 12.0), y + R_MK * math.sin(a_ * math.pi / 12.0))
                             for a_ in range(24)]], col, "FFFFFF", 0.25, None, layer, 1, None, None))
@@ -899,7 +1007,12 @@ def draw_rows(B, items, rows, x, y, width, step=4.0, ts=2.5):
                 y -= step
             y -= 0.6
             continue
-        if kind == "box":
+        if kind == "box2":                                # v2.3: two swatches (plain, with shops)
+            for i_, c_ in enumerate(col):
+                items.append(("poly", [[(x + 3.0 * i_, y - 0.4), (x + 3.0 * i_ + 2.6, y - 0.4), (x + 3.0 * i_ + 2.6, y + 2.4),
+                                        (x + 3.0 * i_, y + 2.4)]], c_, mixh(c_, INK, P02_EDGE_DARK), P02_HAIR, None, "key",
+                              1, None, None))
+        elif kind == "box":
             items.append(("poly", [[(x, y - 0.4), (x + 5.0, y - 0.4), (x + 5.0, y + 2.4), (x, y + 2.4)]], col,
                           mixh(col, INK, P02_EDGE_DARK), P02_HAIR, None, "key", 1, None, None))
         elif kind == "line":
