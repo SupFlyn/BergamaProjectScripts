@@ -242,13 +242,22 @@ def pc_mb_lib(log):
     return ns
 
 
-def pc_mapbase(M, K, log):
+def pc_mb_data(log):
+    """v3.5: (MapBase library, its cache), loaded once a run"""
+    if "mb" not in PC_STATE:
+        ns = pc_mb_lib(log)
+        C = ns["mb_load"](log)
+        if C is None:
+            raise RuntimeError(u"press MapBase once (it caches the base map every page draws), then this page")
+        PC_STATE["mb"] = (ns, C)
+    return PC_STATE["mb"]
+
+
+def pc_mapbase(M, K, log, layers=None, style=None):
     """(items, legend rows [(kind, hex, text)], counts) of the newest MapBase cache in this page's quiet look, cut to
-    the map frame (clip PC_CLIP); stops when MapBase has not been pressed (v3.4: no second context of our own)"""
-    ns = pc_mb_lib(log)
-    C = ns["mb_load"](log)
-    if C is None:
-        raise RuntimeError(u"press MapBase once (it caches the base map every page draws), then this page")
+    the map frame (clip PC_CLIP); stops when MapBase has not been pressed (v3.4: no second context of our own).
+    v3.5: layers = mb_draw's layer set (None = all), style = keys over the quiet look"""
+    ns, C = pc_mb_data(log)
     mix, paper = ns["mixh"], ns["PAPER"]
     soft = lambda c, t: mix(c, paper, t) if c else c
     S = ns["MB_STYLE"]
@@ -265,8 +274,9 @@ def pc_mapbase(M, K, log):
     st["veg"] = dict((k_, soft(v, 0.3)) for k_, v in st["veg"].items())
     st["fab"]["monument"] = st["fab_com"]["monument"] = "D8C8BC"
     st["fab"]["sacred"] = st["fab_com"]["sacred"] = "D8C8BC"
+    st.update(style or {})
     items = []
-    cnt = ns["mb_draw"](C, items, M.T, M.k, M.box, PC_CLIP, st)
+    cnt = ns["mb_draw"](C, items, M.T, M.k, M.box, PC_CLIP, st, layers)
     rows = ns["mb_legend"](C, cnt, st)
     if cnt.get("buildings"):
         rows.append(("box", "E2DED6", u"Buildings (survey, else OSM); monuments and mosques a shade warmer"))
