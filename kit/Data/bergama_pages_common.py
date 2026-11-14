@@ -25,7 +25,7 @@ Items are the Basemap writer's tuples (page mm, y up):
 """
 import os, re, json, math, time, glob
 
-PC_VERSION = "v3.20"  # v3.20: pc_dg_kit, the diagram kit of library/diagram_style/DIAGRAM_STYLE.md (Aras 21:30 UTC "all the diagrams are awful"); v3.19: v3.18 undone (the writer keeps a line's clip at item[4]: those lines were really unclipped); v3.17: SiteMap ring + b (survey box), pc_site_den, pc_north_deg, pc_sheet cols + span (legend columns beside a site_alan strip); v3.16: pc_loop names=True (stop names on the map), every stop outside the frame gets an edge arrow, the stream walk in either loop order (loop numbered from Asklepion, Aras 16:26); v3.15: SiteMap / pc_site_map (the map frame = site_alan turned flat, Aras 16:17 UTC "KEEP EVERY DRAWING STRICTLY IN SITE_ALAN"), pc_loop edge arrows to stops outside it, pc_north_items; v3.14: pc_cut_mark = two end arrows, no line between (Aras 16:05 UTC); v3.13: v3.13: pc_mp_data (MasterplanBase: the masterplan SVG cached in survey m); v3.12: pc_cut_mark, the R01 cut symbol (two arrows, Aras 15:37 UTC); v3.11: pc_loop (the heritage loop, one code for the heritage and the transit map; Aras 15:31) and pc_station_name; v3.10: pc_a3_den / pc_a3 (a map page fitted and centred on A3 or a slide panel, Aras 15:25-15:27 UTC); v3.9: no sources in the drawings (Aras 15:23 UTC): pc_nosrc on MapBase legend rows, empty credit skipped; v3.8: a name with no free place goes where it overlaps least (run 7); v3.7: Labels.block_line / block_items (names keep off lines: run 6 review); v3.6: the outside Python runs hidden (no console window, Aras 14 Nov 12:57 UTC); v3.5: frame check skips items with any clip id; pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
+PC_VERSION = "v3.21"  # v3.21: pc_dg_kit dashes at item[6] (Basemap writer), dash_at=4 for the Sections writer;  v3.20: v3.20: pc_dg_kit, the diagram kit of library/diagram_style/DIAGRAM_STYLE.md (Aras 21:30 UTC "all the diagrams are awful"); v3.19: v3.18 undone (the writer keeps a line's clip at item[4]: those lines were really unclipped); v3.17: SiteMap ring + b (survey box), pc_site_den, pc_north_deg, pc_sheet cols + span (legend columns beside a site_alan strip); v3.16: pc_loop names=True (stop names on the map), every stop outside the frame gets an edge arrow, the stream walk in either loop order (loop numbered from Asklepion, Aras 16:26); v3.15: SiteMap / pc_site_map (the map frame = site_alan turned flat, Aras 16:17 UTC "KEEP EVERY DRAWING STRICTLY IN SITE_ALAN"), pc_loop edge arrows to stops outside it, pc_north_items; v3.14: pc_cut_mark = two end arrows, no line between (Aras 16:05 UTC); v3.13: v3.13: pc_mp_data (MasterplanBase: the masterplan SVG cached in survey m); v3.12: pc_cut_mark, the R01 cut symbol (two arrows, Aras 15:37 UTC); v3.11: pc_loop (the heritage loop, one code for the heritage and the transit map; Aras 15:31) and pc_station_name; v3.10: pc_a3_den / pc_a3 (a map page fitted and centred on A3 or a slide panel, Aras 15:25-15:27 UTC); v3.9: no sources in the drawings (Aras 15:23 UTC): pc_nosrc on MapBase legend rows, empty credit skipped; v3.8: a name with no free place goes where it overlaps least (run 7); v3.7: Labels.block_line / block_items (names keep off lines: run 6 review); v3.6: the outside Python runs hidden (no console window, Aras 14 Nov 12:57 UTC); v3.5: frame check skips items with any clip id; pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
 PC_NOWIN = 0x08000000 if os.name == "nt" else 0   # v3.6: CREATE_NO_WINDOW for the review-PNG / photo subprocesses
 PC_DATA = os.path.join("Data", "bergama_access_heritage.json")
 PC_CENTRE = os.path.join("Data", "selinos_centreline.json")
@@ -1151,7 +1151,7 @@ DG_C = {"ink": "1E1E1E", "ground": "D9D4CA", "ctx": "B9B4AA", "her": "8E877C", "
         "water_ln": "3F86B8", "move": "C07A2E", "bus": "8A8A8A", "paper": "FFFFFF"}
 
 
-def pc_dg_kit(items, x0, y0, W, H, layer="concept", lw=192.0, lh=30.0):
+def pc_dg_kit(items, x0, y0, W, H, layer="concept", lw=192.0, lh=30.0, dash_at=6):
     """v3.20 (Aras 14 Nov 21:30 UTC "all the diagrams are awful"): one drawing kit for every explanatory diagram, the
     rules of library/diagram_style/DIAGRAM_STYLE.md: three weights (cut 0.70 / move 0.45 / thin 0.18), ground as poché,
     context as a regular row, ONE accent (DG_C move) for our move, water flat, at most 3 arrows and 4 labels.
@@ -1161,7 +1161,9 @@ def pc_dg_kit(items, x0, y0, W, H, layer="concept", lw=192.0, lh=30.0):
     C, Wt = DG_C, DG_W
 
     def line(pts, col=C["ink"], w=Wt["thin"], dash=None):
-        items.append(("line", [P(p) for p in pts], col, w, list(dash) if dash else None, layer, 1))
+        d_ = list(dash) if dash else None                 # v3.21: dash at item[6] (Basemap writer: [4] = clip id);
+        items.append(("line", [P(p) for p in pts], col, w, d_, layer, 1) if dash_at == 4 else   # the Sections writer
+                     ("line", [P(p) for p in pts], col, w, None, layer, d_ or 1))                  # (nodes) reads [4]
 
     def poly(pts, fill, stroke=None, w=0.0):
         items.append(("poly", [[P(p) for p in pts]], fill, stroke, w if stroke else 0.0, None, layer, 1, None, None))

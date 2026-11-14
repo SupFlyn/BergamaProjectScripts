@@ -175,7 +175,7 @@ def concept(node, items, x0, y0, W, H, G=None):
     a long low section strip in a W x H mm box at (x0, y0), drawn with the shared kit (pages_common pc_dg_kit): one heavy
     ground with poché, the town as a regular row, the driver at the frame edge, our move the only accent, people on it,
     at most 3 arrows and 4 labels. Shapes are diagrams, not to scale; the figures named come from the node's story."""
-    K = G["pc_dg_kit"](items, x0, y0, W, H, "concept")
+    K = G["pc_dg_kit"](items, x0, y0, W, H, "concept", dash_at=4)   # nodes write with the Sections writer
     if node == "N1":                                      # one stream, two neighbourhoods: a garden deck joins them
         g = [(0, 21), (74, 8), (84, 3), (108, 3), (118, 8), (192, 21)]
         K["ground"](g)
