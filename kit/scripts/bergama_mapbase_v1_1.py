@@ -34,6 +34,10 @@ The data (nothing invented; every shape is the survey, a data file of the kit or
              the Basemap's to_survey (the fit alone is about 7 m off).
   roads_design.json is the PROPOSAL (Aras's design roads) and is not part of the existing base.
 
+v1.1 (14 Nov 2026, Aras 12:26 UTC "yes finish them"): the 2023 satellite check is COMPLETE (all 36 pieces of
+buildings_image_check.json read); its "remove" outlines now also drop the OpenStreetMap footprints MapBase adds itself
+(beyond the survey and where nothing is drawn), not only the Basemap's.
+
 Library entry points (exec the code above the main line; see Page02 v2.5 for a caller):
   mb_load(log)                                -> C (the cache + WorldCover + satellite land cover), or None + FLAG
   mb_draw(C, items, T, k, lim, cid, style=None, layers=None)
@@ -57,7 +61,7 @@ Writes ~/Downloads/Bergama/cached/bergama_mapbase/mapbase.json (+ its OSM house 
 import os, time, json, math, re, glob
 
 # ---- SETTINGS ----
-VERSION = "v1"
+VERSION = "v1.1"
 GH_LABEL = "MapBase"
 OUT_FOLDER = "bergama_mapbase"
 LOG_NAME = "bergama_mapbase_log.txt"
@@ -592,10 +596,20 @@ def build():
         i, j = int(q[0] // c_), int(q[1] // c_)
         return not any((i + di, j + dj) in cov for di in (-1, 0, 1) for dj in (-1, 0, 1))
     inside = lambda q: 0 <= q[0] <= F.w and 0 <= q[1] <= F.h
-    n_beyond = 0
+    rem = []                                              # v1.1: the satellite check's "remove" outlines (frame m)
+    try:
+        with open(os.path.join(BERGAMA_ROOT, B["CHECK_FILE"]), encoding="utf-8") as f:
+            rem = [[F.local(p) for p in R_] for R_ in json.load(f).get("remove", []) if len(R_) >= 3]
+    except Exception as e:
+        log.append(u"FLAG satellite check: removals not read for the OSM footprints (%s: %s)" % (type(e).__name__, e))
+    gone = lambda Q: any(all(pip(q[0], q[1], R_) for q in Q) for R_ in rem)
+    n_beyond = n_gone = 0
     for P, tg in O["bld"]:
         Q = [F.local(p) for p in P]
         if not all(inside(q) for q in Q) or not all(free(q) for q in Q):
+            continue
+        if gone(Q):
+            n_gone += 1
             continue
         A = abs(area(Q))
         if A < 2.0:
@@ -638,6 +652,9 @@ def build():
         A = abs(area(Q))
         if A < 2.0:
             continue
+        if gone(Q):
+            n_gone += 1
+            continue
         cq = (sum(q[0] for q in Q) / len(Q), sum(q[1] for q in Q) / len(Q))
         if owner(cq) is not None or any(owner(q) is not None for q in Q):
             continue
@@ -652,10 +669,11 @@ def build():
         units.append({"P": Q, "A": A, "fl": _levels(tg), "her": bool(tg.get("historic")), "src": "osm_fill", "tags": tg})
         _grid_add(gU, len(units) - 1, Q)
         n_fill += 1
-    log.append(u"buildings: %s; OpenStreetMap beyond the survey %d, where no drawn building overlaps %d; %d with a "
-               u"name text, %d with OSM tags" % (u", ".join(u"%s %d" % (s_, sum(1 for u in units if u["src"] == s_))
+    log.append(u"buildings: %s; OpenStreetMap beyond the survey %d, where no drawn building overlaps %d, left out "
+               u"by the satellite check %d; %d with a name text, %d with OSM tags" % (u", ".join(u"%s %d" % (s_, sum(1 for u in units if u["src"] == s_))
                                                             for s_ in ("buildings", "heritage", "osm_houses",
-                                                                       "sat_houses")), n_beyond, n_fill, n_nm, n_tg))
+                                                                       "sat_houses")), n_beyond, n_fill, n_gone, n_nm,
+                                                            n_tg))
     fabric(units, log)
     n_in = n_near = n_none = 0                            # shops
     for x, y in O["shops"]:
