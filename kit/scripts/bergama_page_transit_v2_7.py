@@ -208,7 +208,7 @@ def main():
             lab.put(nm, q, tm["label"], K["cable"] if s["kind"] == "gondola" else K["station"], "station_names", True)
     items += lab.items
     if lab.forced:
-        log.append(u"names with no free place (printed on the right of their point): %s" % u", ".join(lab.forced))
+        log.append(u"names with no free place (printed where they overlap least): %s" % u", ".join(lab.forced))
 
     # legend, notes, title
     def sw_line(col, w, dash=None):
