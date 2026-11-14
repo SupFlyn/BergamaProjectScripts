@@ -42,10 +42,10 @@ Writes ~/Downloads/Bergama/output/bergama_sections/Sections.pdf          ONE pag
        ~/Downloads/Bergama/cached/bergama_sections/sections.json         every cut's numbers
        ~/Downloads/Bergama/logs/bergama_sections_log.txt
 """
-import os, time, json, math, bisect
+import os, time, json, math, bisect, glob
 
 # ---- SETTINGS ----
-VERSION = "v1.6.4"
+VERSION = "v1.6.5"
 GH_LABEL = "Sections"
 OUT_FOLDER = "bergama_sections"
 LOG_NAME = "bergama_sections_log.txt"
@@ -1812,13 +1812,22 @@ def named_lines(log):
 NODE_SCALES = (1000, 1250, 1500, 2000)
 
 
+def _r2(o):
+    """mm to 0.01 (the 348 MB cuts.json of the first v1.6.4 run was mostly float digits)"""
+    if isinstance(o, float):
+        return round(o, 2)
+    if isinstance(o, (list, tuple)):
+        return [_r2(v) for v in o]
+    return o
+
+
 def cut_cache(E, C):
     """v1.6.4 (Aras 12:38 UTC "don't ever do the same job twice ... cache it"): the cut drawn once more at each
     node-page scale, unshifted, so the node pages read cached/bergama_sections/cuts.json instead of redoing it"""
     items, k0 = {}, E.get("K")
     for d in NODE_SCALES:
         pg = draw_cut(E, C, SEASON, d, 0.0, 0.0)[0]
-        items[str(d)] = dict(bbox=list(items_bbox(pg.items)), items=pg.items)
+        items[str(d)] = dict(bbox=[round(v, 2) for v in items_bbox(pg.items)], items=_r2(pg.items))
     E["K"] = k0
     return dict(items=items, z_th=round(C.z_th, 3), window=list(C.window),
                 levels=dict((k if isinstance(k, str) else u"%s|%s" % k, [round(v[0], 3), v[1]])
@@ -1913,10 +1922,21 @@ def main():
         json.dump(dict(version=VERSION, run=time.strftime("%Y-%m-%d %H:%M:%S"), scale=den, cuts=res), f,
                   ensure_ascii=False, indent=1)
     log.append(u"%s  %s" % (pj, time.strftime("%H:%M:%S")))
+    # one file per cut (cuts/<name>.json: the page items per scale) so a node page loads only its own two;
+    # cuts.json = the index with everything else
+    cd = os.path.join(CACHE_DIR, "cuts")
+    os.makedirs(cd, exist_ok=True)
+    for f_ in glob.glob(os.path.join(cd, "*.json")):
+        os.remove(f_)
+    for nm, e in node_cache.items():
+        with open(os.path.join(cd, u"%s.json" % nm), "w", encoding="utf-8") as f:
+            json.dump(e.pop("items"), f, ensure_ascii=False, separators=(",", ":"))
+        e["items_file"] = u"cuts/%s.json" % nm
     pc = os.path.join(CACHE_DIR, "cuts.json")
     with open(pc, "w", encoding="utf-8") as f:
         json.dump(dict(version=VERSION, run=time.strftime("%Y-%m-%d %H:%M:%S"), season=SEASON,
-                       origin=u"draw_cut(E, C, SEASON, den, 0, 0): x right, y up, mm; bbox = [x0, y0, x1, y1]",
+                       origin=u"draw_cut(E, C, SEASON, den, 0, 0): x right, y up, mm; bbox = [x0, y0, x1, y1]; "
+                              u"items_file (next to this file) = {scale: {bbox, items}}",
                        cuts=node_cache), f, ensure_ascii=False)
     log.append(u"%s (%d cut(s) x scales %s, for the node pages)  %s" % (
         pc, len(node_cache), u"/".join(str(d) for d in NODE_SCALES), time.strftime("%H:%M:%S")))
