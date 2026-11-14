@@ -1,9 +1,19 @@
 # r: numpy
-# CURRENT VERSION: selinus_board_v67.py = v67 (round 9 Part SB, 11 Nov 2026: see NEW IN v67); earlier: v66 (11 Nov 2026: see NEW IN v66); v65 (round 8 S1, 9 Nov 2026: see NEW IN v65); v61 (round 6 S3, 4 Nov 2026: final 22-page ids; p04/p05 notes per cut + one true scale; p07 narrower column; p08 street cuts R1-R4 ACCURATE as four items + module key map + street_cuts.json; p19 heritage brown ramp; G6-4 plan marks, G6-5 key maps, G6-6 hue table, G6-9 groups, G6-10 tree species); v60.3 (fix 2 Nov: key map run warnings); v60.2 (fix 2 Nov: p04/p05 one booklet drawing per cut + key map items + legend item; p09 project trees set back (layer 1); no widths: zone ticks/cm, street call cm, bed width, p07 band); v60.1 (closing fix 2 Nov: p02 mark pages 23-page, p04/p05 key map log); v60 (round 5 S7, 2 Nov 2026: the booklet gets items, not sheet crops; no text-check stops, no sheet PDFs; what changed: NEW IN v60 below)
+# CURRENT VERSION: selinus_board_v67_1.py = v67.1 (14 Nov 2026: p.02 plan 01 outlines, fabric, the empty north; see NEW IN v67.1); earlier: v67 (round 9 Part SB, 11 Nov 2026: see NEW IN v67); v66 (11 Nov 2026: see NEW IN v66); v65 (round 8 S1, 9 Nov 2026: see NEW IN v65); v61 (round 6 S3, 4 Nov 2026: final 22-page ids; p04/p05 notes per cut + one true scale; p07 narrower column; p08 street cuts R1-R4 ACCURATE as four items + module key map + street_cuts.json; p19 heritage brown ramp; G6-4 plan marks, G6-5 key maps, G6-6 hue table, G6-9 groups, G6-10 tree species); v60.3 (fix 2 Nov: key map run warnings); v60.2 (fix 2 Nov: p04/p05 one booklet drawing per cut + key map items + legend item; p09 project trees set back (layer 1); no widths: zone ticks/cm, street call cm, bed width, p07 band); v60.1 (closing fix 2 Nov: p02 mark pages 23-page, p04/p05 key map log); v60 (round 5 S7, 2 Nov 2026: the booklet gets items, not sheet crops; no text-check stops, no sheet PDFs; what changed: NEW IN v60 below)
 """
 THE SELINUS SEAM  -  land-use board and technical analyses for Bergama, one Grasshopper component (v58)
 Rhino 8 > Grasshopper > "Python 3 Script" component. No plugins. The technical analyses run on numpy: the first
 line "# r: numpy" makes Rhino 8 install it on the first run (internet needed once).
+
+NEW IN v67.1 (14 Nov 2026, Aras 10:31-10:33 UTC on booklet page 2: "Fix the top left empty spot on the map", "Bring back
+urban fabric", "fix the outlines and colour change of that outlines", "outlines are inconsistent all across the map",
+"get rid of these drawings" (the stream-edge strips), the land-use ring "to show where is older town, where is newer
+planned buildings"; NOT run here, Aras runs it): plan 01 (draw_landuse_map, _p02_bld_plan): every building in its
+urban-fabric colour with ONE hairline outline per block (P02_HAIR 0.05 mm) in a darker shade of its own colour; no
+cast shadows (P02_SHADOW); survey walls, fences, stairs and slopes one pale hairline (walls were 0.16 dark ink); paths
+thinner; "Civic & industrial" A2B6B5 (was FAF8F1, the colour of an empty plot). _p02_beyond: where the survey has no
+line work (the Acropolis hill in the top-left), OpenStreetMap buildings, streets, paths and city walls. The stream-edge
+strips are no longer drawn (P02_EDGE_STRIP). The land-use ring splits the built ground by urban fabric.
 
 NEW IN v67 (round 9 Part SB, 11 Nov 2026; revision_2026-11-11_round9 PLAN.md, PART_SB.md; NOT run: no test runs until
 Aras says so): round 9 shared modules pasted (frames_r9, hues_r9, basemap_r9, keymap_r9, marker_r9, ix_r9); names
@@ -685,7 +695,7 @@ except Exception:
 LOG = []
 SCRIPT_VERSION = "selinus_board v67 (2026-11-11)"  # v67 (round 9 Part SB): see NEW IN v67; v66 (11 Nov, Aras): typed inputs (GH_INPUTS), inputs taken from Data/ or the survey analysis removed; v65 (round 8 S1, 9 Nov): see NEW IN v65; v64 (8 Nov, Aras): no backward reads: the spine and stops from the built-in table (= city link and masterplan common/city_spine.py), roads from common/data/ROADS.py, no masterplan_results.json / city_link_results.json read; the section notes' masterplan link is written by the masterplan (section_link_points.json); the unplaced "Section along the spine" drawing is left out; v63.1 fix (5 Nov run): v63.1 fix (5 Nov run): with section_lines empty and no layer sec_lines the eight cuts S1-S8 come from the level module (p04/p05 were empty); v63 (round 7 S3): SON printed scales fixed (p04 1:2,500, p05 1:1,500, p08 street cuts 1:500, plans one SON scale each: p02 1:25,000, p06/p07/p19 1:10,000; the P45_DENS / T3_SEC_DENS picks deleted, misfit = WARNING frame, scale kept); key maps p04/p05/p08 = the reused SON page8 key map (km_keymap v4) at SON's key-map frames, km_items fallback deleted; v62.3 fix (booklet JPG check): the p04/p05 section datum moves with the layout like its crop (the booklet put every level value about 4,067 m off its section, outside the drawing); v62.2 fix (booklet JPG check): each p07 note column keeps only its own texts and shapes (the first column, taller than its map, reached the second and carried its words: they printed twice, on top of each other); v62.1 fix (kit v4.1 run): key-map names and the R3 cut name set on their point for the booklet instead of left out; p07 street marker found on any point of the street on the map; one speech bubble per section logged as such; v62 layout rework L2 (feature): every text handed to the booklet, nothing left out (p04/p05 level values as ix.levels on a m a.s.l. section datum, p03 callouts, p06 viewpoints, p07 column texts, p08 labels/headings/bubbles, p19 strip names, band markers, building tags), box roles (heading, notes on their cut, dkind section), untagged groups tagged; v61 round 6 S3 (feature): page ids p01-p22, G6-1..G6-10 (see CURRENT VERSION); v60.3 fix (2 Nov run warnings): key map fill/north/short cuts; v60.2 fix (round 5 open rows): p04/p05 split per cut (sb_sec_s1 ... s8), their key maps as km_items and legends as legend items; p09 project planting set back (sf_tree_level); no widths left in p04/p05/p07/p09 texts; v60.1 fix (round 5 closing): p02 cut marks print the 23-page booklet pages; the p04/p05 key map lines reach the log; v60 round 5 S7 (feature): booklet items, no text-check stops, no sheet PDFs, warnings sink, P02.1/P02.2, key map v2 frame, glyph, p09 widths, heritage diagrams back; was v59.2 fix 1 Nov 18:05 (Aras 17:02 log): the crop-edge test lets ink reach 0.05 mm past the edge (p02 "VISIBLE" was over by 0.00 mm); v59.1 fix 1 Nov 17:20 (Aras 16:48 log, 28 collisions): p04-05 column lines one text group, level marks clear of the scale bar, north arrow N under the crop top, scale bar 0 inside p02/p09 crops, p02 last key column 0.5 mm in, p06 key labels fitted + caption descenders inside, plan01_key strip not checked, crop-edge reports say which edge; v59 (round 4 S4, feature): text check, trigger, names, ROADS, pp.4-5 rebuilt, S5 across; was v58.3
 # (was: v27: the log's first line and the text under the component)
-SHORT_V = "v67"                                       # v44.1: the version under the component (was a fixed "v40")
+SHORT_V = "v67.1"                                       # v44.1: the version under the component (was a fixed "v40")
 DRAWING_TIMES = []                                  # v27: (drawing name, seconds) in the order they were made
 
 
@@ -17452,7 +17462,7 @@ FABRIC_PLAN = {"monument": C("AF7474"),       # D2 historic
                "block": C("7A6E60"),          # ink2
                "regular": C("BCB794"),        # structure
                "selfbuilt": C("DCD5C2"),      # faint
-               "large": C("FAF8F1"),          # road (lightest void)
+               "large": C("A2B6B5"),          # v67.1: palette A2B6B5 (was FAF8F1, read as an empty plot)
                "construction": C("E6E0C8")}   # ground
 FABRIC_EDGE = mix(INK, PAPER, 0.25)           # hairline round the light types, as on the fabric map
 LEAF_COL = {0: C("8FA05A"), 1: C("8A9478"), 2: C("445A3C")}             # plant analysis LEAF
@@ -17548,6 +17558,7 @@ def whole_site(RAW, OSM, PLACES, FR, S):
         except Exception:
             LOG.append("whole-file map: {} failed:\n{}".format(fn.__name__, traceback.format_exc()))
     fabric_types(SA)
+    SA.osm = OSM                                          # v67.1: plan 01 draws OpenStreetMap beyond the survey
     SA.ctx_lines, SA.study_areas, SA.water_pts = {}, list(S.study_areas), []
     SA.frame_src, SA.range_F, SA.rest = "whole file", FR, []
     LOG.append("Plan 01 covers the whole file: {:.0f} x {:.0f} m ({:.0f} ha); farmland {:.1f} ha and orchards {:.1f} "
@@ -25338,11 +25349,11 @@ def _r9(x, y, w, h, kind, ids, series=None, r8=None, est=None, **kw):
 R9_FRAMES = {
     # ---- p02 (rows 2-4 and 7-8 need MainBoard to export the parts as their own items: H1 §1.3)
     "p02.1": _r9(14, 28, 194, 169, "M", ("sb_plan01",), r8=25048, est=25000, bar="p02.2"),
-    "p02.5": _r9(210, 28, 196, 148, "F", ("sb_edge_types",)),
-    "p02.6": _r9(210, 178, 60, 3, "T", ("sb_edge_types_caption",)),
-    "p02.7": _r9(210, 183, 96, 96, "F", ("sb_site_indicators", "sb_site_readings"), new=True,
+    # v38.7 / MainBoard v67.1 (Aras 14 Nov 2026 "get rid of these drawings"): the stream-edge strips p02.5 + p02.6
+    # are gone; the readings and the land-use ring move to the top of the right column
+    "p02.7": _r9(210, 28, 96, 96, "F", ("sb_site_indicators", "sb_site_readings"), new=True,
                  check=u"sb_site_readings is the v37 union item (rows 7+8); MainBoard splits it"),
-    "p02.8": _r9(308, 183, 98, 96, "F", ("sb_site_landuse",), new=True),
+    "p02.8": _r9(308, 28, 98, 96, "F", ("sb_site_landuse",), new=True),
     "p02.2": _r9(14, 199, 155, 10, "T", ("sb_plan01_bridges*",), new=True),
     "p02.3": _r9(14, 211, 194, 56, "T", ("sb_plan01_legend*",), new=True, cols=3),
     "p02.4": _r9(14, 269, 60, 3, "T", ("sb_plan01_caption",)),
@@ -29536,7 +29547,7 @@ HUE = {
     # r2 = named buildings that are not heritage (G9-6: e.g. Les Pergamon Boutique Hotel)
     "CTX": {1: "4A3F35", 2: "847E75", 3: "B0AC9C", 4: "D8D5CC", 5: "EFEDE6"},
     # building fabric on maps (G9-4 / A1 C1): FABRIC_PLAN SB:17437-17444 in its class order, + CTX r4 for unsurveyed
-    "FAB": {1: "AF7474", 2: "8B3A3F", 3: "4A3F35", 4: "7A6E60", 5: "BCB794", 6: "DCD5C2", 7: "FAF8F1", 8: "E6E0C8",
+    "FAB": {1: "AF7474", 2: "8B3A3F", 3: "4A3F35", 4: "7A6E60", 5: "BCB794", 6: "DCD5C2", 7: "A2B6B5", 8: "E6E0C8",
             9: "D8D5CC"},
     # heritage (G9-6): r1 monuments, r2 historic bridges, r3 other historic buildings, r4 heritage area tint
     "HER": {1: "512E1A", 2: "84573E", 3: "B08870", 4: "E7CABB"},
@@ -38147,7 +38158,7 @@ def draw_landuse_map(S, B, V, bcol=None, den=None, kb=10.0, inside=None):
                            mix(tc_, PAPER, 0.35), L + "::trees", 12)
         sh = mix(INK, PAPER, 0.6)
         with B.kind("buildings"):
-            for u in S.bld:
+            for u in (S.bld if P02_SHADOW else []):      # v67.1: no cast shadow on plan 01 (Basemap rule, 12 Nov)
                 if not _p02_u_inside(inside, u):         # v59 (round 4, P02.2): the base houses cast no dark shadow
                     continue
                 off = min(3.0, 0.11 * u["h"]) * s
@@ -38155,23 +38166,25 @@ def draw_landuse_map(S, B, V, bcol=None, den=None, kb=10.0, inside=None):
                        L + "::texture", 13)
     _p02_bld_plan(S, B, V, L + "::buildings", 14, den or crop_scale(V.s) or 1000.0, kb, bcol=bcol,
                   inside=inside)                          # v59 (round 4, P02.2)
-    with B.kind("ground"):
+    hw_ = bk_lw(P02_HAIR, kb)                            # v67.1 (Aras 14 Nov "these outlines are totally fucked"):
+    wc_ = _p02_hue("wall_2", mix(INK2, PAPER, 0.4))       # every survey line on plan 01 one pale hairline (walls were
+    with B.kind("ground"):                                # 0.16 dark ink = about 4 m wide at 1:25,000)
         for P in S.slope_hatch:
-            B.line(V.P(P), mix(INK2, PAPER, 0.4), L + "::ground", 16, 0.04)
+            B.line(V.P(P), mix(INK2, PAPER, 0.55), L + "::ground", 16, hw_)
         for P in S.slopes:
-            B.line(V.P(P), INK2, L + "::ground", 16, 0.08)
+            B.line(V.P(P), mix(INK2, PAPER, 0.3), L + "::ground", 16, hw_)
         for P in S.stairs:
-            B.line(V.P(P), INK2, L + "::ground", 16, 0.05)
+            B.line(V.P(P), wc_, L + "::ground", 16, hw_)
         for P in S.fences:
-            B.line(V.P(P), mix(INK2, PAPER, 0.3), L + "::ground", 16, 0.04)
+            B.line(V.P(P), wc_, L + "::ground", 16, hw_)
         for P in S.park_lines:
             for d in dashes(V.P(P), 0.4 * U, 0.28 * U):
                 B.line(d, mix(_p02_hue("g_park", CAT["green"][1]), INK, 0.3), L + "::ground", 16, 0.08)
         for P in S.walls:
-            B.line(V.P(P), INK, L + "::walls", 17, 0.16)
+            B.line(V.P(P), wc_, L + "::walls", 17, hw_)
     with B.kind("roads"):
         for P in S.bridges:
-            B.line(V.P(P), INK, L + "::walls", 18, 0.24)
+            B.line(V.P(P), INK, L + "::walls", 18, bk_lw(0.12, kb))
 
 
 def site_crowns(S, F2):
@@ -38272,6 +38285,14 @@ P02_IN_LIGHT = 0.40       # v59 (round 4, P02.2, G-R4-4): share each urban-fabri
 #                           the study area (Aras U61 "the dark house mass": the fabric reading stays, lighter)
 P02_BASE_BLD = C(BM_MUTED["bld"]) if "BM_MUTED" in globals() else C("EDEBE6")         # v59 (round 4, P02.2, G-R4-4):
 P02_BASE_EDGE = C(BM_MUTED["bld_edge"]) if "BM_MUTED" in globals() else C("C9C5BC")   # PLAN 4.3 base house tones
+P02_EDGE_STRIP = False    # v67.1 (Aras 14 Nov 2026 "get rid of these drawings"): the stream-edge strips of p.02 off
+#                           (True = v67: draw_edge_types again; the booklet v38.7 has no frame for them any more)
+P02_SHADOW = False        # v67.1: no cast building shadow on plan 01 (Aras 12 Nov "dont add shadows to the basemap")
+P02_HAIR = 0.05           # v67.1: mm printed: the one pen of plan 01's building outlines and survey walls / fences /
+#                           stairs (1.25 m at 1:25,000; was 0.11 mm outlines and 0.16 walls = 2.7-4 m wide bands)
+P02_EDGE_DARK = 0.35      # v67.1: a block outline = its own fabric colour mixed this far toward the ink
+P02_BEYOND_CELL = 50.0    # v67.1: m: an OpenStreetMap feature is drawn on plan 01 only where no survey line lies in
+#                           its 50 m cell or the 8 cells round it (the parts of the map the survey does not cover)
 P02_BASE_LW = 0.12        # v59 (round 4, P02.2): mm, the base house outline (PLAN 4.3)
 
 
@@ -38380,6 +38401,7 @@ def draw_what_is_there(S, B, x, y, w, U):
     # v40: buildings by urban fabric type; revision 30 Oct (G7, M11): outline per block + roof, no piece lines
     # round 2 (PG1 p2 #8, U20): the town fabric outside the study area a little fainter, "but not too much"
     draw_landuse_map(S, B, V, bcol=fabric_col, den=den_bk, kb=kb, inside=None)   # round 9 (b1): no fade
+    _p02_beyond(S, B, V, L, kb, den_bk)                   # v67.1: OpenStreetMap where the survey has nothing
     # canopy-map crowns (modelled), under the surveyed tree symbols. v61 (G6-10, G6-9): each crown its own element
     # named by its species (sb_tree_species via _p02_sp; None = generic "tree"), its colour by leaf type (GRN ranks)
     crowns = [c for c in site_crowns(S, F) if F.inside(c[0], c[1])]
@@ -38399,7 +38421,7 @@ def draw_what_is_there(S, B, x, y, w, U):
     with B.kind("paths"):
         for p in S.paths:
             for d in dashes(V.P(p["P"]), 0.35 * U, 0.25 * U):
-                B.line(d, path_c, L, 19, 0.16)
+                B.line(d, path_c, L, 19, bk_lw(0.06, kb))     # v67.1: was 0.16 (a 3 m dash band at 1:25,000)
     # dense fabric (intensity): the outline of the densest floor-area class
     dens = dense_outline(S)
     dc = _p02_hue("dense", mix(INTENSITY[3], INK, 0.1))
@@ -38537,6 +38559,8 @@ def draw_what_is_there(S, B, x, y, w, U):
         leg += [("hdr", None, "HERITAGE " + r_home)] + _p02_leg_sort(her_)
     leg += [("hdr", None, "BUILDINGS · URBAN FABRIC" + (u"" if her_ else u" " + r_home))]
     leg += _p02_leg_sort(fab_)
+    if _P02.get("beyond"):                                # v67.1: the OpenStreetMap houses beyond the survey
+        leg.append(("box", C(fab_hex("unsurveyed")), u"Beyond the survey: OpenStreetMap footprints, type not surveyed"))
     leg += [("dense", dc, "Densest grain · floor-area ratio {:.2f}+ {}".format(
                 S.int_breaks[2], bcite(u"Densest grain: floor-area ratio on 10 m cells, areas of 2,000 m²+."))
              if getattr(S, "int_breaks", None) else "Densest grain")]      # v49.1 (Prompt 8): m² (was m2)
@@ -39064,28 +39088,153 @@ def _p02_items(B, V, items, L, order, k, lw_f=1.0, fills=True, lines=True):
 
 
 def _p02_bld_plan(S, B, V, L, order, den, kb, bcol=None, lw_f=0.6, inside=None):
-    """revision 30 Oct (G7, M11; Aras "just draw the outlines and hatch the inside"): plan 01's buildings through
-    bld_plan_items: per colour (bcol, the urban fabric) the light fill and the roof reading (ridge and hips where a
-    building is BLD_MIN_ROOF_MM wide at 1:den), then ONE outline per block (S.blocks, merged in build_site): no line
-    between buildings that share a wall, no piece outlines. lw_f thins the module's pens for the 1:20,000 plan.
-    v59 (round 4, P02.2, G-R4-4): inside = _p02_inside(S) (None: all inside): the buildings outside the study area
-    are base map: no roof reading, and their blocks outlined in the base tone P02_BASE_EDGE, P02_BASE_LW mm."""
+    """plan 01's buildings. v67.1 (Aras 14 Nov 2026: "fix the outlines and colour change of that outlines", "outlines
+    are inconsistent all across the map"): every building filled in its urban-fabric colour (bcol), no roof marks, and
+    ONE outline per block (S.blocks: buildings that share a wall merged, no party-wall lines) as a hairline of
+    P02_HAIR mm in a darker shade of the block's own fabric colour (P02_EDGE_DARK toward the ink), the same pen
+    everywhere on the map. Before: a 0.11 mm grey or dark outline (about 2.7 m wide at 1:25,000) that read as a halo.
+    inside is kept for the call; it no longer changes the drawing (round 9 b1: no fade)."""
     groups = {}
-    for u in S.bld:
+    col_of = {}
+    for i_, u in enumerate(S.bld):
         if not u.get("parts"):
             continue
         col = bcol(u) if bcol is not None else (mix(CAT[u["cat"]][1], PAPER, 0.35) if u["annex"] else CAT[u["cat"]][1])
-        groups.setdefault((crop_hex(col), _p02_u_inside(inside, u)), []).append(u)
-    roof_c = crop_hex(mix(INK, PAPER, 0.45))
-    for (h_, in_), us in sorted(groups.items()):          # v61 (G6-9): heritage fabric in the kind "heritage"
-        her_ = in_ and any(u_.get("fabric") in ("monument", "sacred") for u_ in us)
+        col_of[i_] = col
+        groups.setdefault(crop_hex(col), []).append(u)
+    for h_, us in sorted(groups.items()):                 # v61 (G6-9): heritage fabric in the kind "heritage"
+        her_ = any(u_.get("fabric") in ("monument", "sacred") for u_ in us)
         with B.kind("heritage" if her_ else "buildings"):
-            _p02_items(B, V, bld_plan_items(us, None, den, roof="ridge" if in_ else "none", fill=h_, her_fill=h_,
-                                            roof_col=roof_c, outline=False), L, order, kb, lw_f)
-    edge = crop_hex(FABRIC_EDGE)
+            _p02_items(B, V, bld_plan_items(us, None, den, roof="none", fill=h_, her_fill=h_, outline=False),
+                       L, order, kb, lw_f)
     blocks = getattr(S, "blocks", None)
-    with B.kind("buildings"):                             # v61 (G6-9): the block outlines, each its own element
-        _p02_bld_outlines(S, B, V, L, order, den, kb, lw_f, inside, blocks, edge)
+    hw_ = bk_lw(P02_HAIR, kb)
+    with B.kind("buildings"):
+        if blocks is None:                                # no merged blocks: each building's own outline
+            for i_, u in enumerate(S.bld):
+                if i_ in col_of:
+                    ec = mix(col_of[i_], INK, P02_EDGE_DARK)
+                    for P in list(u["parts"]) + list(u.get("holes") or []):
+                        if len(P) >= 3:
+                            B.line(V.P(list(P) + [P[0]]), ec, L, order + 2, hw_)
+            return
+        for bk in blocks:
+            o = bk["outer"] if "outer" in bk else (bk.get("rings") or [[]])[0]
+            hs = bk.get("holes") if "outer" in bk else (bk.get("rings") or [[]])[1:]
+            if len(o) < 3:
+                continue
+            cs_ = {}                                      # the block's colour = the fabric colour covering most of it
+            for j_ in bk.get("units") or []:
+                if j_ in col_of:
+                    k_ = crop_hex(col_of[j_])
+                    cs_[k_] = cs_.get(k_, 0.0) + S.bld[j_].get("A", 0.0)
+            base = C(max(cs_.items(), key=lambda t_: t_[1])[0]) if cs_ else C(fab_hex("unsurveyed"))
+            ec = mix(base, INK, P02_EDGE_DARK)
+            for R in [o] + list(hs or []):
+                if len(R) >= 3:
+                    B.line(V.P(list(R) + [R[0]]), ec, L, order + 2, hw_)
+
+
+P02_BEYOND_W = {"motorway": 10.0, "trunk": 9.0, "primary": 8.0, "secondary": 7.0, "tertiary": 6.0,
+                "unclassified": 5.0, "residential": 5.0, "living_street": 4.0, "service": 3.5, "pedestrian": 4.0}
+#               v67.1: m: the drawn width of an OpenStreetMap street beyond the survey (a drawing rule: OpenStreetMap
+#               gives no widths there); tracks, footways, paths and steps are thin dashes
+
+
+def _p02_beyond(S, B, V, L, kb, den, order=8):
+    """v67.1 (Aras 14 Nov 2026: "Fix the top left empty spot on the map, use the latest data we have gathered from both
+    dwg and settalite imagery combined"): plan 01's frame is the box of the whole survey file, and its northern
+    (top-left) part, the Acropolis hill, holds no survey line work. There (and anywhere else the survey leaves out)
+    the map draws OpenStreetMap: building footprints (fabric "unsurveyed" = Type not surveyed, hairline outline; a
+    historic / ruin / temple footprint in the heritage tone), the streets (P02_BEYOND_W) and the city walls. The land
+    cover under them is already drawn to the map's edge (ESA WorldCover, satellite). The 1 Mar 2023 Esri / Maxar image
+    of the Basemap set ends at survey y 32,881 m (VEG_BOX) and does not reach this corner. A feature is drawn only
+    where no survey line lies in its P02_BEYOND_CELL cell or the cells round it. Returns the number of buildings."""
+    osm = getattr(S, "osm", None)
+    if not osm or not osm.get("ways"):
+        _P02["beyond"] = 0
+        LOG.append(u"plan 01 beyond the survey: no OpenStreetMap file read, nothing drawn there")
+        return 0
+    c_ = P02_BEYOND_CELL
+    cov = set()
+
+    def mark(P):
+        for q in P:
+            cov.add((int(math.floor(q[0] / c_)), int(math.floor(q[1] / c_))))
+    for u in S.bld:
+        for P in u.get("parts") or []:
+            mark(P)
+    for P in list(getattr(S, "walls", []) or []) + list(getattr(S, "fences", []) or []) + \
+            list(getattr(S, "road_edges", []) or []):
+        mark(P)
+
+    def free(q):
+        i, j = int(math.floor(q[0] / c_)), int(math.floor(q[1] / c_))
+        return not any((i + a, j + b) in cov for a in (-1, 0, 1) for b in (-1, 0, 1))
+    Pj = osm["P"]
+    F = S.F
+    fb = F.bb
+    hw_ = bk_lw(P02_HAIR, kb)
+    f_bld = C(fab_hex("unsurveyed"))
+    f_her = C(hue("HER", 3)) if "hue" in globals() else C("B08870")
+    blds, hers, streets, paths = [], [], [], []
+    for refs, tags in osm["ways"].values():
+        if len(refs) < 2:
+            continue
+        P = [p for p in (Pj(r) for r in refs) if p]
+        if len(P) < 2 or not any(fb[0] <= q[0] <= fb[2] and fb[1] <= q[1] <= fb[3] for q in P):
+            continue
+        if "building" in tags:
+            if refs[0] == refs[-1] and len(P) >= 4 and all(free(q) for q in P):
+                her = bool(tags.get("historic")) or tags.get("building") in ("ruins", "temple", "historic", "church",
+                                                                              "mosque", "synagogue")
+                (hers if her else blds).append(P[:-1])
+            continue
+        hw = tags.get("highway")
+        if not hw or tags.get("area") == "yes":
+            continue
+        run = []
+        for q in P:                                       # the stretches of the way that lie in free cells
+            if free(q):
+                run.append(q)
+            else:
+                if len(run) >= 2:
+                    (streets if hw in P02_BEYOND_W else paths).append((hw, run))
+                run = []
+        if len(run) >= 2:
+            (streets if hw in P02_BEYOND_W else paths).append((hw, run))
+    paths = [t_ for t_ in paths if t_[0] in ("track", "footway", "path", "steps", "cycleway", "bridleway")]
+    walls_ = []
+    for refs, tags in osm["ways"].values():                # city walls (OpenStreetMap historic=citywalls)
+        if tags.get("historic") == "citywalls" or tags.get("barrier") == "city_wall":
+            P = [p for p in (Pj(r) for r in refs) if p]
+            if len(P) >= 2 and all(free(q) for q in P):
+                walls_.append(P)
+    with B.kind("roads"):
+        for hw, P in streets:
+            w_ = bk_lw(P02_BEYOND_W[hw] * 1000.0 / den, kb)
+            B.line(V.P(P), ROAD_EDGE, L + "::streets", order, w_ + 2.0 * hw_)
+        for hw, P in streets:
+            B.line(V.P(P), _p02_hue("streets", ROAD_FILL), L + "::streets", order + 1,
+                   bk_lw(P02_BEYOND_W[hw] * 1000.0 / den, kb))
+        for hw, P in paths:
+            for d in dashes(V.P(P), 0.3 * S.U, 0.2 * S.U):
+                B.line(d, ROAD_EDGE, L + "::streets", order + 1, hw_)
+    with B.kind("buildings"):
+        for P in blds:
+            B.fill([V.P(P)], f_bld, L + "::buildings", 14)
+            B.line(V.P(P + [P[0]]), mix(f_bld, INK, P02_EDGE_DARK), L + "::buildings", 16, hw_)
+    with B.kind("heritage"):
+        for P in hers:
+            B.fill([V.P(P)], f_her, L + "::buildings", 14)
+            B.line(V.P(P + [P[0]]), mix(f_her, INK, P02_EDGE_DARK), L + "::buildings", 16, hw_)
+        for P in walls_:
+            B.line(V.P(P), f_her, L + "::walls", 17, bk_lw(0.12, kb))
+    _P02["beyond"] = len(blds) + len(hers)
+    LOG.append(u"plan 01 beyond the survey (OpenStreetMap, {:.0f} m cells free of survey lines): {} buildings, {} "
+               u"heritage footprints, {} street pieces, {} paths, {} city-wall lines".format(
+                   c_, len(blds), len(hers), len(streets), len(paths), len(walls_)))
+    return len(blds) + len(hers)
 
 
 def _p02_bld_outlines(S, B, V, L, order, den, kb, lw_f, inside, blocks, edge):
@@ -39272,8 +39421,22 @@ def landuse_slices(S):
             sub = z.get("sub") if z.get("sub") in GREEN_SUB else "park"   # as on the plan: other greens in the park tone
             gz[sub] = gz.get(sub, 0.0) + z["A"]
     H = _p02_hue                                          # v61 (G6-6): the hue table's colours, as the plan's
-    rows = [(short(CAT[k_][0]), H(k_, CAT[k_][1]), S.area.get(k_, 0.0)) for k_ in
-            ("residential", "mixed", "commercial", "institutional", "religious", "industrial")]
+    # v67.1 (Aras 14 Nov 2026: "with the urban fabric update you'll be needing to modify this to show where is older
+    # town, where is newer planned buildings"): the built ground by URBAN FABRIC (plan 01's building colours), not
+    # by use. The built total stays the measured footprint by use (S.area); it is split in the shares of the
+    # buildings' own footprints (u["A"], annexes with the house they stand by) per fabric type.
+    b_tot = sum(S.area.get(k_, 0.0) for k_ in ("residential", "mixed", "commercial", "institutional", "religious",
+                                                "industrial"))
+    f_a = {}
+    for u in getattr(S, "bld", None) or []:
+        f_ = u.get("fabric") or "unsurveyed"
+        f_a[f_] = f_a.get(f_, 0.0) + (u.get("A") or 0.0)
+    f_t = sum(f_a.values())
+    rows = [(FABRIC_SHORT.get(k_, FAB_WORDS.get(k_, k_)), C(fab_hex(k_)), b_tot * f_a.get(k_, 0.0) / f_t if f_t else 0.0)
+            for k_ in FABRIC_ORDER + ["unsurveyed"]]
+    if not f_t:                                           # no fabric read: the v67 rows by use
+        rows = [(short(CAT[k_][0]), H(k_, CAT[k_][1]), S.area.get(k_, 0.0)) for k_ in
+                ("residential", "mixed", "commercial", "institutional", "religious", "industrial")]
     rows += [(u"Streets", H("streets", ROAD_FILL), max(0.0, S.area.get("transport", 0.0) - tz)),
              (u"Parking & yards", H("transport", mix(CAT["transport"][1], PAPER, 0.3)), tz),
              (u"Woods & tree cover", H("g_wood", GREEN_SUB["wood"]), gz.get("wood", 0.0) + rest_of(S, "trees")),
@@ -39303,7 +39466,8 @@ def draw_site_readings(S, B, x, y, w, U):
     P02.1, G2): plan 01's key is under the map (drw_plan01_key stays an empty strip); the side column is
     _p02_side_w() mm wide (6 grid columns beside a 1:25,000 plan 01); then the page's overlap test (_p02_flag)."""
     y = draw_plan01_key(S, B, x, y, w, U)
-    y = draw_edge_types(S, B, x, y, w, U)
+    if P02_EDGE_STRIP:                                    # v67.1 (Aras 14 Nov "get rid of these drawings"): off
+        y = draw_edge_types(S, B, x, y, w, U)
     y = _p02_readings(S, B, x, y, w, U)
     _p02_flag()                                           # v58 (round 3, G3): FLAG overlap p02, once
     if "sb_tree_log" in globals():                        # v61 (G6-10): plan 01 and the edge strip, once
