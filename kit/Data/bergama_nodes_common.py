@@ -24,7 +24,7 @@ Data/bergama_pages_common.py, Data/section_lines.json, Data/bergama_access_herit
 """
 import os, re, glob, json, math, time
 
-NC_VERSION = "v2"   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
+NC_VERSION = "v3"   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
 ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 PAGE_W, PAGE_H = 420.0, 297.0
 NODE_MARGIN_M = 25.0                       # m of town round the node frame on the plan
@@ -616,55 +616,7 @@ def node_page(cfg, log):
                               u"Slide %d, %s %s" % (cfg["SLIDE"], node, nd["name"]))
     log.append(u"%s  %s" % (pdf, time.strftime("%H:%M:%S")))
     G["pc_present"](pdf, cfg["SLIDE"], log)
-    review(X, pdf, out_dir, os.path.join(ROOT, "cached", out_folder), log)
+    G["pc_review"](pdf, os.path.join(out_dir, "review"), log)     # v3: the shared standard (pages_common v3)
     flags = [l for l in log if l.startswith(u"FLAG")]
     return u"%s\n%s, %d of 2 section(s), %d FLAG line(s), %.1f s" % (u"\n".join(log), node, len(done), len(flags),
                                                                     time.time() - t0)
-
-
-# ================================================================ review PNGs (Aras 14 Nov 10:44 UTC)
-REVIEW = r'''
-import sys, os, glob
-try:
-    import pymupdf as fitz
-except ImportError:
-    import fitz
-pdf, out = sys.argv[1], sys.argv[2]
-os.makedirs(out, exist_ok=True)
-for f in glob.glob(os.path.join(out, "*.png")):
-    os.remove(f)
-pg = fitz.open(pdf)[0]
-pg.get_pixmap(dpi=60).save(os.path.join(out, "00_overview.png"))
-r, n = pg.rect, 0
-NX, NY = 3, 3
-for j in range(NY):
-    for i in range(NX):
-        tr = fitz.Rect(r.x0 + r.width * i / NX, r.y0 + r.height * j / NY, r.x0 + r.width * (i + 1) / NX,
-                       r.y0 + r.height * (j + 1) / NY)
-        pg.get_pixmap(dpi=200, clip=tr).save(os.path.join(out, "%d%d_tile.png" % (j + 1, i + 1)))
-        n += 1
-print("review: overview + %d tiles (200 ppi, about 1100 x 780 px) in %s" % (n, out))
-'''
-
-
-def review(X, pdf, out_dir, cdir, log):
-    out = os.path.join(out_dir, "review")
-    tp = os.path.join(cdir, "review_tiles.py")
-    try:
-        with open(tp, "w", encoding="utf-8") as f:
-            f.write(REVIEW)
-        import subprocess, sys as _sys
-        cmds = [["py", "-3"], ["python"]]
-        if os.path.basename(_sys.executable or "").lower().startswith("python"):
-            cmds.insert(0, [_sys.executable])
-        for cmd in cmds:
-            try:
-                r_ = subprocess.run(cmd + [tp, pdf, out], capture_output=True, text=True, timeout=600)
-            except Exception:
-                continue
-            if r_.returncode == 0:
-                log.append(r_.stdout.strip().splitlines()[-1] if r_.stdout.strip() else u"review: %s" % out)
-                return
-        log.append(u"FLAG review PNGs not written: no Python with PyMuPDF found (pip install pymupdf)")
-    except Exception as ex:
-        log.append(u"FLAG review PNGs not written (%s: %s)" % (type(ex).__name__, ex))
