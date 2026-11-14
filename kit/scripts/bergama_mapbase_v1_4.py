@@ -61,7 +61,7 @@ Writes ~/Downloads/Bergama/cached/bergama_mapbase/mapbase.json (+ its OSM house 
 import os, time, json, math, re, glob
 
 # ---- SETTINGS ----
-VERSION = "v1.3"
+VERSION = "v1.4"  # v1.4 (14 Nov, standing rule "WATER: textured hatches, no wave strokes"): the water surface gets a fine diagonal hatch over its grain fill in every map (mb_draw); cache unchanged
 GH_LABEL = "MapBase"
 OUT_FOLDER = "bergama_mapbase"
 LOG_NAME = "bergama_mapbase_log.txt"
@@ -809,7 +809,8 @@ MB_STYLE = {
     "fab": dict(FAB), "fab_com": dict(FAB_COM), "edge_dark": P02_EDGE_DARK, "ink": INK,
     "lw": {"hair": P02_HAIR, "edge": P02_HAIR, "path": P02_HAIR, "water": 0.25, "osm_water": 0.22, "wall": P02_HAIR,
            "her_wall": 0.3, "osm_wall": 0.07, "bridge": 0.3, "contour": 0.06, "contour_index": 0.13, "tree_r": 0.25},
-    "grain": True}
+    "grain": True,
+    "water_hatch": (0.7, 45.0, mixh(WATER_C, WATER_LINE, 0.55), 0.06)}   # v1.4: spacing mm, angle deg, colour, pen mm
 MB_WORDS = {"ground": u"Built-up and bare ground (no WorldCover vegetation)", "farm": u"Fields & orchards (OSM)",
             "wood": u"Woods (OSM)", "green": u"Grass (OSM)", "cemetery": u"Cemeteries (OSM)",
             "archaeo": u"Archaeological sites (OSM)", "grounds": u"School & hospital grounds (OSM)",
@@ -842,6 +843,29 @@ def mb_load(log):
     log.append(u"MapBase %s of %s: %d buildings, %d OSM areas, %d contour lines" % (
         C.get("version"), C.get("made"), len(C["bld"]), len(C["areas"]), len(C["contours"])))
     return C
+
+
+def mb_hatch(rr, step, ang_deg):
+    """v1.4: parallel hatch segments (page mm) inside the rings rr (even-odd), every step mm at ang_deg"""
+    a = math.radians(ang_deg)
+    ca, sa = math.cos(a), math.sin(a)
+    rot = [[(x * ca + y * sa, -x * sa + y * ca) for x, y in R] for R in rr]   # hatch lines run along u
+    vs = [q[1] for R in rot for q in R]
+    out = []
+    v = (math.floor(min(vs) / step) + 0.5) * step
+    while v < max(vs):
+        us = []
+        for R in rot:
+            for i in range(len(R)):
+                (u0, v0), (u1, v1) = R[i - 1], R[i]
+                if (v0 <= v) != (v1 <= v):
+                    us.append(u0 + (v - v0) * (u1 - u0) / (v1 - v0))
+        us.sort()
+        for j in range(0, len(us) - 1, 2):
+            if us[j + 1] - us[j] > 0.05:
+                out.append(((us[j] * ca - v * sa, us[j] * sa + v * ca), (us[j + 1] * ca - v * sa, us[j + 1] * sa + v * ca)))
+        v += step
+    return out
 
 
 def mb_draw(C, items, T, k, lim, cid, style=None, layers=None):
@@ -918,6 +942,12 @@ def mb_draw(C, items, T, k, lim, cid, style=None, layers=None):
             line(P, st["path"], lw["path"], "paths_osm")
     if on("water"):
         poly(C["polys"].get("river", []), g + st["water"], "water")
+        rr = rings(C["polys"].get("river", []))
+        if rr and st.get("water_hatch"):                  # v1.4: textured hatch on the water (no wave strokes)
+            hs, ha, hc, hw = st["water_hatch"]
+            for a_, b_ in mb_hatch(rr, hs, ha):
+                items.append(("line", [a_, b_], hc, hw, cid, "water_hatch", 1))
+                cnt["water_hatch"] = cnt.get("water_hatch", 0) + 1
         for key, w_ in (("stream_banks", lw["water"]), ("ponds", lw["water"] * 0.7)):
             for cl, P in C["lines"].get(key, []):
                 line(P + ([P[0]] if cl else []), st["water_line"], w_, "water")
