@@ -25,7 +25,7 @@ Items are the Basemap writer's tuples (page mm, y up):
 """
 import os, re, json, math, time, glob
 
-PC_VERSION = "v3.15"  # v3.15: SiteMap / pc_site_map (the map frame = site_alan turned flat, Aras 16:17 UTC "KEEP EVERY DRAWING STRICTLY IN SITE_ALAN"), pc_loop edge arrows to stops outside it, pc_north_items; v3.14: pc_cut_mark = two end arrows, no line between (Aras 16:05 UTC); v3.13: v3.13: pc_mp_data (MasterplanBase: the masterplan SVG cached in survey m); v3.12: pc_cut_mark, the R01 cut symbol (two arrows, Aras 15:37 UTC); v3.11: pc_loop (the heritage loop, one code for the heritage and the transit map; Aras 15:31) and pc_station_name; v3.10: pc_a3_den / pc_a3 (a map page fitted and centred on A3 or a slide panel, Aras 15:25-15:27 UTC); v3.9: no sources in the drawings (Aras 15:23 UTC): pc_nosrc on MapBase legend rows, empty credit skipped; v3.8: a name with no free place goes where it overlaps least (run 7); v3.7: Labels.block_line / block_items (names keep off lines: run 6 review); v3.6: the outside Python runs hidden (no console window, Aras 14 Nov 12:57 UTC); v3.5: frame check skips items with any clip id; pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
+PC_VERSION = "v3.16"  # v3.16: pc_loop names=True (stop names on the map), every stop outside the frame gets an edge arrow, the stream walk in either loop order (loop numbered from Asklepion, Aras 16:26); v3.15: SiteMap / pc_site_map (the map frame = site_alan turned flat, Aras 16:17 UTC "KEEP EVERY DRAWING STRICTLY IN SITE_ALAN"), pc_loop edge arrows to stops outside it, pc_north_items; v3.14: pc_cut_mark = two end arrows, no line between (Aras 16:05 UTC); v3.13: v3.13: pc_mp_data (MasterplanBase: the masterplan SVG cached in survey m); v3.12: pc_cut_mark, the R01 cut symbol (two arrows, Aras 15:37 UTC); v3.11: pc_loop (the heritage loop, one code for the heritage and the transit map; Aras 15:31) and pc_station_name; v3.10: pc_a3_den / pc_a3 (a map page fitted and centred on A3 or a slide panel, Aras 15:25-15:27 UTC); v3.9: no sources in the drawings (Aras 15:23 UTC): pc_nosrc on MapBase legend rows, empty credit skipped; v3.8: a name with no free place goes where it overlaps least (run 7); v3.7: Labels.block_line / block_items (names keep off lines: run 6 review); v3.6: the outside Python runs hidden (no console window, Aras 14 Nov 12:57 UTC); v3.5: frame check skips items with any clip id; pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
 PC_NOWIN = 0x08000000 if os.name == "nt" else 0   # v3.6: CREATE_NO_WINDOW for the review-PNG / photo subprocesses
 PC_DATA = os.path.join("Data", "bergama_access_heritage.json")
 PC_CENTRE = os.path.join("Data", "selinos_centreline.json")
@@ -612,7 +612,7 @@ def pc_station_name(s):
         u" )", u")")
 
 
-def pc_loop(M, D, K, lab, log):
+def pc_loop(M, D, K, lab, log, names=False):
     """the loop 1..7: bold red legs stop to stop (3 -> 4 along the Selinos: the stream walk), dotted on foot from the
     upper Teleferik station to Akropol, red numbered badges, Akropol a red ring; lines and badges kept free of names
     (lab). Returns items"""
@@ -621,7 +621,7 @@ def pc_loop(M, D, K, lab, log):
     H = sorted(D["heritage"], key=lambda h: int(h["n"]))
     legs = []
     for a, b in zip(H, H[1:]):
-        if (a["key"], b["key"]) == ("tabak_koprusu", "ulucami_onu"):
+        if {a["key"], b["key"]} == {"tabak_koprusu", "ulucami_onu"}:
             sw = pc_selinos(a["xy"], b["xy"])
             if sw:
                 legs.append(("walk", sw))
@@ -668,6 +668,21 @@ def pc_loop(M, D, K, lab, log):
             it.append(arrow_head(end[0], end[1], RED, 2.6, "loop_stops"))
             arrows.append((h, end[1]))
             lab.block_pt(end[1], 1.6)
+    c = ((M.box[0] + M.box[2]) / 2.0, (M.box[1] + M.box[3]) / 2.0)
+    for h in H:                                          # a stop no drawn leg reaches: an arrow toward it from the centre
+        if h["n"] in done or M.inside(T(h["xy"]), -0.01):
+            continue
+        runs = M.clip([c, T(h["xy"])])
+        if runs and len(runs[-1]) >= 2:
+            done.add(h["n"])
+            end = runs[-1][-2:]
+            it.append(arrow_head(end[0], end[1], RED, 2.6, "loop_stops"))
+            arrows.append((h, end[1]))
+            lab.block_pt(end[1], 1.6)
+    if names:                                            # the stops inside the frame named on the map
+        for h in H:
+            if M.inside(T(h["xy"])):
+                lab.put(h["name"], T(h["xy"]), tm["label"], RED, "loop_names", True, gap=R + 1.0)
     for h, q in arrows:
         lab.put(u"%s %s" % (h["n"], h["name"]), q, tm["small"], RED, "loop_names", True, gap=2.4)
         log.append(u"stop %s %s lies outside site_alan: an edge arrow" % (h["n"], h["name"]))
