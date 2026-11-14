@@ -25,7 +25,7 @@ Items are the Basemap writer's tuples (page mm, y up):
 """
 import os, re, json, math, time, glob
 
-PC_VERSION = "v3.5"   # v3.5: pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
+PC_VERSION = "v3.5"   # v3.5: frame check skips items with any clip id; pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
 PC_DATA = os.path.join("Data", "bergama_access_heritage.json")
 PC_CENTRE = os.path.join("Data", "selinos_centreline.json")
 PC_LIB_GLOB = os.path.join("scripts", "bergama_basemap_v*.py")
@@ -627,7 +627,7 @@ def pc_frame_check(items, box, log, text_w=None, skip=PC_SHEET_LAYERS):
         ly = it[6] if t == "poly" else it[5] if t == "line" else it[8] if t == "text" else None
         if ly is None or ly in skip:
             continue
-        if (t == "line" and it[4] == PC_CLIP) or (t == "poly" and len(it) > 9 and it[9] == PC_CLIP):
+        if (t == "line" and it[4]) or (t == "poly" and len(it) > 9 and it[9]):    # v3.5: any clip id
             continue                                     # v3.3: cut to the frame by its clip in the PDF / SVG
         if t == "text":
             w = text_w(it[1], it[4], bool(it[6])) if text_w else 0.5 * it[4] * len(it[1])
