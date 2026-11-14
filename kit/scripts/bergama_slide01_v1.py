@@ -8,7 +8,7 @@ Each page script runs with scale 0 and page_mm = its panel / TEXT_SCALE (so its 
 own size), its items are caught before writing, then scaled into its panel of the A3 sheet (2 x 2, no overlaps):
 every item, clip, line width, text size and photo is transformed, layers and clips renamed per panel.
 Writes output/bergama_slide01/Slide01_Analysis.pdf / .svg, review PNGs, and output/presentation/1.pdf.
-Reads: Data/bergama_pages_common.py (v3.9+) and whatever the four page scripts read (their caches are reused).
+Reads: Data/bergama_pages_common.py (v3.10+) and whatever the four page scripts read (their caches are reused).
 """
 import os, re, glob, time
 

@@ -25,7 +25,7 @@ Items are the Basemap writer's tuples (page mm, y up):
 """
 import os, re, json, math, time, glob
 
-PC_VERSION = "v3.9"   # v3.9: no sources in the drawings (Aras 15:23 UTC): pc_nosrc on MapBase legend rows, empty credit skipped; v3.8: a name with no free place goes where it overlaps least (run 7); v3.7: Labels.block_line / block_items (names keep off lines: run 6 review); v3.6: the outside Python runs hidden (no console window, Aras 14 Nov 12:57 UTC); v3.5: frame check skips items with any clip id; pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
+PC_VERSION = "v3.10"   # v3.10: pc_a3_den / pc_a3 (a map page fitted and centred on A3 or a slide panel, Aras 15:25-15:27 UTC); v3.9: no sources in the drawings (Aras 15:23 UTC): pc_nosrc on MapBase legend rows, empty credit skipped; v3.8: a name with no free place goes where it overlaps least (run 7); v3.7: Labels.block_line / block_items (names keep off lines: run 6 review); v3.6: the outside Python runs hidden (no console window, Aras 14 Nov 12:57 UTC); v3.5: frame check skips items with any clip id; pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
 PC_NOWIN = 0x08000000 if os.name == "nt" else 0   # v3.6: CREATE_NO_WINDOW for the review-PNG / photo subprocesses
 PC_DATA = os.path.join("Data", "bergama_access_heritage.json")
 PC_CENTRE = os.path.join("Data", "selinos_centreline.json")
@@ -319,11 +319,11 @@ def pc_mb_legend(rows, K):
 PC_STATE = {}
 
 
-PC_A3 = (420.0, 297.0)        # v3.9: A3 landscape, mm
+PC_A3 = (420.0, 297.0)        # v3.10: A3 landscape, mm
 
 
 def pc_a3_den(D, extra_w=0.0, step=500.0, page=None):
-    """v3.9: the smallest round scale (1:step multiples) at which map + column + extra_w mm fit the page (A3 landscape;
+    """v3.10: the smallest round scale (1:step multiples) at which map + column + extra_w mm fit the page (A3 landscape;
     page = (w, h) mm when a slide sheet asks for another size)"""
     b = D["box"]
     page = page or PC_A3
@@ -334,7 +334,7 @@ def pc_a3_den(D, extra_w=0.0, step=500.0, page=None):
 
 
 def pc_a3(M, extra_w=0.0, log=None, page=None):
-    """v3.9: centre map + column (+ extra_w mm the caller adds to M.w later) on the page (A3 landscape); FLAG if larger"""
+    """v3.10: centre map + column (+ extra_w mm the caller adds to M.w later) on the page (A3 landscape); FLAG if larger"""
     W, H = page or PC_A3
     nw, nh = M.w + extra_w, M.h
     if (nw > W + 0.1 or nh > H + 0.1) and log is not None:
