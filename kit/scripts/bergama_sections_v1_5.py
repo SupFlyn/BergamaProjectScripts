@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Bergama Group 6: SECTIONS v1.4 (12 Nov 2026). Rules: scripts/_template/SCRIPT_STANDARD.md.
+"""Bergama Group 6: SECTIONS v1.5 (14 Nov 2026; v1.5: all sections in ONE PDF, Aras 14 Nov 09:42 UTC "produce all those sections in a single pdf"). Rules: scripts/_template/SCRIPT_STANDARD.md.
 Aras 12 Nov 2026 10:43-10:46 UTC: "create these kind of sections and make them creatable by section lines"; "show the
 contexts on those sections"; "like the buildings in background, if there is a road you should show the road"; "we had a
 like texture band beneath it ... include those as a thin line"; "these gonna be our new sections they gonna be generic
@@ -37,14 +37,14 @@ Component: Rhino 8 > Grasshopper > Python 3 Script (the board builder places it 
 Reads  ~/Downloads/Bergama/Data/bergama_sections_engine.py, Data/section_lines.json, Data/selinos_centreline.json,
        ~/Downloads/Bergama/cached/bergama_basemap/basemap_layers.json + streets.json (press Basemap first; else the old
        cached/basemap/basemap.json), the open Rhino model's survey layers (read once per press)
-Writes ~/Downloads/Bergama/output/bergama_sections/Section_<name>.pdf   one page per line (1:scale, PDF layers)
+Writes ~/Downloads/Bergama/output/bergama_sections/Sections.pdf          one page per line, all lines in one file (1:scale, PDF layers)
        ~/Downloads/Bergama/cached/bergama_sections/sections.json         every cut's numbers
        ~/Downloads/Bergama/logs/bergama_sections_log.txt
 """
 import os, time, json, math, bisect
 
 # ---- SETTINGS ----
-VERSION = "v1.4"
+VERSION = "v1.5"
 GH_LABEL = "Sections"
 OUT_FOLDER = "bergama_sections"
 LOG_NAME = "bergama_sections_log.txt"
@@ -1442,6 +1442,7 @@ def main():
     ys = [p[1] for C in cuts for p in (C.A, C.B)]
     survey = read_survey((min(xs) - pad, min(ys) - pad, max(xs) + pad, max(ys) + pad), log)
     res = []
+    pages = []
     os.makedirs(OUT_DIR, exist_ok=True)
     for C in cuts:
         try:
@@ -1451,9 +1452,8 @@ def main():
             b = items_bbox(pg.items)
             w, h = b[2] - b[0] + 30.0, b[3] - b[1] + 30.0
             moved = [_shift(it, 15.0 - b[0], 15.0 - b[1]) for it in pg.items]
-            p = write_pdf(os.path.join(OUT_DIR, u"Section_%s.pdf" % C.name), [(w, h, moved)],
-                          u"Section %s, both banks, 1:%d" % (C.name, den))
-            log.append(u"%s  %s (%.0f x %.0f mm, 1:%d)" % (p, time.strftime("%H:%M:%S"), w, h, den))
+            pages.append((w, h, moved))
+            log.append(u"page %d: %s (%.0f x %.0f mm, 1:%d)" % (len(pages), C.name, w, h, den))
         except Exception as ex:
             import traceback as _tb
             log.append(u"FLAG section %s not drawn: %s: %s | %s" % (C.name, type(ex).__name__, ex,
@@ -1469,6 +1469,12 @@ def main():
                         roads=[[round(a, 2), round(b_, 2)] for a, b_ in C.roads],
                         buildings=[dict(s=[round(t[0], 2), round(t[1], 2)], h=t[3], cut=t[4], behind_m=round(t[5], 1))
                                    for t in C.bld]))
+    if pages:
+        p = write_pdf(os.path.join(OUT_DIR, u"Sections.pdf"), pages,
+                      u"Sections %s, both banks, 1:%d" % (u", ".join(r_["name"] for r_ in res), den))
+        log.append(u"%s  %s (%d page(s))" % (p, time.strftime("%H:%M:%S"), len(pages)))
+    else:
+        log.append(u"FLAG no section drawn: no PDF written")
     os.makedirs(CACHE_DIR, exist_ok=True)
     pj = os.path.join(CACHE_DIR, "sections.json")
     with open(pj, "w", encoding="utf-8") as f:
