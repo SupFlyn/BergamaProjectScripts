@@ -192,6 +192,7 @@ bergama_page_spine: scripts/bergama_mapbase_v1_2.py  # hand, 14 Nov
 bergama_page_spine: cached/bergama_mapbase/mapbase.json  # hand, 14 Nov
 bergama_page_spine: scripts/bergama_masterplanbase_v1_1.py  # hand, 14 Nov (v2.2)
 bergama_page_spine: cached/bergama_masterplanbase/masterplan.json  # hand, 14 Nov (v2.2)
+bergama_page_spine: Data/bergama_osm.osm  # hand, 14 Nov (v2.4: neighbourhood boundaries)
 bergama_page_seasons: Data/bergama_pages_common.py  # hand, 14 Nov
 bergama_page_seasons: Data/bergama_sections_engine.py  # hand, 14 Nov
 bergama_page_seasons: Data/cutouts/  # hand, 14 Nov
