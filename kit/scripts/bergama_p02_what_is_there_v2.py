@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Bergama Group 6: PAGE 02 "What is there, grain of the town" v2 (14 Nov 2026; v2: also output/presentation/1.pdf). Rules: scripts/_template/SCRIPT_STANDARD.md.
+"""Bergama Group 6: PAGE 02 "What is there, grain of the town" v2 (14 Nov 2026; v2: also output/presentation/1.pdf and review/ PNGs). Rules: scripts/_template/SCRIPT_STANDARD.md.
 One script per page (Aras 14 Nov 2026 10:46 UTC: "i want everything that we talk today in new scripts in the end of the
 day we gonna have 12 scripts for each page"). This script makes page 2 alone, as one A3 landscape page (PDF + SVG);
 it does not go through the Booklet.
@@ -755,6 +755,7 @@ def main():
         with open(_pp, encoding="utf-8") as _f:
             exec(compile(_f.read(), _pp, "exec"), _pc)
         _pc["pc_present"](p, SLIDE, log)
+        _pc["pc_review"](p, os.path.join(OUT_DIR, "review"), log)     # review PNGs (Aras 14 Nov 11:25 UTC)
     except Exception as _ex:
         log.append(u"FLAG presentation copy not written (%s: %s)" % (type(_ex).__name__, _ex))
     try:

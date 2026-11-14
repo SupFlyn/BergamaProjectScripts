@@ -25,7 +25,7 @@ Items are the Basemap writer's tuples (page mm, y up):
 """
 import os, re, json, math, time, glob, hashlib
 
-PC_VERSION = "v2"
+PC_VERSION = "v3"
 PC_DATA = os.path.join("Data", "bergama_access_heritage.json")
 PC_OSM = os.path.join("Data", "bergama_osm.osm")
 PC_LIB_GLOB = os.path.join("scripts", "bergama_basemap_v*.py")
@@ -567,11 +567,85 @@ def pc_write(lib, M, items, out_dir, name, title, log):
     for p in paths:
         log.append(u"%s  %s (%.0f x %.0f mm, 1:%s, %d objects)" % (p, time.strftime("%H:%M:%S"), M.w, M.h,
                                                                    format(int(M.den), ",d"), len(items)))
-    try:
-        pc_png(items, M, os.path.join(out_dir, "review"), name, log)
-    except Exception as ex:
-        log.append(u"FLAG: review PNGs stopped (%s: %s)" % (type(ex).__name__, ex))
+    pdfs = [p_ for p_ in paths if p_.lower().endswith(".pdf")]
+    if not (pdfs and pc_review(pdfs[0], os.path.join(out_dir, "review"), log)):
+        try:
+            pc_png(items, M, os.path.join(out_dir, "review"), name, log)
+        except Exception as ex:
+            log.append(u"FLAG: review PNGs stopped (%s: %s)" % (type(ex).__name__, ex))
     return paths
+
+
+# ================================================================ review PNGs, the standard of every page script
+# v3, Aras 14 Nov 11:25 UTC: "every script should have it as a standard procedure to produce review png's in the most
+# efficient way that claude reads ... optimize for yourself reading"; 11:26 UTC: "dont crop to the drawing have the all
+# page ... if something goes out of the drawing you would want to see it". From the PDF (what is printed): the WHOLE
+# page, 200 ppi, cut into an even grid of tiles of at most 1100 x 500 px (read without any downscale), plus
+# 00_overview.png (the whole page, at most 1000 px wide) and index.txt (tile -> page mm, from the top left).
+PC_REVIEW = r'''
+import sys, os, glob, math
+try:
+    import pymupdf as fitz
+except ImportError:
+    import fitz
+pdf, out = sys.argv[1], sys.argv[2]
+PPI, TW, TH = 200, 1100, 500
+os.makedirs(out, exist_ok=True)
+for f in glob.glob(os.path.join(out, "*.png")) + glob.glob(os.path.join(out, "index.txt")):
+    os.remove(f)
+idx = []
+doc = fitz.open(pdf)
+for pn, pg in enumerate(doc):
+    r = pg.rect                                       # the whole page, never cropped (Aras 11:26 UTC)
+    pre = "" if len(doc) == 1 else "p%d_" % (pn + 1)
+    pg.get_pixmap(dpi=min(PPI, 1000.0 * 72 / r.width), clip=r).save(os.path.join(out, pre + "00_overview.png"))
+    W, H = r.width / 72 * PPI, r.height / 72 * PPI
+    nc, nr = int(math.ceil(W / TW)), int(math.ceil(H / TH))
+    for j in range(nr):
+        for i in range(nc):
+            t = fitz.Rect(r.x0 + r.width * i / nc, r.y0 + r.height * j / nr, r.x0 + r.width * (i + 1) / nc,
+                          r.y0 + r.height * (j + 1) / nr)
+            nm = pre + "r%02dc%02d.png" % (j + 1, i + 1)
+            pg.get_pixmap(dpi=PPI, clip=t).save(os.path.join(out, nm))
+            mm = 25.4 / 72
+            idx.append("%s  x %.0f-%.0f mm, y %.0f-%.0f mm from the top left" % (nm, t.x0 * mm, t.x1 * mm, t.y0 * mm,
+                                                                               t.y1 * mm))
+    n = nc * nr
+with open(os.path.join(out, "index.txt"), "w") as f:
+    f.write("\n".join(idx) + "\n")
+print("review: overview + %d tiles (%d x %d grid, about %d x %d px, 200 ppi) in %s" % (n, nr, nc, W / nc, H / nr, out))
+'''
+
+
+def pc_review(pdf, out, log):
+    """the review PNGs of a PDF into folder out (Rhino's Python if it has PyMuPDF, else the Windows py -3 / python);
+    True when written"""
+    try:
+        cdir = os.path.join(pc_root(), PC_CACHE_DIR)
+        os.makedirs(cdir, exist_ok=True)
+        tp = os.path.join(cdir, "review_tiles_v3.py")
+        with open(tp, "w", encoding="utf-8") as f:
+            f.write(PC_REVIEW)
+        import subprocess, sys as _sys
+        cmds = [["py", "-3"], ["python"]]
+        if os.path.basename(_sys.executable or "").lower().startswith("python"):
+            cmds.insert(0, [_sys.executable])
+        err = u""
+        for cmd in cmds:
+            try:
+                r_ = subprocess.run(cmd + [tp, pdf, out], capture_output=True, text=True, timeout=600)
+            except Exception as ex:
+                err = u"%s" % ex
+                continue
+            if r_.returncode == 0:
+                log.append(r_.stdout.strip().splitlines()[-1] if r_.stdout.strip() else u"review: %s" % out)
+                return True
+            err = (r_.stderr or u"").strip().splitlines()[-1:] or [u""]
+            err = err[0]
+        log.append(u"FLAG review PNGs not written: no Python with PyMuPDF ran (%s); pip install pymupdf" % err)
+    except Exception as ex:
+        log.append(u"FLAG review PNGs not written (%s: %s)" % (type(ex).__name__, ex))
+    return False
 
 
 def pc_present(pdf, slide, log):
