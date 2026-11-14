@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-"""Bergama Group 6: SECTIONS v1.5 (14 Nov 2026; v1.5: all sections in ONE PDF, Aras 14 Nov 09:42 UTC "produce all those sections in a single pdf"). Rules: scripts/_template/SCRIPT_STANDARD.md.
+"""Bergama Group 6: SECTIONS v1.5 (14 Nov 2026; v1.5: all sections on ONE page of one PDF, Aras 14 Nov 09:42 UTC "produce all those sections in a single pdf", 09:42:59 "merge
+all cuts into a single page": stacked top to bottom in line order, same scale, left edges aligned). Rules: scripts/_template/SCRIPT_STANDARD.md.
 Aras 12 Nov 2026 10:43-10:46 UTC: "create these kind of sections and make them creatable by section lines"; "show the
 contexts on those sections"; "like the buildings in background, if there is a road you should show the road"; "we had a
 like texture band beneath it ... include those as a thin line"; "these gonna be our new sections they gonna be generic
@@ -37,7 +38,7 @@ Component: Rhino 8 > Grasshopper > Python 3 Script (the board builder places it 
 Reads  ~/Downloads/Bergama/Data/bergama_sections_engine.py, Data/section_lines.json, Data/selinos_centreline.json,
        ~/Downloads/Bergama/cached/bergama_basemap/basemap_layers.json + streets.json (press Basemap first; else the old
        cached/basemap/basemap.json), the open Rhino model's survey layers (read once per press)
-Writes ~/Downloads/Bergama/output/bergama_sections/Sections.pdf          one page per line, all lines in one file (1:scale, PDF layers)
+Writes ~/Downloads/Bergama/output/bergama_sections/Sections.pdf          ONE page, every line stacked top to bottom (1:scale, PDF layers)
        ~/Downloads/Bergama/cached/bergama_sections/sections.json         every cut's numbers
        ~/Downloads/Bergama/logs/bergama_sections_log.txt
 """
@@ -1470,9 +1471,20 @@ def main():
                         buildings=[dict(s=[round(t[0], 2), round(t[1], 2)], h=t[3], cut=t[4], behind_m=round(t[5], 1))
                                    for t in C.bld]))
     if pages:
+        # one page: first cut on top (PDF y is up), GAP_MM between cuts, left edges aligned
+        GAP_MM = 20.0
+        pw = max(w for w, _, _ in pages)
+        ph = sum(h for _, h, _ in pages) + GAP_MM * (len(pages) - 1)
+        allit, y = [], ph
+        for w, h, its in pages:
+            y -= h
+            allit += [_shift(it, 0.0, y) for it in its]
+            y -= GAP_MM
+        log.append(u"one page %.0f x %.0f mm, %d cut(s)" % (pw, ph, len(pages)))
+        pages = [(pw, ph, allit)]
         p = write_pdf(os.path.join(OUT_DIR, u"Sections.pdf"), pages,
                       u"Sections %s, both banks, 1:%d" % (u", ".join(r_["name"] for r_ in res), den))
-        log.append(u"%s  %s (%d page(s))" % (p, time.strftime("%H:%M:%S"), len(pages)))
+        log.append(u"%s  %s" % (p, time.strftime("%H:%M:%S")))
     else:
         log.append(u"FLAG no section drawn: no PDF written")
     os.makedirs(CACHE_DIR, exist_ok=True)
