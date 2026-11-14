@@ -45,7 +45,7 @@ Writes ~/Downloads/Bergama/output/bergama_sections/Sections.pdf          ONE pag
 import os, re, time, json, math, bisect, glob, random
 
 # ---- SETTINGS ----
-VERSION = "v1.17.2"   # v1.17.2 (fresh review of v1.17): canopy trunks on the ground and branches meeting the shell, overlapping canopies / pavilions thinned (nearer first), deck balustrade as rail and posts (the glass box read as a tank); v1.17.1 v1.17.1: the cut line drawn whole (an end trim had dropped most of it since v1.6.13); v1.17 v1.17 (two independent reviews of v1.16): the cut line on top of the ground skin (it lay hidden), butt ends; clouds under the frame top and off the ground; land-use band 2.8 mm, words 1.7 mm, street lighter; scale bar in the title line (cells give the drawing ~6 mm more height); v1.16.1 v1.16.1: land-use band words one size on every cut (they ran 1.6-3.3 mm); v1.16 v1.16 (600 dpi read of the v1.15.2 PDF): one-line titles and a tighter band / scale bar (drawings larger), bridges at bank level (N2-A on the bed), seat walls where the ground is flat, water ripples only inside water, thinner water surface; v1.15.2: v1.15.2: sheet fix (KeyError on the smallest scale, v1.15.1 crashed before the PDF and the cache); v1.15.1 v1.15.1: dashed water levels 0.1 mm, water surface line and wall outlines thin at small scales (600 dpi read of the v1.14 PDF); v1.15 v1.15 (Aras 21:33 "do a proper check"): each cut on the A3 sheet at its own largest scale, fitted to its cell (the sheet was about 60 % empty), titles one size, cut line heavier (0.4-0.6 mm); v1.14 v1.14 (Aras 21:31 "please remove these kind of showings"): no floating text labels with dashed leader lines over the cuts (Road, Canopy, Building n floors, ...); cut houses drawn like the background houses, light (Aras 21:32); v1.13 (Aras 21:26 "drawings flows out fix that"): every fill cut at the cut frame, clouds / cutouts / circles crossing it left out; v1.12 (recheck of v1.11 output): footbridges only on cuts that cross the stream; canopy edge thin at small scales; v1.11: masterplan read right (no 2.1 km2 texture frame as "green", open lines only for walls, kopruler = bridges), plan trees 12-20 m apart, drawing lines cut at the frame; v1.10: channel walls only to the bank ground + a 0.9 m parapet (Aras 16:23); masterplan spans merged per kind, a progress file logs/bergama_sections_progress.txt (v1.9 ran > 17 min); v1.9 (Aras 14 Nov 16:12-16:13): section_lines.json v2: per node A square to the stream and B along the bank crossing it, both from frame edge to frame edge (drawn whole), looking different ways; v1.8 (Aras 14 Nov 15:38-15:41): the sections are the masterplan in 3D: every piece of his plan the cut crosses (MasterplanBase cache of B19_setB_layers259.svg) drawn as a designed form (stepped terraces as the finished ground, promenade and cycle paving, retaining walls, boulders, water decks, lens footbridges, saddle-shell canopies on steel trees, sedum-roof pavilions; canopies and pavilions behind the cut in elevation), heights design intent; v1.7 (Aras 14 Nov 15:25-15:35): all 12 cuts on ONE A3 landscape sheet, no 1:x printed; planting drawn at 1:75 and scaled to the page (true proportions), no soil root hairs; cut houses as plain silhouettes; houses behind more detailed (plinth, tiles, chimney, sills, glazing bars, shutters, balconies, door hood) and up to 200 m behind
+VERSION = "v1.17.3"   # v1.17.3 (error review of v1.17.2): no plan wall inside the channel, seat walls start on the ground, decks 0.25 m clear, near-coincident dashed levels merged, existing ground a fine light dashed hairline; v1.17.2 v1.17.2 (fresh review of v1.17): canopy trunks on the ground and branches meeting the shell, overlapping canopies / pavilions thinned (nearer first), deck balustrade as rail and posts (the glass box read as a tank); v1.17.1 v1.17.1: the cut line drawn whole (an end trim had dropped most of it since v1.6.13); v1.17 v1.17 (two independent reviews of v1.16): the cut line on top of the ground skin (it lay hidden), butt ends; clouds under the frame top and off the ground; land-use band 2.8 mm, words 1.7 mm, street lighter; scale bar in the title line (cells give the drawing ~6 mm more height); v1.16.1 v1.16.1: land-use band words one size on every cut (they ran 1.6-3.3 mm); v1.16 v1.16 (600 dpi read of the v1.15.2 PDF): one-line titles and a tighter band / scale bar (drawings larger), bridges at bank level (N2-A on the bed), seat walls where the ground is flat, water ripples only inside water, thinner water surface; v1.15.2: v1.15.2: sheet fix (KeyError on the smallest scale, v1.15.1 crashed before the PDF and the cache); v1.15.1 v1.15.1: dashed water levels 0.1 mm, water surface line and wall outlines thin at small scales (600 dpi read of the v1.14 PDF); v1.15 v1.15 (Aras 21:33 "do a proper check"): each cut on the A3 sheet at its own largest scale, fitted to its cell (the sheet was about 60 % empty), titles one size, cut line heavier (0.4-0.6 mm); v1.14 v1.14 (Aras 21:31 "please remove these kind of showings"): no floating text labels with dashed leader lines over the cuts (Road, Canopy, Building n floors, ...); cut houses drawn like the background houses, light (Aras 21:32); v1.13 (Aras 21:26 "drawings flows out fix that"): every fill cut at the cut frame, clouds / cutouts / circles crossing it left out; v1.12 (recheck of v1.11 output): footbridges only on cuts that cross the stream; canopy edge thin at small scales; v1.11: masterplan read right (no 2.1 km2 texture frame as "green", open lines only for walls, kopruler = bridges), plan trees 12-20 m apart, drawing lines cut at the frame; v1.10: channel walls only to the bank ground + a 0.9 m parapet (Aras 16:23); masterplan spans merged per kind, a progress file logs/bergama_sections_progress.txt (v1.9 ran > 17 min); v1.9 (Aras 14 Nov 16:12-16:13): section_lines.json v2: per node A square to the stream and B along the bank crossing it, both from frame edge to frame edge (drawn whole), looking different ways; v1.8 (Aras 14 Nov 15:38-15:41): the sections are the masterplan in 3D: every piece of his plan the cut crosses (MasterplanBase cache of B19_setB_layers259.svg) drawn as a designed form (stepped terraces as the finished ground, promenade and cycle paving, retaining walls, boulders, water decks, lens footbridges, saddle-shell canopies on steel trees, sedum-roof pavilions; canopies and pavilions behind the cut in elevation), heights design intent; v1.7 (Aras 14 Nov 15:25-15:35): all 12 cuts on ONE A3 landscape sheet, no 1:x printed; planting drawn at 1:75 and scaled to the page (true proportions), no soil root hairs; cut houses as plain silhouettes; houses behind more detailed (plinth, tiles, chimney, sills, glazing bars, shutters, balconies, door hood) and up to 200 m behind
 CUT_HOUSE_DIST_M = 60.0   # v1.14: cut houses toned like a house 60 m behind (light, quiet; drawing value, ours)
 LEVEL_LW = 0.1   # v1.15: dashed water levels as hairlines (mm)
 CALLOUTS = False   # v1.14: leader-line labels over the cuts left out (Aras 21:31 UTC)
@@ -1340,6 +1340,23 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
     lyr = lambda it: it[{"poly": 6, "line": 5, "circle": 7, "text": 8, "image": 9}.get(it[0], 0)]
     last = max([i for i, it in enumerate(rest) if lyr(it) in skin] or [len(rest) - 1])
     out_ = rest[:last + 1] + cut_ + rest[last + 1:]
+    # v1.17.3 (review of v1.17.2): two dashed water levels less than 0.6 mm apart read as one smeared line: the
+    # lower is left out where they overlap; the existing (pre-design) ground as a fine light dashed hairline
+    lv_ = [it for it in out_ if it[0] == "line" and it[5] == "levels" and it[4] and len(it[1]) == 2]
+    drop_ = set()
+    for i_, p_ in enumerate(lv_):
+        for q_ in lv_:
+            if q_ is p_ or id(q_) in drop_:
+                continue
+            dy = q_[1][0][1] - p_[1][0][1]
+            ov = min(max(p_[1][0][0], p_[1][1][0]), max(q_[1][0][0], q_[1][1][0])) - \
+                max(min(p_[1][0][0], p_[1][1][0]), min(q_[1][0][0], q_[1][1][0]))
+            if 0.0 < dy < 0.6 and ov > 0.0:
+                drop_.add(id(p_))
+                break
+    out_ = [it for it in out_ if id(it) not in drop_]
+    out_ = [(it[:2] + ("A39E95", 0.1, [0.6, 0.45]) + it[5:]) if it[0] == "line" and it[5] == "existing ground" else it
+            for it in out_]
     pg.items[:] = out_
     y_band = S.Y(S.zb) - 3.0
     if with_text:
@@ -2335,11 +2352,16 @@ def mp_ground(pg, S, C):
                     pg.line([S.P(x, S.surf(x)), S.P(x, S.surf(x) - th)], INK_CUT, 0.04, layer="proposal ground")
         elif kind == "wall":
             m = (a + b) / 2.0
+            ch_ = getattr(S, "channel", None)
+            if ch_ and ch_[0] + 0.5 < m < ch_[1] - 0.5:    # v1.17.3: no plan wall standing in the channel (N5-A)
+                continue
             zl, zh = min(S.ex(m - 1.5), S.ex(m + 1.5)), max(S.ex(m - 1.5), S.ex(m + 1.5))
             # v1.16 (600 dpi read: free-standing dark posts on flat ground): where the ground holds no step the
             # plan's wall is a 0.45 m seat wall; the outline thin at sheet scales
             up = 0.9 if zh - zl >= 0.3 else 0.45
-            _sh(pg, [S.P(m - 0.35, zl - 0.8), S.P(m + 0.35, zl - 0.8), S.P(m + 0.35, zh + up), S.P(m - 0.35, zh + up)],
+            zb_w = zl - 0.8 if up > 0.45 else min(S.surf(m - 0.35), S.surf(m + 0.35))   # v1.17.3: a seat wall
+            #                                            starts on the ground (its foot showed under the cut line, N2-A)
+            _sh(pg, [S.P(m - 0.35, zb_w), S.P(m + 0.35, zb_w), S.P(m + 0.35, zh + up), S.P(m - 0.35, zh + up)],
                 WALL_FILL, "proposal ground", INK_CUT, min(0.25, max(0.04, 0.12 * K)))
             _sh(pg, [S.P(m - 0.45, zh + up), S.P(m + 0.45, zh + up), S.P(m + 0.45, zh + up + 0.12),
                      S.P(m - 0.45, zh + up + 0.12)], P_CONC_LT, "proposal ground")            # coping
@@ -2458,7 +2480,7 @@ def _bridge(pg, S, a, b, layer):
 def _deck(pg, S, a, b, layer):
     """a water deck cantilevered from the bank: timber on a tapering steel bracket, glass balustrade (design intent)"""
     K = S.K
-    z = max(S.surf(a), S.surf(b))
+    z = max(S.surf(a), S.surf(b)) + 0.25                # v1.17.3: the deck clear above the ground (sunk on N1-B)
     _sh(pg, [S.P(a, z), S.P(b, z), S.P(b, z - 0.12), S.P(a, z - 0.6)], P_STEEL, layer, INK_CUT, 0.15)
     _sh(pg, [S.P(a, z), S.P(b, z), S.P(b, z - 0.08), S.P(a, z - 0.08)], P_TIMBER, layer)
     # v1.17.2 (review of v1.17: the glass balustrade box read as a water tank): a top rail on thin posts
