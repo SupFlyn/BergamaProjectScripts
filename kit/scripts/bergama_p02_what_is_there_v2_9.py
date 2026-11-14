@@ -46,8 +46,9 @@ low rise and small irregular is too close to ground and green colours. So indust
 should have one colour Heritage should be one colour and they should be different shade underneath"; "diffrentiate
 which buildings have ground floor as commercial ... they should be grouped with their previous ones"; "there is still
 too many gaps in the main drawing"; "dont put a opaque background on scale and north sign".
-  COLOUR FAMILIES: heritage (monuments, mosques) = wine red, buildings (old town, blocks, planned low-rise, small
-  irregular, under construction) = umber brown, civic & industrial = violet; the types are lightness steps of their
+  COLOUR FAMILIES: (v2.9: MapBase's palette, from the masterplan SVG) heritage (monuments, mosques) = its
+  heritage reds, buildings (old town, blocks, planned low-rise, small irregular, under construction) = its stone greys,
+  civic & industrial = its slate; the types are lightness steps of their
   family's hue (FAB). COMMERCIAL: a building with an OpenStreetMap shop, office, craft or trade amenity point inside it
   or within COM_NEAR m of its outline (or a shop-tagged OSM footprint centre inside it) is filled in the vivid shade of
   its own type (FAB_COM). OSM does not record the floor: "ground floor" is NOT verified, the key says "shop on the plot".
@@ -74,6 +75,9 @@ get a column of their own (four key columns), and a FLAG is written if any key c
 v2.7 (14 Nov 2026, Aras 13:02 UTC "make sure nothing repeats in the slides"): the node frames N1-N6 and the section
 cuts are no longer drawn here (slides 2 and 6 carry them); this page keeps the fabric key, the shop shades and the
 land-use ring, which no other slide repeats.
+v2.9 (14 Nov 2026, Aras 15:20-15:23 UTC): the purple is gone; FAB, FAB_COM and GROUND_C are read from MapBase v1.3,
+the one palette of the set, built from the masterplan SVG's own colours; each fabric key row also gives the share with
+shops ("also give us percentages for the ground floor differentiated use ones").
 v2.8 (14 Nov 2026, check loop of run 3): the inset's north arrow covered clash marker C6; the inset's north arrow and
 scale are now placed first and the bridge and clash markers keep off them (no collisions).
 
@@ -88,10 +92,10 @@ Writes ~/Downloads/Bergama/output/bergama_p02/Page02_What_is_there.pdf, Page02_W
        ~/Downloads/Bergama/cached/bergama_p02/ (OpenStreetMap houses over the whole map)
        ~/Downloads/Bergama/logs/bergama_p02_log.txt
 """
-import os, time, json, math, re, glob
+import os, time, json, math, re, glob, ast
 
 # ---- SETTINGS ----
-VERSION = "v2.8"
+VERSION = "v2.9"
 SLIDE = 1                          # output/presentation/1.pdf (Aras 14 Nov 11:22 UTC; slide 1 = analysis)
 GH_LABEL = "Page02"
 OUT_FOLDER = "bergama_p02"
@@ -125,13 +129,20 @@ AREA_CELL = 1.0                    # m: cells of the land-use count of the site 
 # colours (the round 9 hue table of the board set; FAB = building fabric, in its rank order)
 INK = "2C2219"
 PAPER = "F7F5EF"
-# v2.3: three families, one hue each (heritage wine 352 deg, buildings umber 22 deg, civic & industrial violet 270 deg);
-# the types are lightness steps (HSL S 0.50 / 0.25 / 0.25); FAB_COM = the same type with shops (hue +10, S 0.8, L +0.04)
-FAB = {"monument": "732630", "sacred": "AC3949", "traditional": "4C392E", "block": "735645", "regular": "99725C",
-       "selfbuilt": "AF8D79", "large": "6B5086", "construction": "C6AD9F"}
-FAB_COM = {"monument": "A0120D", "sacred": "E71A13", "traditional": "814B0E", "block": "B86B14", "regular": "E78B23",
-           "selfbuilt": "ECA351", "large": "9123C7", "construction": "F2C088"}
-GROUND_C = "DCD6CB"                # v2.3: the map ground where WorldCover has no vegetation (built-up, bare)
+# v2.9: FAB, FAB_COM and GROUND_C are MapBase's (the one palette of the set, from the masterplan SVG; Aras 14 Nov 15:20)
+def _mb_colours():
+    found = glob.glob(os.path.join(os.path.expanduser("~"), "Downloads", "Bergama", "scripts", "bergama_mapbase_v*.py"))
+    src_ = max(found, key=lambda p: [int(n) for n in re.findall(r"\d+", os.path.basename(p))])
+    with open(src_, encoding="utf-8") as f:
+        code = f.read()
+    ns = {}
+    for name in ("FAB", "FAB_COM", "GROUND_C"):
+        m = re.search(r"^%s = (\{[^}]*\}|\"[0-9A-F]{6}\")" % name, code, re.M)
+        ns[name] = ast.literal_eval(m.group(1))
+    return ns["FAB"], ns["FAB_COM"], ns["GROUND_C"]
+
+
+FAB, FAB_COM, GROUND_C = _mb_colours()
 COM_NEAR = 5.0                     # m: a shop point this close to an outline belongs to it (OSM vs survey offset; ours)
 COM_SHOP_AMENITY = ("restaurant", "cafe", "bank", "pharmacy", "fast_food", "bar", "pub", "marketplace", "fuel",
                     "ice_cream", "bureau_de_change", "money_transfer")
@@ -538,6 +549,10 @@ def main():
     lu, lu_tot = land_use(su, L, lc, sbox, log)
     bt = sum(u["A"] for u in su) or 1.0
     shares = dict((f_, 100.0 * sum(u["A"] for u in su if u["fab"] == f_) / bt) for f_ in FAB_ORDER)
+    com_sh = dict((f_, 100.0 * sum(u["A"] for u in su if u["fab"] == f_ and u["com"]) / bt) for f_ in FAB_ORDER)
+    log.append(u"shop shares (v2.9; footprint area of each type with MapBase's shop flag / all built footprint in the site "
+               u"frame, so each is part of its type's share): %s" % u", ".join(
+                   u"%s %.1f%% of %.1f%%" % (FAB_WORDS[f_], com_sh[f_], shares[f_]) for f_ in FAB_ORDER if shares[f_] > 0))
 
     # ================================================================ the page
     items = []
@@ -639,13 +654,15 @@ def main():
     ky -= 6.0
     rows1 = [("hdr", None, u"BUILDINGS · URBAN FABRIC (% of the site frame's built footprint)"),
              ("hdr", None, u"left swatch: no shop recorded; right: a shop, office or workshop on the plot (OSM, floor "
-                           u"not recorded)")]
+                           u"not recorded)"),
+             ("hdr", None, u"(shops x%) = the part of that share with a shop")]
     for f_ in FAB_ORDER:
         if shares.get(f_, 0.0) > 0 or any(u["fab"] == f_ for u in units):
-            rows1.append(("box2", (FAB[f_], FAB_COM[f_]), u"%s · %s" % (FAB_WORDS[f_], (u"%.0f%%" % shares[f_]) if shares[f_] >= 0.5
-                                                         else u"< 1%")))
+            pc = lambda v: (u"%.0f%%" % v) if v >= 0.5 else (u"< 1%" if v > 0 else u"0%")
+            rows1.append(("box2", (FAB[f_], FAB_COM[f_]), u"%s · %s (shops %s)" % (FAB_WORDS[f_], pc(shares[f_]),
+                                                                                  pc(com_sh[f_]))))
     mrg = []                                              # v2.6: one row per colour
-    for kd, col, txt in MBL["mb_legend"](C, drawn):
+    for kd, col, txt in MBL["mb_legend"](C, drawn, raw=True):
         hit = next((i_ for i_, r_ in enumerate(mrg) if r_[0] == kd and r_[1] == col), None)
         if hit is None:
             mrg.append((kd, col, txt))
@@ -657,16 +674,14 @@ def main():
              ("line", WALL_C, u"Walls (survey)"), ("line", HER_WALL, u"City walls"),
              ("line", STUDY_C, u"Study area (calisma_alan)"), ("line", INK, u"Analysis frame (site_alan)"),
              ("disc", BRIDGE_C, u"Bridge, upstream to downstream"), ("disc", CLASH_C, u"Where stream and town clash")]
-    rows4 = [("hdr", None, u"OPENSTREETMAP AREAS AND RELIEF")] + [r_ for r_ in mrg if u"(OSM)" in r_[2] or r_[0] == "line"]
+    rows4 = [("hdr", None, u"AREAS AND RELIEF")] + [r_ for r_ in mrg if u"(OSM)" in r_[2] or r_[0] == "line"]
     cw = MAP_MAX_W / 4.0                                  # v2.6: four key columns
     for ci, rows in enumerate((rows1, rows2, rows4, rows3)):
+        rows = [(k_, c_, MBL["mb_clean"](t_)) for k_, c_, t_ in rows]   # v2.9: no sources (wrapped clean)
         y_end = draw_rows(B, items, rows, MAP_X + ci * cw, ky, cw - 3.0, step=3.6, ts=2.4)
         if y_end < 33.0:                                  # v2.6: the credit starts at 30 mm
             log.append(u"FLAG key column %d runs into the credit (ends at %.1f mm, the credit at 30 mm)" % (ci + 1, y_end))
-    ycr = 30.0
-    for ln in wrap(B, CREDIT, 1.9, MAP_MAX_W):
-        items.append(("text", ln, MAP_X, ycr, 1.9, "6E675E", False, "L", "credit", None, None))
-        ycr -= 2.6
+    log.append(CREDIT)                                    # v2.9: sources in the log only, never on the page
     # ---- right column: the land-use ring, the bridges, the clashes
     cy0 = 255.0
     items.append(("text", u"LAND USE AND GROUND COVER", COL_X, cy0, 3.2, INK, True, "L", "ring", None, None))
@@ -708,6 +723,7 @@ def main():
     frame_check(B, items, frames, log)
     os.makedirs(OUT_DIR, exist_ok=True)
     name = u"Page02_What_is_there"
+    items = [t[:1] + (MBL["mb_clean"](t[1]),) + t[2:] if t[0] == "text" else t for t in items]   # v2.9: no sources
     p = B["write_pdf"](os.path.join(OUT_DIR, name + u".pdf"), PAGE_W, PAGE_H, items, u"Page 02, " + TITLE, clips)
     log.append(B["out_line"](p, PAGE_W, PAGE_H, den, items, u""))
     try:                                                  # output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
