@@ -45,7 +45,7 @@ Writes ~/Downloads/Bergama/output/bergama_sections/Sections.pdf          ONE pag
 import os, time, json, math, bisect, glob
 
 # ---- SETTINGS ----
-VERSION = "v1.6.9"
+VERSION = "v1.6.10"
 GH_LABEL = "Sections"
 OUT_FOLDER = "bergama_sections"
 LOG_NAME = "bergama_sections_log.txt"
@@ -893,7 +893,11 @@ class Sec(object):
             ch0, ch1 = self.walled[0], self.walled[1]
         self.channel = (ch0, ch1)
         # v1.6.7 (check of run 4: N3-A / N5-A roads ran down the bank into the bed): no road surface in the channel
-        self.roads = [r for a, b in C.roads for r in ((a, min(b, ch0)), (max(a, ch1), b)) if r[1] - r[0] > 0.5]
+        gaps = [(ch0 - WALL_T_M - 0.5, ch1 + WALL_T_M + 0.5)] + [(t[0], t[1]) for t in C.bld if t[4]]
+        rd = list(C.roads)
+        for g0, g1 in gaps:                               # v1.6.10: and clear of the walls and the cut buildings
+            rd = [r for a, b in rd for r in ((a, min(b, g0)), (max(a, g1), b)) if r[1] - r[0] > 0.5]
+        self.roads = rd
         runs, cur, kind = [], None, None
         s = self.lo
         while s <= self.hi + 1e-9:
@@ -951,7 +955,7 @@ class Sec(object):
             d["callouts"].append(((a + b) / 2, None, u"Road"))
         for x in C.streets:
             d["callouts"].append((x, None, u"Street"))
-        back = [t for t in C.bld if not t[4]]
+        back = [t for t in C.bld if not t[4] and not (t[0] < ch1 + 1.0 and t[1] > ch0 - 1.0)]
         if back:
             t = max(back, key=lambda t: t[1] - t[0])
             d["callouts"].append(((t[0] + t[1]) / 2, (t[2] if t[2] is not None else self.ex((t[0] + t[1]) / 2)) + t[3],
@@ -1076,7 +1080,12 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
              for t in C.bld if not t[4]]
     z_top = max(tops) + SKY_ABOVE_M
     S.X0 = x_left
-    items = list(d["callouts"]) if with_text else []
+    items = []
+    for s_, z_, t_ in sorted(d["callouts"] if with_text else [], key=lambda c: c[0]):
+        if items and (s_ - items[-1][0]) * K < 8.0 and z_ is None and items[-1][1] is None:
+            items[-1] = (items[-1][0], None, items[-1][2] + u"; " + t_)   # v1.6.10: N3-B / N5-A lost "Common reed"
+        else:
+            items.append((s_, z_, t_))
     placed = E["place_labels"](S, [(S.X(s) + 0.002 * i, 0.0, txt) for i, (s, z, txt) in enumerate(items)],
                                size) if items else []
     rows = (max(p["row"] for p in placed) + 1) if placed else 0
@@ -1099,15 +1108,24 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
     # standing in the stream); a house behind stands at least on the cut ground in front of it (half-buried houses
     # with the road across their windows); cut buildings rise from the ground line (not from the frame bottom)
     ch = S.channel
-    for a, b, zb_, h, is_cut, dist, fl in C.bld:
+    cuts_ = [(t[0], t[1]) for t in C.bld if t[4]]
+
+    def _cover(a, b, spans):
+        return sum(max(0.0, min(b, y) - max(a, x)) for x, y in spans) / max(b - a, 1e-6)
+    # v1.6.10 (check of run 5): far to near; on the highest cut ground of its span (N1-B / N5-A windows buried on
+    # slopes); none mostly behind a cut building (N5-B roof sat on a cut box)
+    for a, b, zb_, h, is_cut, dist, fl in sorted(C.bld, key=lambda t: -t[5]):
         a, b = max(a, S.lo + EAVE_M), min(b, S.hi - EAVE_M)
-        if is_cut or b - a < 0.5 or (a < ch[1] + 1.0 and b > ch[0] - 1.0):
+        if is_cut or b - a < 0.5 or (a < ch[1] + 1.0 and b > ch[0] - 1.0) or _cover(a, b, cuts_) > 0.5:
             continue
-        base = max(zb_ if zb_ is not None else -99.0, min(S.surf(a), S.surf(b)))
+        n_ = max(2, int((b - a) / 0.5))
+        base = max(zb_ if zb_ is not None else -99.0, max(S.surf(a + (b - a) * i / n_) for i in range(n_ + 1)))
         house(pg, S, a, b, base, h, fl, dist)
+    done_ = []
     for a, b, zb_, h, is_cut, dist, fl in C.bld:
         a, b = max(a, S.lo), min(b, S.hi)
-        if is_cut and b - a > 0.3:
+        if is_cut and b - a > 0.3 and _cover(a, b, done_) <= 0.5:
+            done_.append((a, b))
             base = min(S.ex(a), S.ex(b))
             n_ = max(2, int((b - a) / DS))
             ring = [S.P(a + (b - a) * i / n_, S.surf(a + (b - a) * i / n_)) for i in range(n_ + 1)]
@@ -1333,7 +1351,9 @@ def ground_fill(pg, S):
     V = S.V
     ring = [S.P(*p) for p in V] + [S.P(V[-1][0], S.zb), S.P(V[0][0], S.zb)]
     pg.poly([ring], fill=GROUND_FILL, stroke=None, layer="poche")
-    pg.line([S.P(*p) for p in V], S.E["INK"], 0.5, layer="cut line")
+    pts = [S.P(*p) for p in V]
+    pts[0], pts[-1] = (pts[0][0] + 0.3, pts[0][1]), (pts[-1][0] - 0.3, pts[-1][1])   # v1.6.10: no end ticks past
+    pg.line(pts, S.E["INK"], 0.5, layer="cut line")
 
 
 def town_walls(pg, S, C):
