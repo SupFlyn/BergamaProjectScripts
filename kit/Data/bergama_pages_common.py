@@ -25,7 +25,7 @@ Items are the Basemap writer's tuples (page mm, y up):
 """
 import os, re, json, math, time, glob, hashlib
 
-PC_VERSION = "v3.1"
+PC_VERSION = "v3.2"   # v3.2: context houses cut to the map frame
 PC_DATA = os.path.join("Data", "bergama_access_heritage.json")
 PC_OSM = os.path.join("Data", "bergama_osm.osm")
 PC_LIB_GLOB = os.path.join("scripts", "bergama_basemap_v*.py")
@@ -289,13 +289,39 @@ def sys_lib_to_survey():
 PC_STATE = {}
 
 
+def clip_ring_box(R, box):
+    """a ring cut to a rectangle (Sutherland-Hodgman)"""
+    x0, y0, x1, y1 = box
+    for inside, cut in ((lambda p: p[0] >= x0, lambda a, b: (x0, a[1] + (b[1] - a[1]) * (x0 - a[0]) / (b[0] - a[0]))),
+                        (lambda p: p[0] <= x1, lambda a, b: (x1, a[1] + (b[1] - a[1]) * (x1 - a[0]) / (b[0] - a[0]))),
+                        (lambda p: p[1] >= y0, lambda a, b: (a[0] + (b[0] - a[0]) * (y0 - a[1]) / (b[1] - a[1]), y0)),
+                        (lambda p: p[1] <= y1, lambda a, b: (a[0] + (b[0] - a[0]) * (y1 - a[1]) / (b[1] - a[1]), y1))):
+        out = []
+        for i, b in enumerate(R):
+            a = R[i - 1]
+            if inside(b):
+                if not inside(a):
+                    out.append(cut(a, b))
+                out.append(b)
+            elif inside(a):
+                out.append(cut(a, b))
+        R = out
+        if not R:
+            break
+    return R
+
+
 def pc_context_items(M, C, K, water_only_names=False):
     it = []
     bf, bl, bw = K["building"]
     for P in C["buildings"]:
         Q = [M.T(p) for p in P]
-        if any(M.inside(q) for q in Q):
+        if all(M.inside(q) for q in Q):
             it.append(P_([Q], bf, bl, bw, "context_buildings"))
+        else:                                            # v3.2: cut to the map frame (run 2: houses spilled past it)
+            Q = clip_ring_box(Q, M.box)
+            if len(Q) >= 3:
+                it.append(P_([Q], bf, bl, bw, "context_buildings"))
     for cls, P, _br in sorted(C["roads"], key=lambda r_: PC_ROAD_W[r_[0]]):
         for run in M.clip([M.T(p) for p in P]):
             it.append(L_(run, K["road"], PC_ROAD_W[cls], "context_roads"))
