@@ -25,7 +25,7 @@ Items are the Basemap writer's tuples (page mm, y up):
 """
 import os, re, json, math, time, glob
 
-PC_VERSION = "v3.8"   # v3.8: a name with no free place goes where it overlaps least (run 7); v3.7: Labels.block_line / block_items (names keep off lines: run 6 review); v3.6: the outside Python runs hidden (no console window, Aras 14 Nov 12:57 UTC); v3.5: frame check skips items with any clip id; pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
+PC_VERSION = "v3.9"   # v3.9: no sources in the drawings (Aras 15:23 UTC): pc_nosrc on MapBase legend rows, empty credit skipped; v3.8: a name with no free place goes where it overlaps least (run 7); v3.7: Labels.block_line / block_items (names keep off lines: run 6 review); v3.6: the outside Python runs hidden (no console window, Aras 14 Nov 12:57 UTC); v3.5: frame check skips items with any clip id; pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
 PC_NOWIN = 0x08000000 if os.name == "nt" else 0   # v3.6: CREATE_NO_WINDOW for the review-PNG / photo subprocesses
 PC_DATA = os.path.join("Data", "bergama_access_heritage.json")
 PC_CENTRE = os.path.join("Data", "selinos_centreline.json")
@@ -291,10 +291,21 @@ def pc_mapbase(M, K, log, layers=None, style=None):
     return items, rows, cnt
 
 
+PC_SRC_WORDS = r"OSM|ESHOT|survey|surveyed|WorldCover|GLO-30|image|MapBase|Copernicus|Wikipedia|calculated"
+
+
+def pc_nosrc(t):
+    """v3.9, Aras 14 Nov 15:23 UTC: "dont give sources in the brackets dont give sources in the drawings at all";
+    15:24: "no sources for nothing": a text without its source brackets (sources stay in the log)"""
+    t = re.sub(r"\s*\([^()]*\b(%s)\b[^()]*\)" % PC_SRC_WORDS, u"", t)
+    return re.sub(r"\s{2,}", u" ", t).strip()
+
+
 def pc_mb_legend(rows, K):
     """MapBase legend rows -> pc_sheet rows [(draw(x, y), label)]"""
     out = []
     for kind, col, txt in rows:
+        txt = pc_nosrc(txt)
         if kind == "line":
             out.append((lambda x, y, c=col: [L_([(x - 4.5, y), (x + 4.5, y)], c, 0.3, "legend")], txt))
         elif kind == "dot":
@@ -549,7 +560,7 @@ def pc_sheet(M, K, lib, title, sub, legend, notes, credit, north=0.0, bar_note=N
     if bar_note:
         it.append(T_(bar_note, xb, yb2 - 6.2, 2.0, INK, "north_scale"))
     yc = M.box[1] + 20.0
-    for ln in wrap(credit, tm["small"], W, tw):
+    for ln in (wrap(credit, tm["small"], W, tw) if credit else []):   # v3.9: no credit line (no sources)
         it.append(T_(ln, x, yc, tm["small"], "6E6C66", "credit"))
         yc -= tm["small"] * 1.4
     it.append(P_([[(M.box[0], M.box[1]), (M.box[2], M.box[1]), (M.box[2], M.box[3]), (M.box[0], M.box[3])]], None,

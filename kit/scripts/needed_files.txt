@@ -21,11 +21,11 @@ scripts/bergama_water_board_v20_3.py
 scripts/bergama_section_from_line_v1_1.py
 scripts/bergama_sections_v1_6.py
 scripts/bergama_basemap_v14.py
-scripts/bergama_mapbase_v1_2.py
+scripts/bergama_mapbase_v1_3.py
 scripts/bergama_plan_base_v11_1.py
-scripts/bergama_page_transit_v2_8.py
-scripts/bergama_page_heritage_v1_5.py
-scripts/bergama_page_spine_v1_2.py
+scripts/bergama_page_transit_v2_9.py
+scripts/bergama_page_heritage_v1_6.py
+scripts/bergama_page_spine_v1_3.py
 scripts/bergama_page01_axo_v1_4.py
 scripts/bergama_page01_free_v1_4.py
 scripts/bergama_page01_move_v1_2.py
@@ -38,8 +38,8 @@ scripts/bergama_node_n4_v2.py
 scripts/bergama_node_n5_v2.py
 scripts/bergama_node_n6_v2.py
 Data/bergama_nodes_common.py
-scripts/bergama_page_seasons_v1_2.py
-scripts/bergama_p02_what_is_there_v2_8.py
+scripts/bergama_page_seasons_v1_3.py
+scripts/bergama_p02_what_is_there_v2_9.py
 Data/bergama_style.json
 scripts/bergama_zone_base_v12.py
 scripts/board_order.txt
