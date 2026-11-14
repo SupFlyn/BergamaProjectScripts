@@ -25,7 +25,7 @@ Items are the Basemap writer's tuples (page mm, y up):
 """
 import os, re, json, math, time, glob, hashlib
 
-PC_VERSION = "v3.2"   # v3.2: context houses cut to the map frame
+PC_VERSION = "v3.3"   # v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
 PC_DATA = os.path.join("Data", "bergama_access_heritage.json")
 PC_OSM = os.path.join("Data", "bergama_osm.osm")
 PC_LIB_GLOB = os.path.join("scripts", "bergama_basemap_v*.py")
@@ -588,6 +588,7 @@ def wrap(s, size, width, tw, bold=False):
 # ================================================================ outputs: PDF, SVG, review PNGs
 def pc_write(lib, M, items, out_dir, name, title, log):
     os.makedirs(out_dir, exist_ok=True)
+    pc_frame_check(items, M.box, log, lib.get("text_w"))
     paths = []
     for ext, fn in ((".pdf", lib["write_pdf"]), (".svg", lib["write_svg"])):
         p = os.path.join(out_dir, name + ext)
@@ -647,6 +648,37 @@ with open(os.path.join(out, "index.txt"), "w") as f:
     f.write("\n".join(idx) + "\n")
 print("review: overview + %d tiles (%d x %d grid, about %d x %d px, 200 ppi) in %s" % (n, nr, nc, W / nc, H / nr, out))
 '''
+
+
+PC_SHEET_LAYERS = ("legend", "title", "notes", "credit", "north_scale", "frame", "map_frame")
+
+
+def pc_frame_check(items, box, log, text_w=None, skip=PC_SHEET_LAYERS):
+    """v3.2 (Aras 12:14 UTC "drawings do flows outside of it"): FLAG every map item (any layer not in skip) whose ink
+    leaves the map box (page mm); texts measured with text_w(s, size, bold) when given"""
+    bad = {}
+    for it in items:
+        t = it[0]
+        ly = it[6] if t == "poly" else it[5] if t == "line" else it[8] if t == "text" else None
+        if ly is None or ly in skip:
+            continue
+        if t == "text":
+            w = text_w(it[1], it[4], bool(it[6])) if text_w else 0.5 * it[4] * len(it[1])
+            x = it[2] - {"L": 0.0, "C": w / 2.0, "R": w}.get(it[7], 0.0)
+            bx = (x, it[3], x + w, it[3] + it[4])
+        else:
+            pts = [q for R in it[1] for q in R] if t == "poly" else it[1]
+            if not pts:
+                continue
+            bx = (min(q[0] for q in pts), min(q[1] for q in pts), max(q[0] for q in pts), max(q[1] for q in pts))
+        if bx[0] < box[0] - 0.1 or bx[1] < box[1] - 0.1 or bx[2] > box[2] + 0.1 or bx[3] > box[3] + 0.1:
+            bad[ly] = bad.get(ly, 0) + 1
+    if bad:
+        log.append(u"FLAG frame check: ink outside the map frame: %s" % u", ".join(
+            u"%s %d" % (k, v) for k, v in sorted(bad.items())))
+    else:
+        log.append(u"frame check: all map ink inside its frame")
+    return bad
 
 
 def pc_review(pdf, out, log):
