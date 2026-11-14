@@ -17,13 +17,13 @@ Reads the newest scripts/bergama_basemap_v*, bergama_p02_what_is_there_v*, berga
 """
 import os, re, glob, json, math, time
 
-NC_VERSION = "v6.1"   # v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
+NC_VERSION = "v6.2"   # v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
 ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 PAGE_W, PAGE_H = 420.0, 297.0
 NODE_MARGIN_M = 25.0                       # m of town round the node frame on the plan
 PLAN_BOX = (14.0, 100.0, 200.0, 264.0)     # mm: x0, y0, x1, y1 of the plan's room
 DEN_STEPS = (1000, 1250, 1500, 2000, 2500, 3000, 4000, 5000)
-SEC_DENS = (1000, 1250, 1500, 2000)        # v4.1: the first scale at which the cut fits its room (the engine prints it)
+SEC_DENS = (1000, 1500, 2000, 2500, 3000)  # v6.2: Sections v1.6.6 cache scales; the first that fits its room
 SEC_ROOMS = ((214.0, 186.0, 406.0, 266.0), (214.0, 100.0, 406.0, 180.0))   # mm: N#-A, N#-B
 INK, GREY, RED = "2C2219", "6E675E", "8B2D2D"
 SQUARE_C = "C07A2E"                        # the city-square ring (a contrast to the red loop and blue lines; ours)
@@ -392,16 +392,30 @@ def node_page(cfg, log):
             sec_ids.add(id(items[-1]))
             log.append(u"FLAG section %s not in %s: press Sections again" % (C.name, pc))
             continue
+        # v6.2 (run 3: 8 of 12 cuts shrunk, mostly by the cached 13 mm title block): the cached title, scale and
+        # subtitle are left out and the page prints one header line plus the "meets" line; the drawing gets the rest
+        top_y = y1 - 10.0
         for den_s in SEC_DENS:                        # the first cached scale that fits the room
             e_ = C.J["items"].get(str(den_s))
             if not e_:
                 continue
-            bb = e_["bbox"]
+            body = [it for it in e_["items"] if not (it[0] == "text" and it[8] == "title" and it[3] > -15.0)]
+            bb = list(e_["bbox"])
+            bb[3] = max([p_[1] for it in body if it[0] == "poly" for r in it[1] for p_ in r] +
+                        [p_[1] for it in body if it[0] == "line" for p_ in it[1]] +
+                        [it[3] + it[4] for it in body if it[0] == "text"] +
+                        [it[2] + it[3] for it in body if it[0] == "circle"])
             w, h = bb[2] - bb[0], bb[3] - bb[1]
-            f = min(1.0, (x1 - x0) / w, (y1 - y0 - 5.0) / h)
+            f = min(1.0, (x1 - x0) / w, (top_y - y0) / h)
             if f >= 0.999:
                 break
-        its = scale_items(e_["items"], f, bb[0], bb[3], x0 - bb[0], (y1 - 5.0) - bb[3])
+        items.append(T_(u"SECTION %s" % C.name, x0, y1 - 4.5, 4.5, INK, True, "L", "sections"))
+        sub = next((it[1] for it in e_["items"] if it[0] == "text" and it[1].startswith(u"both banks")), u"")
+        items.append(T_(u"1:%d%s · %s" % (den_s if f >= 0.999 else den_s / f,
+                                          u"" if f >= 0.999 else u" (shrunk, approx.)", sub),
+                        x0 + 42.0, y1 - 4.5, 2.4, GREY, False, "L", "sections"))
+        sec_ids.update(id(it) for it in items[-2:])
+        its = scale_items(body, f, bb[0], bb[3], x0 - bb[0], top_y - bb[3])
         items += its
         sec_ids.update(id(it) for it in its)
         log.append(u"section %s: %.0f x %.0f mm at 1:%d (cached)" % (C.name, w * f, h * f, den_s))
@@ -411,7 +425,7 @@ def node_page(cfg, log):
         done.append(C)
         nb = sum(1 for t in C.bld if t.get("cut"))
         items.append(T_(u"meets: %d building(s) cut, %d behind; %d road(s); %d survey tree(s); bed +%.2f m" % (
-            nb, len(C.bld) - nb, len(C.roads), len(C.trees), C.z_th), x1, y1 - 2.5, 2.0, GREY, False, "R",
+            nb, len(C.bld) - nb, len(C.roads), len(C.trees), C.z_th), x0, y1 - 8.0, 2.0, GREY, False, "L",
             "sections"))
         sec_ids.add(id(items[-1]))
         log += [u"%s: %s" % (C.name, n_) for n_ in C.J.get("notes", []) if n_.startswith(u"FLAG")]
@@ -591,10 +605,16 @@ def node_page(cfg, log):
         xx += w_
     rows = [("box", col, u"%s %s" % (lab, (u"%.0f%%" % (100.0 * a_ / tot)) if 100.0 * a_ / tot >= 0.5 else u"< 1%"))
             for lab, col, a_ in keep]
-    third = (len(rows) + 2) // 3                          # v5: three columns (the key above grew)
-    for ci in range(3):
-        P["draw_rows"](B, items, rows[ci * third:(ci + 1) * third], PLAN_BOX[0] + ci * bw / 3.0, bar_y - 5.0,
-                       bw / 3.0 - 3.0, step=3.0, ts=2.1)
+    # v6.2 (run 3, N2: rows ran into the credit line): as many columns as it takes to stay above y 10 mm
+    per = max(1, int((bar_y - 5.0 - 10.0) / 3.0) + 1)
+    nc = max(3, -(-len(rows) // per))
+    if nc > 5:
+        log.append(u"FLAG land use: %d rows need %d columns; rows below y 10 mm cut" % (len(rows), nc))
+        nc = 5
+    third = -(-len(rows) // nc)
+    for ci in range(nc):
+        P["draw_rows"](B, items, rows[ci * third:(ci + 1) * third][:per], PLAN_BOX[0] + ci * bw / nc, bar_y - 5.0,
+                       bw / nc - 3.0, step=3.0, ts=2.1)
 
     # ---- water depth over the bed by season, both cuts (the Sections code's levels)
     dx0, dy1 = 214.0, 94.0
