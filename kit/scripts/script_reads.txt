@@ -164,3 +164,8 @@ bergama_node_n6: Data/bergama_nodes_common.py  # hand, 14 Nov
 bergama_node_n6: Data/section_lines.json  # hand, 14 Nov
 bergama_node_n6: Data/bergama_access_heritage.json  # hand, 14 Nov
 bergama_node_n6: Data/bergama_pages_common.py  # hand, 14 Nov
+bergama_page01_axo: Data/bergama_pages_common.py  # hand, 14 Nov
+bergama_page01_axo: Data/bergama_access_heritage.json  # hand, 14 Nov
+bergama_page01_axo: scripts/bergama_basemap_v14.py  # hand, 14 Nov
+bergama_page01_axo: scripts/bergama_mapbase_v1_2.py  # hand, 14 Nov
+bergama_page01_axo: cached/bergama_mapbase/mapbase.json  # hand, 14 Nov
