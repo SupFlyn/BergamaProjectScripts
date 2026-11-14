@@ -17,7 +17,7 @@ Reads the newest scripts/bergama_basemap_v*, bergama_p02_what_is_there_v*, berga
 """
 import os, re, glob, json, math, time
 
-NC_VERSION = "v6.6"   # v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
+NC_VERSION = "v6.7"   # v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
 ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 PAGE_W, PAGE_H = 420.0, 297.0
 NODE_MARGIN_M = 25.0                       # m of town round the node frame on the plan
@@ -236,6 +236,25 @@ def occ_points(B, items, skip):
         elif it[0] == "poly" and it[6] in OCC_LAYERS:
             occ += [p_ for r in it[1] for p_ in r]
     return occ
+
+
+SRC_W = (u"WorldCover", u"OSM", u"ESHOT", u"MapBase", u"Page", u"DSI", u"image", u"GLO-30", u"survey", u"calculated",
+         u"inferred", u"OpenStreetMap", u"ESA", u"ODbL", u"Data/", u"Sections")
+
+
+def no_src(t):
+    """v6.7: a page text without its source tags (Aras 15:23 UTC: no sources in the drawings)"""
+    t = re.sub(u"\\s+as Page\\w+", u"", t)
+    def grp(m):
+        keep = [x.strip() for x in re.split(u"[;,]", m.group(2)) if not any(w in x for w in SRC_W)]
+        return m.group(1) + u"(%s)" % u", ".join(keep) if keep else u""
+    t = re.sub(u"(\\s*)\\(([^()]*)\\)", grp, t)
+    t = t.replace(u"survey tree", u"tree")
+    parts = []
+    for x in t.split(u" · "):
+        if x.strip() and x.strip() not in parts:
+            parts.append(x.strip())
+    return u" · ".join(parts) if u" · " in t else t.strip()
 
 
 def clip_plan(B, items, bx, log):
@@ -631,6 +650,7 @@ def node_page(cfg, log):
              ("line", SQUARE_C, u"streamside spine K4 - K5 along the Selinos (proposed path)"),
              ("disc", SQUARE_C, u"V1 viewpoint of the perspective (place assumed)")]
     rows1 += [("hdr", None, u"EXISTING: GROUND AND GREEN (MapBase)")] + MB["mb_legend"](MC, mb_cnt, {"grain": False})
+    rows1, rows2 = [[(r_[0], r_[1], no_src(r_[2])) for r_ in rr_] for rr_ in (rows1, rows2)]   # v6.7: before wrapping
     cw = (PLAN_BOX[2] - PLAN_BOX[0]) / 2.0
     yk1 = P["draw_rows"](B, items, rows1, PLAN_BOX[0], ky, cw - 3.0, step=3.0, ts=2.1)
     yk2 = P["draw_rows"](B, items, rows2, PLAN_BOX[0] + cw, ky, cw - 3.0, step=3.4, ts=2.3)
@@ -653,7 +673,7 @@ def node_page(cfg, log):
         w_ = bw * a_ / tot
         items.append(R_([box(xx, bar_y, xx + w_, bar_y + bar_h)], col, "FFFFFF", 0.15, "diagrams"))
         xx += w_
-    rows = [("box", col, u"%s %s" % (lab, (u"%.0f%%" % (100.0 * a_ / tot)) if 100.0 * a_ / tot >= 0.5 else u"< 1%"))
+    rows = [("box", col, u"%s %s" % (no_src(lab), (u"%.0f%%" % (100.0 * a_ / tot)) if 100.0 * a_ / tot >= 0.5 else u"< 1%"))
             for lab, col, a_ in keep]
     # v6.2 (run 3, N2: rows ran into the credit line): as many columns as it takes to stay above y 10 mm
     per = max(1, int((bar_y - 5.0 - 10.0) / 3.0) + 1)
@@ -736,9 +756,13 @@ def node_page(cfg, log):
     items.append(T_(u"C  NODES IN DETAIL · SLIDE %d" % cfg["SLIDE"], 14.0, 288.0, 2.6, INK, True))
     items.append(T_(u"%s · %s" % (node, nd["name"]), 14.0, 278.5, 7.5, INK, True))
     para(B, items, cfg["INTRO"], 214.0, 288.0, 2.6, 192.0, INK, False, 3.6, "title")
-    items.append(T_(u"Sources: survey Bergama_Altlik.3dm; node frames and section lines Data/section_lines.json (11 Nov); "
-                    u"OpenStreetMap 28 Jul 2026 (ODbL); ESHOT; ESA WorldCover 2021; flows DSI and gauges as the Sections "
-                    u"script. Distances straight line, calculated.", 14.0, 6.0, 1.8, GREY, False, "L", "credit"))
+    # v6.7 (Aras 14 Nov 15:23-15:24 UTC "dont give sources in the drawings at all", "no sources for nothing"):
+    # sources go to the log only; every page text loses its source tags
+    log.append(u"Sources: survey Bergama_Altlik.3dm; node frames and section lines Data/section_lines.json (11 Nov); "
+               u"OpenStreetMap 28 Jul 2026 (ODbL); ESHOT; ESA WorldCover 2021; flows DSI and gauges as the Sections "
+               u"script. Distances straight line, calculated.")
+    items = [(it[0], no_src(it[1])) + tuple(it[2:]) if it[0] == "text" else it for it in items]
+    items = [it for it in items if not (it[0] == "text" and not it[1].strip())]
 
     bb = X["items_bbox"](items)                           # anything past the sheet edge: FLAG (Aras 11:26 UTC)
     if bb[0] < -0.5 or bb[1] < -0.5 or bb[2] > PAGE_W + 0.5 or bb[3] > PAGE_H + 0.5:
