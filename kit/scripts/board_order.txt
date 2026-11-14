@@ -25,6 +25,7 @@ solo: bergama_plan_base = PlanBase
 solo: bergama_sections = Sections
 solo: bergama_page_transit = PageTransit
 solo: bergama_page_spine = PageSpine
+solo: bergama_page_seasons = PageSeasons
 solo: bergama_page_heritage = PageHeritage
 solo: bergama_page01_axo = Page01Axo
 solo: bergama_page01_free = Page01Free
