@@ -17,7 +17,7 @@ Reads the newest scripts/bergama_basemap_v*, bergama_p02_what_is_there_v*, berga
 """
 import os, re, glob, json, math, time
 
-NC_VERSION = "v7.1"   # v7.1: R01 cut arrows (pc_cut_mark), no city-square ring, land-use columns >= 45 mm; v7: v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
+NC_VERSION = "v7.2"   # v7.2: the proposal from his masterplan SVG (MasterplanBase cache); v7.1: v7.1: R01 cut arrows (pc_cut_mark), no city-square ring, land-use columns >= 45 mm; v7: v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
 ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 PAGE_W, PAGE_H = 420.0, 297.0
 NODE_MARGIN_M = 25.0                       # m of town round the node frame on the plan
@@ -25,6 +25,10 @@ PLAN_BOX = (14.0, 100.0, 200.0, 264.0)     # mm: x0, y0, x1, y1 of the plan's ro
 SEC_ROOMS = ((214.0, 186.0, 406.0, 266.0), (214.0, 100.0, 406.0, 180.0))   # mm: N#-A, N#-B
 INK, GREY, RED = "2C2219", "6E675E", "8B2D2D"
 OCC_LAYERS = ("node_frame", "bus_stops", "heritage_loop", "city_square", "section_names", "hubs", "viewpoints", "proposed_path")
+MP_LAYERS = (("teras_-_canopy/teras", u"terraces stepping into the river"),      # v7.2: what the node plans take
+             ("teras_-_canopy/kanopi", u"canopy, raised gathering place"),       # from his masterplan
+             ("yuruyus", u"walks and pier edges"), ("kopruler", u"bridges and crossings"),
+             ("desings", u"designed places"), ("istinaat", u"retaining walls"), ("bisiklet", u"cycle path"))
 LBL_LAYERS = ("bus_stops", "heritage_loop", "city_square", "section_names")   # v6.5: plan labels kept apart
 SQUARE_C = "C07A2E"                        # the city-square ring (a contrast to the red loop and blue lines; ours)
 CUT_C = "2C2219"
@@ -392,6 +396,25 @@ def node_page(cfg, log):
     its_, mb_cnt, units, L, lc = mb_plan(MB, MC, F, lambda xy: (X0 + F.local(xy)[0] * k, Y0 + F.local(xy)[1] * k), k,
                                          (X0, Y0, X0 + F.w * k, Y0 + F.h * k), B, P, log)
     items += its_
+    # v7.2 (Aras 15:38 UTC "please take these from the masterplan that i have given you anything that concerns
+    # masterplans that should use it"): the proposal on the plan = his masterplan SVG as MasterplanBase cached it
+    mp_rows = []
+    try:
+        MPn, MPC = G["pc_mp_data"](log)
+        mp_cnt = MPn["mp_draw"](MPC, items, lambda xy: (X0 + F.local(xy)[0] * k, Y0 + F.local(xy)[1] * k), k,
+                                (X0, Y0, X0 + F.w * k, Y0 + F.h * k), None, layers=set(k_ for k_, w_ in MP_LAYERS))
+        for k_, w_ in MP_LAYERS:
+            keys = [kk for kk in mp_cnt if kk == k_ or kk.startswith(k_ + "/")]
+            if not keys:
+                continue
+            kind, fill, stroke, w, P_ = MPC["layers"][keys[0]][0]
+            col = (next((v for ww, v in MPn["AREA_FILL"].items() if ww in keys[0].split("/")), MPn["AREA_DEFAULT"])
+                   if kind == "a" else (fill or stroke or MPn["AREA_DEFAULT"]))
+            mp_rows.append(("box" if kind in ("a", "r") else "line", col, w_))
+        log.append(u"masterplan on the plan: %s" % (u", ".join(u"%s %d" % kv for kv in sorted(mp_cnt.items())) or
+                                                    u"nothing in this frame"))
+    except Exception as ex_:
+        log.append(u"FLAG masterplan not drawn (%s: %s): press MasterplanBase once" % (type(ex_).__name__, ex_))
     sec_ids = set()
     pgS = lambda xy: (X0 + F.local(xy)[0] * k, Y0 + F.local(xy)[1] * k)
     inside = lambda q, m=0.0: X0 + m <= q[0] <= X0 + F.w * k - m and Y0 + m <= q[1] <= Y0 + F.h * k - m
@@ -512,7 +535,7 @@ def node_page(cfg, log):
                             2.2, INK, False, "L", "bus_stops"))
     # v4.4 (Aras 12:15 UTC "public transport lines should be less appearant compared to our proposed path"): the
     # proposed paths lead: the streamside spine K4 -> K5 and the stream walk (loop 3 -> 4) along the Selinos, strong
-    sp = G["pc_selinos"](D["hubs"]["K4"], D["hubs"]["K5"])
+    sp = None if mp_rows else G["pc_selinos"](D["hubs"]["K4"], D["hubs"]["K5"])   # v7.2: his paths, not ours
     if sp:
         sline(sp, "FFFFFF", 2.2, "proposed_path")
         sline(sp, SQUARE_C, 1.4, "proposed_path")
@@ -608,7 +631,7 @@ def node_page(cfg, log):
 
     # ---- key under the plan
     ky = Y0 - 5.0
-    items.append(T_(u"Plan · %s %s · EXISTING today, orange = PROPOSAL marks" % (node, nd["name"]), PLAN_BOX[0], ky, 2.8, INK, True))
+    items.append(T_(u"Plan · %s %s · EXISTING today and the PROPOSAL" % (node, nd["name"]), PLAN_BOX[0], ky, 2.8, INK, True))
     ky -= 5.0
     shown = set(u["fab"] for u in units)
     if P.get("FAB_COM"):                                  # v4.5: Page02 v2.3+ two swatches: plain, ground-floor shops
@@ -623,8 +646,8 @@ def node_page(cfg, log):
              ("box", K["hub"]["walk"], u"hub tile (K4, K3, T, K5, K6 as PageTransit)"),
              ("line", "C0392B", u"section N#-A / N#-B, the arrows look the way the section looks"),
              ("box", P["WATER_C"], u"the Selinos"),
-             ("hdr", None, u"PROPOSAL MARKS"),
-             ("line", SQUARE_C, u"streamside spine K4 - K5 along the Selinos (proposed path)"),
+             ("hdr", None, u"PROPOSAL"),
+             ] + (mp_rows or [("line", SQUARE_C, u"streamside spine K4 - K5 along the Selinos (proposed path)")]) + [
              ("disc", SQUARE_C, u"V1 viewpoint of the perspective (place assumed)")]
     rows1 += [("hdr", None, u"EXISTING: GROUND AND GREEN (MapBase)")] + MB["mb_legend"](MC, mb_cnt, {"grain": False})
     rows1, rows2 = [[(r_[0], r_[1], no_src(r_[2])) for r_ in rr_] for rr_ in (rows1, rows2)]   # v6.7: before wrapping
