@@ -465,13 +465,12 @@ def node_page(cfg, log):
     H = sorted(D["heritage"], key=lambda h: int(h["n"]))
     # v4.4 (Aras 12:15 UTC "public transport lines should be less appearant compared to our proposed path"): the
     # proposed paths lead: the streamside spine K4 -> K5 and the stream walk (loop 3 -> 4) along the Selinos, strong
-    Cx = G["pc_context"](None, D, log)
-    sp = G["pc_selinos"](Cx, D["hubs"]["K4"], D["hubs"]["K5"])
+    sp = G["pc_selinos"](D["hubs"]["K4"], D["hubs"]["K5"])
     if sp:
         sline(sp, "FFFFFF", 2.2, "proposed_path")
         sline(sp, SQUARE_C, 1.4, "proposed_path")
     for a, b in zip(H, H[1:]):
-        sw = G["pc_selinos"](Cx, a["xy"], b["xy"]) if (a["key"], b["key"]) == ("tabak_koprusu", "ulucami_onu") else None
+        sw = G["pc_selinos"](a["xy"], b["xy"]) if (a["key"], b["key"]) == ("tabak_koprusu", "ulucami_onu") else None
         if sw:
             sline(sw, RED, 0.9, "heritage_loop")
         else:
