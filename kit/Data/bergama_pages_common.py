@@ -25,7 +25,8 @@ Items are the Basemap writer's tuples (page mm, y up):
 """
 import os, re, json, math, time, glob
 
-PC_VERSION = "v3.5"   # v3.5: frame check skips items with any clip id; pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
+PC_VERSION = "v3.6"   # v3.6: the outside Python runs hidden (no console window, Aras 14 Nov 12:57 UTC); v3.5: frame check skips items with any clip id; pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
+PC_NOWIN = 0x08000000 if os.name == "nt" else 0   # v3.6: CREATE_NO_WINDOW for the review-PNG / photo subprocesses
 PC_DATA = os.path.join("Data", "bergama_access_heritage.json")
 PC_CENTRE = os.path.join("Data", "selinos_centreline.json")
 PC_LIB_GLOB = os.path.join("scripts", "bergama_basemap_v*.py")
@@ -666,7 +667,7 @@ def pc_review(pdf, out, log):
         err = u""
         for cmd in cmds:
             try:
-                r_ = subprocess.run(cmd + ["-I", tp, pdf, out], capture_output=True, text=True, timeout=600, env=env)
+                r_ = subprocess.run(cmd + ["-I", tp, pdf, out], capture_output=True, text=True, timeout=600, env=env, creationflags=PC_NOWIN)
             except Exception as ex:
                 err = u"%s" % ex
                 continue
@@ -730,7 +731,7 @@ def pc_photos(paths, photos, H, log):
             ok = False
             for cmd in cmds:
                 try:
-                    r_ = subprocess.run(cmd + ["-I", tp, p, sp], capture_output=True, text=True, timeout=300, env=env)
+                    r_ = subprocess.run(cmd + ["-I", tp, p, sp], capture_output=True, text=True, timeout=300, env=env, creationflags=PC_NOWIN)
                 except Exception:
                     continue
                 if r_.returncode == 0:
