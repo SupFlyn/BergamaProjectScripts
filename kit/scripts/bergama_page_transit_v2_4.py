@@ -31,7 +31,7 @@ Not drawn: metro, tram, train (Bergama has none; the nearest rail is İZBAN at A
 
 Outputs (Downloads/Bergama/output/bergama_page_transit/): Transit.pdf (vector, layers), Transit.svg, review/ PNGs
 (Aras 14 Nov 10:44: "all scripts should produce PNG's aswell which should be optimized for your viewing").
-Reads: Data/bergama_access_heritage.json, Data/bergama_pages_common.py, Data/bergama_osm.osm, the newest
+Reads: Data/bergama_access_heritage.json, Data/bergama_pages_common.py, Data/selinos_centreline.json, cached MapBase (press MapBase first), the newest
 scripts/bergama_basemap_v*.py (PDF/SVG writer) and cached/bergama_basemap/basemap_layers.json (study area; press
 Basemap once). Grasshopper: a Button on any input runs it; input `scale` (default from the data file, 1:2,500).
 """
@@ -75,15 +75,14 @@ def main():
     M = G["Map"](D, den)
     T, L_, P_, T_, circle, dist = M.T, G["L_"], G["P_"], G["T_"], G["circle"], G["pc_dist"]
     INK, tm = K["ink"], K["text_mm"]
-    C = G["pc_context"](M, D, log)                      # still read: the Selinos centre line for the spine / walk
     MB = G["pc_mapbase"](M, K, log)                      # v2.4: the one base map (every detail we have)
-    items = MB[0] if MB else G["pc_context_items"](M, C, K)
-    mb_rows = G["pc_mb_legend"](MB[1], K) if MB else []
+    items = MB[0]
+    mb_rows = G["pc_mb_legend"](MB[1], K)
     items += G["pc_study"](M, K, log)
     lab = G["Labels"](M, lib)
 
     # the streamside spine K4 -> K5 along the Selinos
-    sp = G["pc_selinos"](C, D["hubs"]["K4"], D["hubs"]["K5"])
+    sp = G["pc_selinos"](D["hubs"]["K4"], D["hubs"]["K5"])
     if sp:
         Q = [T(p) for p in sp]
         items.append(L_(Q, "FFFFFF", K["spine_w"] + 0.8, "spine"))
@@ -247,7 +246,7 @@ def main():
     ] + mb_rows + [
         (lambda x, y: [P_([G["circle"](x, y, 0.8, 16)], K["heritage"], None, 0.0, "legend")],
          u"heritage place (numbered on the heritage loop page)"),
-        (sw_line(K["water"][0], 1.4), u"Selinos and side streams (OSM centre lines); dashed: covered"),
+        (sw_line(K["water"][0], 0.3), u"Selinos (survey banks) and side streams (OSM), from MapBase"),
         (sw_line(K["study"][0], K["study"][1], (2.4, 0.8)), u"study area"),
         (None, u"PROPOSAL MARKS"),
         (sw_line(K["spine"], K["spine_w"]), u"streamside spine, K4 to K5, along the Selinos"),

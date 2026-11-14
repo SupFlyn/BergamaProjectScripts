@@ -9,7 +9,7 @@ What it gives:
   pc_root(), pc_data(log)            the root folder and Data/bergama_access_heritage.json (frame, stops, lines, key)
   pc_lib(log)                        the PDF / SVG writer of the newest Basemap script (bergama_basemap_v*.py)
   Map(D, den)                        the shared frame: survey m -> sheet mm (north up), sheet size, map box
-  pc_context(M, D, log)              the quiet context from OpenStreetMap: buildings, roads, streams (cached once)
+  pc_mapbase(M, K, log)              the context: the one MapBase cache (press MapBase first), in a quiet look
   pc_study(M, D, log)                the study area (calisma_alan) from the Basemap cache, dash-dot
   pc_lines / pc_stops / pc_hubs ...  the transit layer (used fully on the transit page, greyed on the heritage page)
   pc_heritage(...)                   the heritage places (numbered on the heritage page, dots on the transit page)
@@ -23,11 +23,11 @@ Items are the Basemap writer's tuples (page mm, y up):
   ("line", pts, stroke, lw, None, layer, 1 | (on mm, off mm))
   ("text", s, x, y, size mm, colour, bold, align "L"|"C"|"R", layer, angle | None, None)
 """
-import os, re, json, math, time, glob, hashlib
+import os, re, json, math, time, glob
 
-PC_VERSION = "v3.4"   # v3.4: pc_mb_lib (MapBase as a library, for any projection), pc_sheet north angle (axonometric), pc_photos (JPEGs into the PDF / SVG); v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
+PC_VERSION = "v3.5"   # v3.5: pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
 PC_DATA = os.path.join("Data", "bergama_access_heritage.json")
-PC_OSM = os.path.join("Data", "bergama_osm.osm")
+PC_CENTRE = os.path.join("Data", "selinos_centreline.json")
 PC_LIB_GLOB = os.path.join("scripts", "bergama_basemap_v*.py")
 PC_LIB_END = "# ================================================================ main"
 PC_STUDY_CACHE = os.path.join("cached", "bergama_basemap", "basemap_layers.json")
@@ -39,11 +39,6 @@ PC_MARGIN_MM = 12.0          # sheet margin round the map
 PC_SIDE_MM = 95.0            # the column right of the map: title, legend, notes
 PC_PNG_PPI = 200
 PC_PNG_TILE = 1400           # px: largest side of one review tile
-PC_ROAD_W = {"trunk": 0.9, "trunk_link": 0.6, "primary": 0.8, "primary_link": 0.5, "secondary": 0.65,
-             "secondary_link": 0.45, "tertiary": 0.55, "unclassified": 0.4, "residential": 0.4, "living_street": 0.35,
-             "service": 0.25, "pedestrian": 0.35, "track": 0.2, "footway": 0.15, "steps": 0.15, "path": 0.15,
-             "cycleway": 0.15}       # mm on the sheet (ours: a quiet hierarchy, not road widths)
-PC_WATER_W = {"river": 1.4, "stream": 0.7, "canal": 0.35}   # mm (a symbol line, not the channel's width)
 
 
 def pc_root():
@@ -227,75 +222,19 @@ def arrow_head(a, b, col, size, layer):
               col, None, 0.0, layer)
 
 
-# ================================================================ the quiet context (OpenStreetMap), cached once
-def pc_context(M, D, log):
-    """buildings (closed ways), roads (highway lines by class), streams (waterway lines) inside the frame + 100 m, in
-    survey m, from Data/bergama_osm.osm; kept in cached/bergama_pages/context_<md5>.json (key: the OSM file + box)"""
-    src = os.path.join(pc_root(), PC_OSM)
-    if not os.path.isfile(src):
-        log.append(u"FLAG: %s missing: no context drawn (run Bergama.bat)" % src)
-        return {"buildings": [], "roads": [], "water": []}
-    with open(src, "rb") as f:
-        h = hashlib.md5(f.read()).hexdigest()[:10]
-    key = hashlib.md5((h + json.dumps(D["box"])).encode("ascii")).hexdigest()[:10]
-    cdir = os.path.join(pc_root(), PC_CACHE_DIR)
-    cfile = os.path.join(cdir, u"context_%s.json" % key)
-    if os.path.isfile(cfile):
-        with open(cfile, encoding="utf-8") as f:
-            C = json.load(f)
-        log.append(u"context: %s (cache; %d buildings, %d roads, %d streams)" % (
-            cfile, len(C["buildings"]), len(C["roads"]), len(C["water"])))
-        return C
-    import xml.etree.ElementTree as ET
-    B = sys_lib_to_survey()
-    b = D["box"]
-    ins = lambda p: b[0] - 100 <= p[0] <= b[2] + 100 and b[1] - 100 <= p[1] <= b[3] + 100
-    r = ET.parse(src).getroot()
-    nodes = {}
-    for n in r.iter("node"):
-        nodes[n.get("id")] = (float(n.get("lon")), float(n.get("lat")))
-    C = {"buildings": [], "roads": [], "water": []}
-    for w in r.iter("way"):
-        t = {x.get("k"): x.get("v") for x in w.findall("tag")}
-        if not ("building" in t or "highway" in t or "waterway" in t):
-            continue
-        ll = [nodes[nd.get("ref")] for nd in w.findall("nd") if nd.get("ref") in nodes]
-        if len(ll) < 2:
-            continue
-        P = [B(lo, la) for lo, la in ll]
-        if not any(ins(p) for p in P):
-            continue
-        P = [[round(p[0], 1), round(p[1], 1)] for p in P]
-        if "building" in t and len(P) >= 4:
-            C["buildings"].append(P)
-        elif "highway" in t and t["highway"] in PC_ROAD_W:
-            C["roads"].append([t["highway"], P, t.get("bridge") == "yes"])
-        elif "waterway" in t and t["waterway"] in PC_WATER_W:
-            C["water"].append([t["waterway"], t.get("name") or u"", P, t.get("tunnel") in ("culvert", "yes") or
-                               t.get("covered") == "yes"])
-    os.makedirs(cdir, exist_ok=True)
-    with open(cfile, "w", encoding="utf-8") as f:
-        json.dump(C, f, ensure_ascii=False)
-    log.append(u"context: %s written (%d buildings, %d roads, %d streams from OpenStreetMap)" % (
-        cfile, len(C["buildings"]), len(C["roads"]), len(C["water"])))
-    return C
-
-
 # ================================================================ v3.3: the one base map (MapBase), quiet look
 # Aras 14 Nov 12:16 UTC: "also please update all maps to include every detail, and top of the map, data is missing
 # please fill in that"; coordinator 12:18: every map draws from the one MapBase script, each page keeps its own styling.
 def pc_mb_lib(log):
-    """v3.4: the newest MapBase script as a library (mb_load, mb_draw, MB_STYLE, FAB ...), or None (FLAG)"""
+    """v3.5: the newest MapBase script as a library (mb_load, mb_draw, MB_STYLE, FAB ...)"""
     found = glob.glob(os.path.join(pc_root(), PC_MB_GLOB))
     if not found:
-        log.append(u"FLAG: no %s: run Bergama.bat once" % os.path.join(pc_root(), PC_MB_GLOB))
-        return None
+        raise RuntimeError(u"no %s: run Bergama.bat once" % os.path.join(pc_root(), PC_MB_GLOB))
     src_ = max(found, key=lambda p: [int(n) for n in re.findall(r"\d+", os.path.basename(p))])
     with open(src_, encoding="utf-8") as f:
         code = f.read()
     if PC_MB_END not in code:
-        log.append(u"FLAG: %s has no main line" % src_)
-        return None
+        raise RuntimeError(u"%s has no main line" % src_)
     ns = {"__name__": "bergama_mapbase_lib"}
     exec(compile(code[:code.index(PC_MB_END)], src_, "exec"), ns)
     ns["BERGAMA_ROOT"] = pc_root()
@@ -305,13 +244,11 @@ def pc_mb_lib(log):
 
 def pc_mapbase(M, K, log):
     """(items, legend rows [(kind, hex, text)], counts) of the newest MapBase cache in this page's quiet look, cut to
-    the map frame (clip PC_CLIP); None (FLAG) when MapBase has not been pressed: the page then draws pc_context"""
+    the map frame (clip PC_CLIP); stops when MapBase has not been pressed (v3.4: no second context of our own)"""
     ns = pc_mb_lib(log)
-    if ns is None:
-        return None
     C = ns["mb_load"](log)
     if C is None:
-        return None
+        raise RuntimeError(u"press MapBase once (it caches the base map every page draws), then this page")
     mix, paper = ns["mixh"], ns["PAPER"]
     soft = lambda c, t: mix(c, paper, t) if c else c
     S = ns["MB_STYLE"]
@@ -357,58 +294,7 @@ def pc_mb_legend(rows, K):
     return out
 
 
-def sys_lib_to_survey():
-    """lon/lat -> survey m: the Basemap script's fit (its to_survey), taken from the loaded library"""
-    f = PC_STATE.get("to_survey")
-    if f is None:
-        raise RuntimeError(u"the Basemap library is not loaded (pc_lib first)")
-    return f
-
-
 PC_STATE = {}
-
-
-def clip_ring_box(R, box):
-    """a ring cut to a rectangle (Sutherland-Hodgman)"""
-    x0, y0, x1, y1 = box
-    for inside, cut in ((lambda p: p[0] >= x0, lambda a, b: (x0, a[1] + (b[1] - a[1]) * (x0 - a[0]) / (b[0] - a[0]))),
-                        (lambda p: p[0] <= x1, lambda a, b: (x1, a[1] + (b[1] - a[1]) * (x1 - a[0]) / (b[0] - a[0]))),
-                        (lambda p: p[1] >= y0, lambda a, b: (a[0] + (b[0] - a[0]) * (y0 - a[1]) / (b[1] - a[1]), y0)),
-                        (lambda p: p[1] <= y1, lambda a, b: (a[0] + (b[0] - a[0]) * (y1 - a[1]) / (b[1] - a[1]), y1))):
-        out = []
-        for i, b in enumerate(R):
-            a = R[i - 1]
-            if inside(b):
-                if not inside(a):
-                    out.append(cut(a, b))
-                out.append(b)
-            elif inside(a):
-                out.append(cut(a, b))
-        R = out
-        if not R:
-            break
-    return R
-
-
-def pc_context_items(M, C, K, water_only_names=False):
-    it = []
-    bf, bl, bw = K["building"]
-    for P in C["buildings"]:
-        Q = [M.T(p) for p in P]
-        if all(M.inside(q) for q in Q):
-            it.append(P_([Q], bf, bl, bw, "context_buildings"))
-        else:                                            # v3.2: cut to the map frame (run 2: houses spilled past it)
-            Q = clip_ring_box(Q, M.box)
-            if len(Q) >= 3:
-                it.append(P_([Q], bf, bl, bw, "context_buildings"))
-    for cls, P, _br in sorted(C["roads"], key=lambda r_: PC_ROAD_W[r_[0]]):
-        for run in M.clip([M.T(p) for p in P]):
-            it.append(L_(run, K["road"], PC_ROAD_W[cls], "context_roads"))
-    wf, wl = K["water"]
-    for cls, name, P, cov in C["water"]:
-        for run in M.clip([M.T(p) for p in P]):
-            it.append(L_(run, wf if not cov else wl, PC_WATER_W[cls], "context_water", (1.6, 0.9) if cov else None))
-    return it
 
 
 def pc_study(M, K, log):
@@ -541,39 +427,20 @@ class Labels(object):
         self.items.append(T_(s, x, y, size, col, layer, bold, al))
 
 
-def pc_selinos_line(C):
-    """the OSM Selinos pieces (river and stream ways named Selinos, open or culverted) chained end to end into one
-    line, upstream first as OSM draws it: the longest chain"""
-    pcs = [[tuple(p) for p in P] for cls, nm, P, _c in C["water"] if u"Selinos" in (nm or u"")]
-    chains = []
-    while pcs:
-        ch = pcs.pop(0)
-        grown = True
-        while grown:
-            grown = False
-            for i, P in enumerate(pcs):
-                if pc_dist(ch[-1], P[0]) < 1.0:
-                    ch += P[1:]
-                elif pc_dist(ch[-1], P[-1]) < 1.0:
-                    ch += P[::-1][1:]
-                elif pc_dist(ch[0], P[-1]) < 1.0:
-                    ch = P[:-1] + ch
-                elif pc_dist(ch[0], P[0]) < 1.0:
-                    ch = P[::-1][:-1] + ch
-                else:
-                    continue
-                pcs.pop(i)
-                grown = True
-                break
-        chains.append(ch)
-    return max(chains, key=len) if chains else None
+def pc_selinos_line():
+    """v3.4: the Selinos centreline in survey m, upstream first (Data/selinos_centreline.json, the line the surveyed
+    sections were cut on; the same file Basemap and the section scripts read), read once"""
+    if "selinos" not in PC_STATE:
+        with open(os.path.join(pc_root(), PC_CENTRE), encoding="utf-8") as f:
+            PC_STATE["selinos"] = [tuple(q) for q in json.load(f)["points"]]
+    return PC_STATE["selinos"]
 
 
-def pc_selinos(C, a, b):
-    """the stretch of the chained OSM Selinos line between the points nearest to a and b (survey m), a and b added
+def pc_selinos(a, b):
+    """the stretch of the Selinos centreline between the points nearest to a and b (survey m), a and b added
     at the ends: the streamside spine and the stream walk follow the stream, not straight legs; None if either point
     lies over 80 m from the line"""
-    P = pc_selinos_line(C)
+    P = pc_selinos_line()
     if not P:
         return None
     ia = min(range(len(P)), key=lambda i: pc_dist(P[i], a))
@@ -629,7 +496,7 @@ def pc_sheet(M, K, lib, title, sub, legend, notes, credit, north=0.0, bar_note=N
     yb = M.box[1] + 30.0
     cx, cy, r = x + 7.0, yb + 7.0, 5.5
     it.append(P_([circle(cx, cy, r, 48)], None, INK, 0.2, "north_scale"))
-    ca_, sa_ = math.cos(math.radians(north)), math.sin(math.radians(north))   # v3.4: north turned clockwise (deg)
+    ca_, sa_ = math.cos(math.radians(north)), math.sin(math.radians(north))   # v3.5: north turned clockwise (deg)
     rot = lambda dx, dy: (cx + dx * ca_ + dy * sa_, cy - dx * sa_ + dy * ca_)
     it.append(P_([[rot(0, r), rot(-2.4, -2.6), rot(0, -1.2), rot(2.4, -2.6)]], INK, None, 0.0, "north_scale"))
     q_ = rot(0, r + 2.4)
@@ -670,7 +537,7 @@ def wrap(s, size, width, tw, bold=False):
 
 # ================================================================ outputs: PDF, SVG, review PNGs
 def pc_write(lib, M, items, out_dir, name, title, log, photos=None, clips=None):
-    """v3.4: photos = pc_photos list (placed before the review PNGs); clips = own clip rings (default: the map box)"""
+    """v3.5: photos = pc_photos list (placed before the review PNGs); clips = own clip rings (default: the map box)"""
     os.makedirs(out_dir, exist_ok=True)
     pc_frame_check(items, M.box, log, lib.get("text_w"))
     paths = []
@@ -825,7 +692,7 @@ print("photos: %d placed" % len(S))
 
 
 def pc_photos(paths, photos, H, log):
-    """v3.4: JPEG photos into the written PDF (an outside Python with PyMuPDF, as the review PNGs) and SVG (an <image>
+    """v3.5: JPEG photos into the written PDF (an outside Python with PyMuPDF, as the review PNGs) and SVG (an <image>
     each). photos = [(jpeg file, x, y, w, h)] in page mm (y up, (x, y) = lower left); H = page height mm"""
     import base64, subprocess, sys as _sys
     for p in paths:

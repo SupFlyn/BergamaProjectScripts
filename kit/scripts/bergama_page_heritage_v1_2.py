@@ -65,10 +65,9 @@ def main():
     M = G["Map"](D, den)
     T, L_, P_, T_, circle, dist = M.T, G["L_"], G["P_"], G["T_"], G["circle"], G["pc_dist"]
     tm, RED = K["text_mm"], K["heritage"]
-    C = G["pc_context"](M, D, log)                      # still read: the Selinos centre line for the spine / walk
     MB = G["pc_mapbase"](M, K, log)                      # v1.2: the one base map (every detail we have)
-    items = MB[0] if MB else G["pc_context_items"](M, C, K)
-    mb_rows = G["pc_mb_legend"](MB[1], K) if MB else []
+    items = MB[0]
+    mb_rows = G["pc_mb_legend"](MB[1], K)
     items += G["pc_study"](M, K, log)
     lab = G["Labels"](M, lib)
 
@@ -97,7 +96,7 @@ def main():
     legs = []
     for a, b in zip(H, H[1:]):
         if (a["key"], b["key"]) == ("tabak_koprusu", "ulucami_onu"):
-            sw = G["pc_selinos"](C, a["xy"], b["xy"])
+            sw = G["pc_selinos"](a["xy"], b["xy"])
             if sw:
                 legs.append(("walk", sw))
                 log.append(u"stream walk: Tabak Köprüsü -> Ulucami Önü along the Selinos, %.0f m" % sum(
@@ -172,8 +171,8 @@ def main():
         (lambda x, y: [L_([(x - 4.5, y), (x + 4.5, y)], K["grey_line"], 0.3, "legend"),
                        P_([circle(x, y, 0.6, 16)], "FFFFFF", K["grey_line"], 0.2, "legend")],
          u"bus routes and stops (OSM): see the transit page"),
-        (lambda x, y: [L_([(x - 4.5, y), (x + 4.5, y)], K["water"][0], 1.4, "legend")],
-         u"Selinos and side streams (OSM centre lines); dashed: covered"),
+        (lambda x, y: [L_([(x - 4.5, y), (x + 4.5, y)], K["water"][0], 0.3, "legend")],
+         u"Selinos (survey banks) and side streams (OSM), from MapBase"),
         (lambda x, y: [L_([(x - 4.5, y), (x + 4.5, y)], K["study"][0], K["study"][1], "legend", (2.4, 0.8))],
          u"study area"),
     ]
