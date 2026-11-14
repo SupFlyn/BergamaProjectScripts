@@ -14,7 +14,7 @@ One A3 landscape page per node (420 x 297 mm, PDF with layers + review PNGs):
             the node frame, as a dashed ring round the two (place = an idea, not designed), with their straight-line
             distance (calculated)
   SECTIONS  N#-A and N#-B by the newest scripts/bergama_sections_v*.py (its own cut, ground, water and context code,
-            autumn look), 1:SEC_DEN, shrunk only if the cut is taller than its room (the real scale is printed)
+            autumn look), at the first of 1:1000 / 1250 / 1500 / 2000 that fits its room
   DIAGRAMS  land use of the node frame (Page02's 1 m cell count), water depth over the bed by season at both cuts
             (the Sections script's Manning levels: its SEASON_WATER flows and DSI Q100 / Q500), what each cut meets
   PLACEHOLDERS perspective from V1 (marked on the plan, place assumed), program brief, building proposal (plan,
@@ -27,13 +27,13 @@ Data/bergama_pages_common.py, Data/section_lines.json, Data/bergama_access_herit
 """
 import os, re, glob, json, math, time
 
-NC_VERSION = "v4"   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
+NC_VERSION = "v4.1"   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
 ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 PAGE_W, PAGE_H = 420.0, 297.0
 NODE_MARGIN_M = 25.0                       # m of town round the node frame on the plan
 PLAN_BOX = (14.0, 100.0, 200.0, 264.0)     # mm: x0, y0, x1, y1 of the plan's room
 DEN_STEPS = (1000, 1250, 1500, 2000, 2500, 3000, 4000, 5000)
-SEC_DEN = 1000                             # sections drawn at 1:1000 (shrunk only if taller than the room)
+SEC_DENS = (1000, 1250, 1500, 2000)        # v4.1: the first scale at which the cut fits its room (the engine prints it)
 SEC_HALF_M = 95.0                          # m either side of the stream crossing (190 m fits 192 mm at 1:1000)
 SEC_ROOMS = ((214.0, 186.0, 406.0, 266.0), (214.0, 100.0, 406.0, 180.0))   # mm: N#-A, N#-B
 INK, GREY, RED = "2C2219", "6E675E", "8B2D2D"
@@ -398,25 +398,27 @@ def node_page(cfg, log):
     done = []
     for C, room in zip(cuts, SEC_ROOMS):
         x0, y0, x1, y1 = room
-        items.append(T_(u"Section %s · looking downstream" % C.name, x0, y1 - 3.5, 3.4, INK, True, "L", "sections"))
         try:
             C.survey = survey
             X["build_cut"](C, CL, cum, E, log, BM)
-            pg, S_, yb = X["draw_cut"](E, C, X["SEASON"], SEC_DEN, 0.0, 0.0)
-            bb = X["items_bbox"](pg.items)
-            w, h = bb[2] - bb[0], bb[3] - bb[1]
-            f = min(1.0, (x1 - x0) / w, (y1 - y0 - 7.0) / h)
-            its = scale_items(pg.items, f, bb[0], bb[3], x0 - bb[0], (y1 - 7.0) - bb[3])
+            for den_s in SEC_DENS:                    # v4.1 (run 1: shrunk cuts printed the engine's 1:1000)
+                pg, S_, yb = X["draw_cut"](E, C, X["SEASON"], den_s, 0.0, 0.0)
+                bb = X["items_bbox"](pg.items)
+                w, h = bb[2] - bb[0], bb[3] - bb[1]
+                f = min(1.0, (x1 - x0) / w, (y1 - y0 - 5.0) / h)
+                if f >= 0.999:
+                    break
+            its = scale_items(pg.items, f, bb[0], bb[3], x0 - bb[0], (y1 - 5.0) - bb[3])
             items += its
-            items[-len(its) - 1] = T_(u"Section %s · looking downstream · 1:%d" % (C.name, round(SEC_DEN / f)), x0,
-                                      y1 - 3.5, 3.4, INK, True, "L", "sections")
+            log.append(u"section %s: %.0f x %.0f mm at 1:%d" % (C.name, w * f, h * f, den_s))
+            if f < 0.999:
+                log.append(u"FLAG section %s too large even at 1:%d: shrunk x%.2f, its printed scale is wrong" % (
+                    C.name, den_s, f))
             done.append(C)
             nb = sum(1 for t in C.bld if t[4])
             items.append(T_(u"meets: %d building(s) cut, %d behind; %d road(s); %d survey tree(s); bed +%.2f m" % (
-                nb, len(C.bld) - nb, len(C.roads), len(C.trees), C.z_th), x1, y1 - 3.5, 2.0, GREY, False, "R",
+                nb, len(C.bld) - nb, len(C.roads), len(C.trees), C.z_th), x1, y1 - 2.5, 2.0, GREY, False, "R",
                 "sections"))
-            log.append(u"section %s: %.0f x %.0f mm at 1:%d%s" % (C.name, w * f, h * f, round(SEC_DEN / f),
-                                                                 u"" if f >= 0.999 else u" (shrunk to fit its room)"))
         except Exception as ex:
             import traceback as _tb
             items.append(T_(u"FLAG: section %s not drawn: %s" % (C.name, ex), x0, y1 - 12.0, 2.6, RED))
@@ -425,6 +427,7 @@ def node_page(cfg, log):
         log += C.notes
 
     # ---- section lines on the plan: the whole line thin, the drawn window bold, names at both ends
+    ends = []
     for C in cuts:
         sline([C.A, C.B], CUT_C, 0.25, "section_lines", (2.0, 0.8))
         if C in done:
@@ -432,10 +435,22 @@ def node_page(cfg, log):
             sline([C.xy(s0), C.xy(s1)], CUT_C, 0.7, "section_lines")
         for e_ in (C.A, C.B):
             q = pgS(e_)
+            near = next((m for m in ends if G["pc_dist"](m[0], q) < 6.0), None)
+            if near is not None:                          # v4.1 (run 1, N1: A and B drawn on top of each other)
+                near[1].append(C.name)
+                continue
+            ends.append((q, [C.name]))
             if inside(q, 2.0):
                 items.append(R_([ring(q[0], q[1], 2.6, 24)], "FFFFFF", CUT_C, 0.3, "section_names"))
                 items.append(T_(C.name[-1], q[0], q[1] - 1.0, 2.8, CUT_C, True, "C", "section_names"))
-                items.append(T_(C.name, q[0] + 3.2, q[1] + 1.6, 2.2, CUT_C, True, "L", "section_names"))
+
+    for q, nms in ends:
+        if inside(q, 2.0):
+            if len(nms) > 1:
+                items.append(R_([ring(q[0], q[1], 2.6, 24)], "FFFFFF", CUT_C, 0.3, "section_names"))
+                items.append(T_(u"/".join(n[-1] for n in nms), q[0], q[1] - 1.0, 2.4, CUT_C, True, "C",
+                                "section_names"))
+            items.append(T_(u" / ".join(nms), q[0] + 3.2, q[1] + 1.6, 2.2, CUT_C, True, "L", "section_names"))
 
     # ---- transit and heritage over the plan (PageTransit / PageHeritage data and colours)
     K = D["key"]
@@ -459,7 +474,7 @@ def node_page(cfg, log):
                             2.2, INK, False, "L", "bus_stops"))
     H = sorted(D["heritage"], key=lambda h: int(h["n"]))
     for a, b in zip(H, H[1:]):
-        sline([a["xy"], b["xy"]], RED, K["heritage_w"], "heritage_loop")
+        sline([a["xy"], b["xy"]], RED, 0.35, "heritage_loop", (0.01, 0.9))   # v4.1: dotted, legs are straight
     her_in = []
     for h in H:
         q = pgS(h["xy"])
@@ -611,7 +626,8 @@ def node_page(cfg, log):
         items.append(R_([box(x0, y0, x1, y1)], "F1EFEA", GREY, 0.3, layer))
         items.append(L_([(x0, y0), (x1, y1)], "C9C5BC", 0.2, layer))
         items.append(L_([(x0, y1), (x1, y0)], "C9C5BC", 0.2, layer))
-        items.append(R_([box((x0 + x1) / 2.0 - 30.0, (y0 + y1) / 2.0 - 5.0, (x0 + x1) / 2.0 + 30.0,
+        hw = min(30.0, (x1 - x0) / 2.0 - 2.0)                 # v4.1: the label band stays inside its box
+        items.append(R_([box((x0 + x1) / 2.0 - hw, (y0 + y1) / 2.0 - 5.0, (x0 + x1) / 2.0 + hw,
                              (y0 + y1) / 2.0 + 6.5)], "F1EFEA", None, 0.0, layer))
         items.append(T_(title, (x0 + x1) / 2.0, (y0 + y1) / 2.0 + 2.0, 2.8, INK, True, "C", layer))
         yy_ = (y0 + y1) / 2.0 - 2.0
