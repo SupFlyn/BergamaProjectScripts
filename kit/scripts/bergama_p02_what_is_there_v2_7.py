@@ -71,6 +71,10 @@ v2.6 (14 Nov 2026, check loop of the first laptop run of v2.5): the GROUND AND G
 the same colour are now one row (WorldCover and the 2023 image share a colour), the OpenStreetMap areas and contours
 get a column of their own (four key columns), and a FLAG is written if any key column reaches the credit.
 
+v2.7 (14 Nov 2026, Aras 13:02 UTC "make sure nothing repeats in the slides"): the node frames N1-N6 and the section
+cuts are no longer drawn here (slides 2 and 6 carry them); this page keeps the fabric key, the shop shades and the
+land-use ring, which no other slide repeats.
+
 Component: Rhino 8 > Grasshopper > Python 3 Script (the board builder places it from the cloud kit).
   input  run     Button (or the previous script's done text)
   output log / done   as every Bergama script
@@ -85,7 +89,7 @@ Writes ~/Downloads/Bergama/output/bergama_p02/Page02_What_is_there.pdf, Page02_W
 import os, time, json, math, re, glob
 
 # ---- SETTINGS ----
-VERSION = "v2.6"
+VERSION = "v2.7"
 SLIDE = 1                          # output/presentation/1.pdf (Aras 14 Nov 11:22 UTC; slide 1 = analysis)
 GH_LABEL = "Page02"
 OUT_FOLDER = "bergama_p02"
@@ -535,16 +539,8 @@ def main():
 
     # ================================================================ the page
     items = []
-    secs = {}                                             # v2.1: nodes N1-N6 and cuts N1-A ... N6-B
-    s_src = os.path.join(BERGAMA_ROOT, SECTION_FILE)
-    if os.path.isfile(s_src):
-        try:
-            with open(s_src, encoding="utf-8") as f:
-                secs = json.load(f)
-        except Exception as e:
-            log.append(u"FLAG nodes and cuts: %s not read (%s: %s)" % (s_src, type(e).__name__, e))
-    else:
-        log.append(u"FLAG nodes and cuts: %s not found: the map shows no N or section labels" % s_src)
+    secs = {}                                             # v2.7: no nodes N1-N6 or cuts here (slides 2 and 6 keep them;
+                                                          # Aras 14 Nov 13:02 UTC "make sure nothing repeats in the slides")
     drawn = {}                                            # v2.5: what MapBase drew on the overview (for the key)
     taken = []                                            # v2.2: boxes (page mm) of the inset's names and markers
 
@@ -612,15 +608,13 @@ def main():
     X0, Y0 = MAP_X, MAP_TOP - F.h * k
     ki = 1000.0 / INSET_DEN
     INS_Y0 = 42.0
-    items.append(("text", u"The site frame (site_alan) · nodes, cuts, bridges and clashes · 1:%s" % format(INSET_DEN, ",d"),
+    items.append(("text", u"The site frame (site_alan) · bridges and clashes · 1:%s" % format(INSET_DEN, ",d"),
                   COL_X, INS_Y0 + (sbox[3] - sbox[1]) * ki + 3.0, 3.2, INK, True, "L", "inset", None, None))
     draw_map(COL_X, INS_Y0, ki, sbox, True, "inset")
     items += _no_box(B["corner_block"](F, S, INSET_DEN, COL_X + (sbox[2] - sbox[0]) * ki, INS_Y0))
     log.append(u"inset: site frame %.0f x %.0f m at 1:%s, %.1f x %.1f mm; %d names and markers placed" % (
         sbox[2] - sbox[0], sbox[3] - sbox[1], format(INSET_DEN, ",d"), (sbox[2] - sbox[0]) * ki,
         (sbox[3] - sbox[1]) * ki, len(taken)))
-    log.append(u"nodes %d, section cuts %d (%s)" % (len(secs.get("nodes") or {}), len(secs.get("lines") or {}),
-                                                    SECTION_FILE))
     r_mk = 2.0                                            # mm: marker radius (the lists)
 
     def disc(x, y, txt, col, layer):
@@ -658,7 +652,6 @@ def main():
     rows3 = [("hdr", None, u"LINES AND MARKS"),
              ("line", WALL_C, u"Walls (survey)"), ("line", HER_WALL, u"City walls"),
              ("line", STUDY_C, u"Study area (calisma_alan)"), ("line", INK, u"Analysis frame (site_alan)"),
-             ("line", NODE_C, u"Nodes N1-N6"), ("line", CUT_C, u"Section cuts N1-A ... N6-B"),
              ("disc", BRIDGE_C, u"Bridge, upstream to downstream"), ("disc", CLASH_C, u"Where stream and town clash")]
     rows4 = [("hdr", None, u"OPENSTREETMAP AREAS AND RELIEF")] + [r_ for r_ in mrg if u"(OSM)" in r_[2] or r_[0] == "line"]
     cw = MAP_MAX_W / 4.0                                  # v2.6: four key columns
