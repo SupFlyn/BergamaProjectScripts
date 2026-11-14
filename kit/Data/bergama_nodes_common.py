@@ -17,7 +17,7 @@ Reads the newest scripts/bergama_basemap_v*, bergama_p02_what_is_there_v*, berga
 """
 import os, re, glob, json, math, time
 
-NC_VERSION = "v6"   # v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
+NC_VERSION = "v6.1"   # v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
 ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 PAGE_W, PAGE_H = 420.0, 297.0
 NODE_MARGIN_M = 25.0                       # m of town round the node frame on the plan
@@ -378,6 +378,11 @@ def node_page(cfg, log):
     with open(pc, encoding="utf-8") as f:
         CJ = json.load(f)
     log.append(u"sections: %s (Sections %s, run %s)" % (pc, CJ.get("version"), CJ.get("run")))
+    for nm in (node + u"-A", node + u"-B"):              # v6.1: Sections v1.6.5 keeps items in cuts/<name>.json
+        j_ = CJ["cuts"].get(nm)
+        if j_ and "items" not in j_ and j_.get("items_file"):
+            with open(os.path.join(os.path.dirname(pc), j_["items_file"]), encoding="utf-8") as f:
+                j_["items"] = json.load(f)
     cuts = [Cut(nm, SL["lines"][nm], CJ["cuts"].get(nm), CL) for nm in (node + u"-A", node + u"-B")]
     done = []
     for C, room in zip(cuts, SEC_ROOMS):
