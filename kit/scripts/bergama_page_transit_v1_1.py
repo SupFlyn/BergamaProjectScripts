@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
-"""Bergama Group 6: PAGE TRANSIT v1 (14 Nov 2026): the public-transport hubs, stops and lines round the streamside
+"""Bergama Group 6: PAGE TRANSIT v1.1 (14 Nov 2026; v1.1 = fixes after the first run's review PNGs: heritage dots
+were drawn over the K4 / K3 tiles; walking links too faint (now 0.6 / 0.5 mm dashes); Yıldız Garajı drawn as two
+overlapping squares (OSM station + its unnamed building, now one); Turkish letters in the regional-line legend row
+(data file)). v1: the public-transport hubs, stops and lines round the streamside
 spine, as one map (a page script of the new set: one script per page, Aras 14 Nov 10:46 UTC).
 
 Aras 14 Nov 10:44 UTC, on CityLink's p09 "The streamside spine, hub by hub": "we need to make this diagram more clear.
@@ -33,7 +36,7 @@ Basemap once). Grasshopper: a Button on any input runs it; input `scale` (defaul
 """
 import os, time
 
-VERSION = "v1"
+VERSION = "v1.1"
 GH_LABEL = "PageTransit"
 OUT_FOLDER = "bergama_page_transit"
 LOG_NAME = "bergama_page_transit_log.txt"
@@ -108,8 +111,12 @@ def main():
                               (q[0] - 1.4, q[1] + 1.4)]], K["cable"], "FFFFFF", 0.2, "gondola"))
             lab.block_pt(q, 1.8)
 
-    # bus stations (OSM amenity=bus_station)
-    for s in [s for s in D["stations"] if s["kind"] == "bus_station"]:
+    # bus stations (OSM amenity=bus_station); v1.1: a station and its unnamed building within 20 m are one square
+    bus_st = []
+    for s in sorted([s for s in D["stations"] if s["kind"] == "bus_station"], key=lambda s: s.get("name") is None):
+        if not any(dist(s["xy"], o["xy"]) < 20.0 for o in bus_st):
+            bus_st.append(s)
+    for s in bus_st:
         q = T(s["xy"])
         if M.inside(q):
             items.append(P_([[(q[0] - 1.6, q[1] - 1.6), (q[0] + 1.6, q[1] - 1.6), (q[0] + 1.6, q[1] + 1.6),
@@ -132,6 +139,15 @@ def main():
         r = K["hub_stop_r"] if hub else K["stop_r"]
         items.append(P_([circle(q[0], q[1], r, 24)], "FFFFFF", INK if hub else sc, 0.45 if hub else 0.3, "bus_stops"))
         lab.block_pt(q, r + 0.4)
+
+    # heritage places: red dots, names, no numbers (v1.1: drawn before the hub tiles, so a tile is never covered)
+    her = [(h["name"], h["xy"]) for h in D["heritage"]] + [(u"Akropol", D["akropol"])] + \
+          [(h["name"], h["xy"]) for h in D.get("heritage_dots", [])]
+    for nm, xy in her:
+        q = T(xy)
+        if M.inside(q):
+            items.append(P_([circle(q[0], q[1], 0.8, 16)], K["heritage"], None, 0.0, "heritage_places"))
+            lab.block_pt(q, 1.0)
 
     # hubs: tiles and walking links
     hubpts = {"K4": [D["hubs"]["K4"]], "K3": [D["hubs"]["K3"]], "T": [D["hubs"]["IST"], D["hubs"]["RED"]],
@@ -156,7 +172,7 @@ def main():
         qa, qb = T(a), T(b)
         if dist(qa, qb) < 1.0:
             continue
-        items.append(L_([qa, qb], K["walk_link"], 0.3, "walking_links", (0.01, 0.9)))
+        items.append(L_([qa, qb], K["walk_link"], 0.35, "walking_links", (0.6, 0.5)))
         mid = ((qa[0] + qb[0]) / 2.0, (qa[1] + qb[1]) / 2.0)
         lab.put(u"%d m" % round(d_, -1 if d_ >= 100 else 0), mid, tm["small"], K["walk_link"], "walking_links_text",
                 gap=0.8)
@@ -173,15 +189,6 @@ def main():
                             "hubs"))
             items.append(T_(code, q[0], q[1] - tm["label"] * 0.36, tm["label"], "FFFFFF", "hubs", True, "C"))
             lab.block_pt(q, s_ / 2 + 0.4)
-
-    # heritage places: red dots, names, no numbers
-    her = [(h["name"], h["xy"]) for h in D["heritage"]] + [(u"Akropol", D["akropol"])] + \
-          [(h["name"], h["xy"]) for h in D.get("heritage_dots", [])]
-    for nm, xy in her:
-        q = T(xy)
-        if M.inside(q):
-            items.append(P_([circle(q[0], q[1], 0.8, 16)], K["heritage"], None, 0.0, "heritage_places"))
-            lab.block_pt(q, 1.0)
 
     # names, most important first: hub stops, stations, other stops, heritage (the hubs' names are in the legend)
     for name, v in stop_q.items():
@@ -239,7 +246,7 @@ def main():
         legend.append((sw_sq(K["hub"][kd], "FFFFFF", 0.3, 4.2, code),
                        u"%s = %s, %s; stop: %s" % (code, D["hub_names"][code], word[kd], u"; ".join(st) or u"none")))
     legend += [
-        (sw_line(K["walk_link"], 0.3, (0.01, 0.9)), u"on foot from a hub to its stop, straight-line metres (calculated)"),
+        (sw_line(K["walk_link"], 0.35, (0.6, 0.5)), u"on foot from a hub to its stop, straight-line metres (calculated)"),
         (sw_line(K["spine"], K["spine_w"]), u"streamside spine, K4 to K5, along the Selinos"),
         (lambda x, y: [P_([G["circle"](x, y, 0.8, 16)], K["heritage"], None, 0.0, "legend")],
          u"heritage place (numbered on the heritage loop page)"),
