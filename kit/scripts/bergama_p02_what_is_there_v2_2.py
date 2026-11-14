@@ -35,6 +35,12 @@ the same N, section and viewpoint labels everywhere"): the six nodes N1-N6 (thei
 section cuts N1-A ... N6-B (labelled at their north-west end) from Data/section_lines.json, with their legend rows.
 Scale bar and north arrow: corner_block of the Basemap code, as before. This page shows the existing situation only.
 
+v2.2 (14 Nov 2026, check loop of the first laptop run, Aras 11:24 UTC "no collisions"): at 1:25,000 the bridge
+numbers, clash markers, node names and cut names sat on top of each other (the site is 2.8 km in a 4.5 km map). The
+overview map now carries no names or markers (nodes, cuts, site frame and study area as lines only); an INSET of the
+site frame at 1:INSET_DEN in the right column carries them, each name and marker set at the nearest free spot
+(place_free: no two overlap; no leader lines, the plan rule of 4 Nov G6-4).
+
 Component: Rhino 8 > Grasshopper > Python 3 Script (the board builder places it from the cloud kit).
   input  run     Button (or the previous script's done text)
   output log / done   as every Bergama script
@@ -49,7 +55,7 @@ Writes ~/Downloads/Bergama/output/bergama_p02/Page02_What_is_there.pdf, Page02_W
 import os, time, json, math, re, glob
 
 # ---- SETTINGS ----
-VERSION = "v2.1"
+VERSION = "v2.2"
 SLIDE = 1                          # output/presentation/1.pdf (Aras 14 Nov 11:22 UTC; slide 1 = analysis)
 GH_LABEL = "Page02"
 OUT_FOLDER = "bergama_p02"
@@ -74,6 +80,7 @@ BEYOND_CELL = 50.0                 # m: OpenStreetMap is drawn only where no sur
 BEYOND_W = {"motorway": 10.0, "trunk": 9.0, "primary": 8.0, "secondary": 7.0, "tertiary": 6.0, "unclassified": 5.0,
             "residential": 5.0, "living_street": 4.0, "service": 3.5, "pedestrian": 4.0}   # m drawn (ours: OSM has none)
 PATH_TAGS = ("track", "footway", "path", "steps", "cycleway", "bridleway")
+INSET_DEN = 15000                 # v2.2: the inset of the site frame (2.85 km fits the right column at 1:15,000)
 AREA_CELL = 1.0                    # m: cells of the land-use count of the site frame
 
 # colours (the round 9 hue table of the board set; FAB = building fabric, in its rank order)
@@ -575,91 +582,6 @@ def main():
 
     # ================================================================ the page
     items = []
-    X0, Y0 = MAP_X, MAP_TOP - F.h * k
-
-    def pg(q):
-        return (X0 + q[0] * k, Y0 + q[1] * k)
-
-    def poly(rings, fill, layer, stroke=None, lw=0.0):
-        rr = [R for R in (B["clip_ring"](R_, box) for R_ in rings) if len(R) >= 3]
-        if rr:
-            items.append(("poly", [[pg(q) for q in R] for R in rr], fill, stroke, lw, None, layer, 1, "eo", None))
-
-    def line(P, col, lw, layer):
-        for run in B["clip_line"](P, box):
-            if len(run) >= 2:
-                items.append(("line", [pg(q) for q in run], col, lw, None, layer, 1))
-    items.append(("poly", [[pg((0, 0)), pg((F.w, 0)), pg((F.w, F.h)), pg((0, F.h))]], PAPER, None, 0.0, None,
-                  "map_paper", 1, None, None))
-    for k_ in LC_ORDER:                                   # land cover, light, under everything
-        for R in lc.get(k_, []):
-            poly([R], "~" + mixh(LC[k_][0], PAPER, LC_LIGHT), "landcover_" + k_)
-    poly([Q for key in ("road_net", "town_net") for cl, Q, a, b in L.get(key, [])], STREET_C, "streets")
-    for key in ("road_edges", "kerbs", "town_edges"):
-        for cl, Q, a, b in L.get(key, []):
-            line(Q, STREET_EDGE, P02_HAIR, "street_edges")
-    n_st = n_pa = 0                                       # OpenStreetMap streets and paths beyond the survey
-    for P, tg in O["ways"]:
-        hw = tg.get("highway")
-        if not hw or tg.get("area") == "yes" or (hw not in BEYOND_W and hw not in PATH_TAGS):
-            continue
-        run = []
-        Q = [F.local(p) for p in P]
-        for q in Q + [None]:
-            if q is not None and free(q):
-                run.append(q)
-                continue
-            if len(run) >= 2:
-                if hw in BEYOND_W:
-                    line(run, STREET_EDGE, BEYOND_W[hw] * k + 2 * P02_HAIR, "streets_osm")
-                    line(run, STREET_C, BEYOND_W[hw] * k, "streets_osm")
-                    n_st += 1
-                else:
-                    line(run, STREET_EDGE, P02_HAIR, "paths_osm")
-                    n_pa += 1
-            run = []
-    poly([Q for cl, Q, a, b in L.get("river", [])], "~" + WATER_C, "water")
-    for key, w_ in (("stream_banks", 0.12), ("ponds", 0.08)):
-        for cl, Q, a, b in L.get(key, []):
-            line(Q + ([Q[0]] if cl else []), WATER_LINE, w_, "water")
-    for P, tg in O["ways"]:                               # OpenStreetMap streams beyond the survey
-        if tg.get("waterway") in ("river", "stream", "canal"):
-            Q = [F.local(p) for p in P]
-            run = []
-            for q in Q + [None]:
-                if q is not None and free(q):
-                    run.append(q)
-                    continue
-                if len(run) >= 2:
-                    line(run, WATER_LINE, 0.12, "water")
-                run = []
-    for key in ("walls",):                                # survey walls: one pale hairline (they were 0.16 dark ink)
-        for cl, Q, a, b in L.get(key, []):
-            line(Q, WALL_C, P02_HAIR, "walls")
-    for cl, Q, a, b in L.get("heritage_walls", []):
-        line(Q, HER_WALL, 0.12, "heritage_walls")
-    for P, tg in O["ways"]:                               # city walls beyond the survey (OSM historic=citywalls)
-        if tg.get("historic") == "citywalls" or tg.get("barrier") == "city_wall":
-            Q = [F.local(p) for p in P]
-            if all(free(q) for q in Q):
-                line(Q, HER_WALL, 0.12, "heritage_walls")
-    # buildings: every outline at twice the hairline first, every fill over them (shared walls covered)
-    for u in units:
-        col = FAB[u["fab"]]
-        rr = B["clip_ring"](u["P"], box)
-        if len(rr) >= 3:
-            items.append(("line", [pg(q) for q in rr + [rr[0]]], mixh(col, INK, P02_EDGE_DARK), 2 * P02_HAIR, None,
-                          "buildings_outline", 1))
-    for f_ in FAB_ORDER:
-        rr = [R for R in (B["clip_ring"](u["P"], box) for u in units if u["fab"] == f_) if len(R) >= 3]
-        for i0 in range(0, len(rr), 400):
-            items.append(("poly", [[pg(q) for q in R] for R in rr[i0:i0 + 400]], FAB[f_], None, 0.0, None,
-                          "buildings_" + f_, 1, None, None))
-    for cl, Q, a, b in L.get("bridges", []):
-        line(Q, INK, 0.12, "bridges")
-    for R in D.get("calisma") or []:                      # the study area
-        Q = [F.local(p) for p in R]
-        line(Q + [Q[0]], STUDY_C, 0.35, "study_area")
     secs = {}                                             # v2.1: nodes N1-N6 and cuts N1-A ... N6-B
     s_src = os.path.join(BERGAMA_ROOT, SECTION_FILE)
     if os.path.isfile(s_src):
@@ -670,42 +592,137 @@ def main():
             log.append(u"FLAG nodes and cuts: %s not read (%s: %s)" % (s_src, type(e).__name__, e))
     else:
         log.append(u"FLAG nodes and cuts: %s not found: the map shows no N or section labels" % s_src)
-    for nid, nd in sorted((secs.get("nodes") or {}).items()):
-        Q = [F.local(p) for p in nd.get("corners") or []]
-        if len(Q) < 3:
-            continue
-        line(Q + [Q[0]], NODE_C, 0.18, "nodes")
-        top = max(Q, key=lambda q: q[1])
-        p = pg(top)
-        items.append(("text", nid, p[0], p[1] + 1.0, 2.6, NODE_C, True, "C", "nodes", None, None))
-    for cid, ab in sorted((secs.get("lines") or {}).items()):
-        if len(ab) < 2:
-            continue
-        a_, b_ = F.local(ab[0]), F.local(ab[1])
-        line([a_, b_], CUT_C, 0.25, "section_cuts")
-        pa, pb = pg(a_), pg(b_)
-        d_ = math.hypot(pa[0] - pb[0], pa[1] - pb[1]) or 1.0
-        ex, ey = (pa[0] - pb[0]) / d_, (pa[1] - pb[1]) / d_   # beyond the north-west end
-        items.append(("text", cid, pa[0] + ex * 1.2, pa[1] + ey * 1.2 - 0.6, 1.8, CUT_C, True,
-                      "L" if ex >= 0 else "R", "section_cuts", None, None))
+    cnt = {"st": 0, "pa": 0}
+    taken = []                                            # v2.2: boxes (page mm) of the inset's names and markers
+
+    def draw_map(X0, Y0, k, box, names):
+        """one drawing of the map layers: box (frame m) at 1000/k, its lower-left corner at page (X0, Y0) mm;
+        names = the inset (names and markers, each at a free spot)"""
+        def pg(q):
+            return (X0 + (q[0] - box[0]) * k, Y0 + (q[1] - box[1]) * k)
+
+        def poly(rings, fill, layer, stroke=None, lw=0.0):
+            rr = [R for R in (B["clip_ring"](R_, box) for R_ in rings) if len(R) >= 3]
+            if rr:
+                items.append(("poly", [[pg(q) for q in R] for R in rr], fill, stroke, lw, None, layer, 1, "eo", None))
+
+        def line(P, col, lw, layer):
+            for run in B["clip_line"](P, box):
+                if len(run) >= 2:
+                    items.append(("line", [pg(q) for q in run], col, lw, None, layer, 1))
+        items.append(("poly", [[pg((box[0], box[1])), pg((box[2], box[1])), pg((box[2], box[3])), pg((box[0], box[3]))]],
+                      PAPER, None, 0.0, None, "map_paper", 1, None, None))
+        for k_ in LC_ORDER:                                   # land cover, light, under everything
+            for R in lc.get(k_, []):
+                poly([R], "~" + mixh(LC[k_][0], PAPER, LC_LIGHT), "landcover_" + k_)
+        poly([Q for key in ("road_net", "town_net") for cl, Q, a, b in L.get(key, [])], STREET_C, "streets")
+        for key in ("road_edges", "kerbs", "town_edges"):
+            for cl, Q, a, b in L.get(key, []):
+                line(Q, STREET_EDGE, P02_HAIR, "street_edges")
+        for P, tg in O["ways"]:
+            hw = tg.get("highway")
+            if not hw or tg.get("area") == "yes" or (hw not in BEYOND_W and hw not in PATH_TAGS):
+                continue
+            run = []
+            Q = [F.local(p) for p in P]
+            for q in Q + [None]:
+                if q is not None and free(q):
+                    run.append(q)
+                    continue
+                if len(run) >= 2:
+                    if hw in BEYOND_W:
+                        line(run, STREET_EDGE, BEYOND_W[hw] * k + 2 * P02_HAIR, "streets_osm")
+                        line(run, STREET_C, BEYOND_W[hw] * k, "streets_osm")
+                        cnt["st"] += 1
+                    else:
+                        line(run, STREET_EDGE, P02_HAIR, "paths_osm")
+                        cnt["pa"] += 1
+                run = []
+        poly([Q for cl, Q, a, b in L.get("river", [])], "~" + WATER_C, "water")
+        for key, w_ in (("stream_banks", 0.12), ("ponds", 0.08)):
+            for cl, Q, a, b in L.get(key, []):
+                line(Q + ([Q[0]] if cl else []), WATER_LINE, w_, "water")
+        for P, tg in O["ways"]:                               # OpenStreetMap streams beyond the survey
+            if tg.get("waterway") in ("river", "stream", "canal"):
+                Q = [F.local(p) for p in P]
+                run = []
+                for q in Q + [None]:
+                    if q is not None and free(q):
+                        run.append(q)
+                        continue
+                    if len(run) >= 2:
+                        line(run, WATER_LINE, 0.12, "water")
+                    run = []
+        for key in ("walls",):                                # survey walls: one pale hairline (they were 0.16 dark ink)
+            for cl, Q, a, b in L.get(key, []):
+                line(Q, WALL_C, P02_HAIR, "walls")
+        for cl, Q, a, b in L.get("heritage_walls", []):
+            line(Q, HER_WALL, 0.12, "heritage_walls")
+        for P, tg in O["ways"]:                               # city walls beyond the survey (OSM historic=citywalls)
+            if tg.get("historic") == "citywalls" or tg.get("barrier") == "city_wall":
+                Q = [F.local(p) for p in P]
+                if all(free(q) for q in Q):
+                    line(Q, HER_WALL, 0.12, "heritage_walls")
+        # buildings: every outline at twice the hairline first, every fill over them (shared walls covered)
+        for u in units:
+            col = FAB[u["fab"]]
+            rr = B["clip_ring"](u["P"], box)
+            if len(rr) >= 3:
+                items.append(("line", [pg(q) for q in rr + [rr[0]]], mixh(col, INK, P02_EDGE_DARK), 2 * P02_HAIR, None,
+                              "buildings_outline", 1))
+        for f_ in FAB_ORDER:
+            rr = [R for R in (B["clip_ring"](u["P"], box) for u in units if u["fab"] == f_) if len(R) >= 3]
+            for i0 in range(0, len(rr), 400):
+                items.append(("poly", [[pg(q) for q in R] for R in rr[i0:i0 + 400]], FAB[f_], None, 0.0, None,
+                              "buildings_" + f_, 1, None, None))
+        for cl, Q, a, b in L.get("bridges", []):
+            line(Q, INK, 0.12, "bridges")
+        for R in D.get("calisma") or []:                      # the study area
+            Q = [F.local(p) for p in R]
+            line(Q + [Q[0]], STUDY_C, 0.35, "study_area")
+        for nid, nd in sorted((secs.get("nodes") or {}).items()):
+            Q = [F.local(p) for p in nd.get("corners") or []]
+            if len(Q) >= 3:
+                line(Q + [Q[0]], NODE_C, 0.18, "nodes")
+        for cid, ab in sorted((secs.get("lines") or {}).items()):
+            if len(ab) >= 2:
+                line([F.local(ab[0]), F.local(ab[1])], CUT_C, 0.25, "section_cuts")
+        line(sb + [sb[0]], INK, 0.12, "site_alan")
+        items.append(("line", [pg((box[0], box[1])), pg((box[2], box[1])), pg((box[2], box[3])), pg((box[0], box[3])),
+                               pg((box[0], box[1]))], INK, 0.25, None, "map_frame", 1))
+        if not names:
+            return
+        lim = (X0, Y0, X0 + (box[2] - box[0]) * k, Y0 + (box[3] - box[1]) * k)
+        for n_, nm, x, y in BRIDGES:                      # markers first, bridges then clashes
+            place_marker(items, taken, lim, pg(F.local((x, y))), str(n_), BRIDGE_C, "bridge_numbers")
+        for c_id, x, y, t in CLASHES:
+            place_marker(items, taken, lim, pg(F.local((x, y))), c_id, CLASH_C, "clashes")
+        for nid, nd in sorted((secs.get("nodes") or {}).items()):
+            Q = [pg(F.local(p)) for p in nd.get("corners") or []]
+            if len(Q) >= 3:
+                Q.sort(key=lambda q: -q[1])
+                place_text(B, items, taken, lim, [Q[0], Q[1], Q[2], Q[3]], nid, 2.6, NODE_C, "nodes", log)
+        for cid, ab in sorted((secs.get("lines") or {}).items()):
+            if len(ab) >= 2:
+                place_text(B, items, taken, lim, [pg(F.local(ab[0])), pg(F.local(ab[1]))], cid, 1.8, CUT_C,
+                           "section_cuts", log)
+    draw_map(MAP_X, MAP_TOP - F.h * k, k, box, False)     # the overview: lines only
+    X0, Y0 = MAP_X, MAP_TOP - F.h * k
+    ki = 1000.0 / INSET_DEN
+    INS_Y0 = 42.0
+    items.append(("text", u"The site frame (site_alan) · nodes, cuts, bridges and clashes · 1:%s" % format(INSET_DEN, ",d"),
+                  COL_X, INS_Y0 + (sbox[3] - sbox[1]) * ki + 3.0, 3.2, INK, True, "L", "inset", None, None))
+    draw_map(COL_X, INS_Y0, ki, sbox, True)
+    log.append(u"inset: site frame %.0f x %.0f m at 1:%s, %.1f x %.1f mm; %d names and markers placed" % (
+        sbox[2] - sbox[0], sbox[3] - sbox[1], format(INSET_DEN, ",d"), (sbox[2] - sbox[0]) * ki,
+        (sbox[3] - sbox[1]) * ki, len(taken)))
     log.append(u"nodes %d, section cuts %d (%s)" % (len(secs.get("nodes") or {}), len(secs.get("lines") or {}),
                                                     SECTION_FILE))
-    sq = sb + [sb[0]]
-    line(sq, INK, 0.12, "site_alan")
-    items.append(("line", [pg((0, 0)), pg((F.w, 0)), pg((F.w, F.h)), pg((0, F.h)), pg((0, 0))], INK, 0.25, None,
-                  "map_frame", 1))
-    r_mk = 2.0                                            # mm: marker radius
+    n_st, n_pa = cnt["st"], cnt["pa"]
+    r_mk = 2.0                                            # mm: marker radius (the lists)
 
     def disc(x, y, txt, col, layer):
-        items.append(("poly", [[(x + r_mk * math.cos(a_ * math.pi / 12.0), y + r_mk * math.sin(a_ * math.pi / 12.0))
-                                for a_ in range(24)]], col, "FFFFFF", 0.25, None, layer, 1, None, None))
-        items.append(("text", txt, x, y - 0.95, 2.6, "FFFFFF", True, "C", layer, None, None))
-    for n_, nm, x, y in BRIDGES:
-        p = pg(F.local((x, y)))
-        disc(p[0] - 3.2, p[1] + 3.2, str(n_), BRIDGE_C, "bridge_numbers")
-    for c_id, x, y, t in CLASHES:
-        p = pg(F.local((x, y)))
-        disc(p[0] + 3.2, p[1] - 3.2, c_id, CLASH_C, "clashes")
+        marker(items, x, y, txt, col, layer)
     items += B["corner_block"](F, S, den, X0 + F.w * k, Y0)
     # ---- title band
     items.append(("text", KICKER, 14.0, 287.0, 2.6, INK, True, "L", "title", None, None))
@@ -803,6 +820,55 @@ def main():
         log.append(u"FLAG %s.svg not written (%s: %s); the PDF is complete" % (name, type(e).__name__, e))
     flags = [l for l in log if l.startswith(u"FLAG")]
     return u"%s\n%s %s, %d FLAG line(s), %.1f s" % (u"\n".join(log), GH_LABEL, VERSION, len(flags), time.time() - t0)
+
+
+R_MK = 2.0                         # mm: marker radius
+
+
+def marker(items, x, y, txt, col, layer):
+    items.append(("poly", [[(x + R_MK * math.cos(a_ * math.pi / 12.0), y + R_MK * math.sin(a_ * math.pi / 12.0))
+                            for a_ in range(24)]], col, "FFFFFF", 0.25, None, layer, 1, None, None))
+    items.append(("text", txt, x, y - 0.95, 2.6, "FFFFFF", True, "C", layer, None, None))
+
+
+def _free(bx, taken, lim):
+    if bx[0] < lim[0] or bx[1] < lim[1] or bx[2] > lim[2] or bx[3] > lim[3]:
+        return False
+    return not any(bx[0] < t[2] and t[0] < bx[2] and bx[1] < t[3] and t[1] < bx[3] for t in taken)
+
+
+def place_marker(items, taken, lim, p, txt, col, layer):
+    """v2.2: a marker on its point, else at the nearest free spot round it (up to 9 mm), never on another"""
+    r = R_MK + 0.3
+    for d in (0.0, 4.6, 6.0, 7.5, 9.0):
+        for j in range(1 if d == 0 else 12):
+            a = j * math.pi / 6.0
+            x, y = p[0] + d * math.cos(a), p[1] + d * math.sin(a)
+            bx = (x - r, y - r, x + r, y + r)
+            if _free(bx, taken, lim):
+                taken.append(bx)
+                marker(items, x, y, txt, col, layer)
+                return
+    taken.append((p[0] - r, p[1] - r, p[0] + r, p[1] + r))
+    marker(items, p[0], p[1], txt, col, layer)
+
+
+def place_text(B, items, taken, lim, anchors, txt, size, col, layer, log):
+    """v2.2: a name beside the first of its anchor points (page mm) where it overlaps nothing placed; the anchors in
+    turn, then further out; FLAG when none is free (set at the first anchor)"""
+    w = B["text_w"](txt, size, True)
+    for d in (0.8, 2.0, 3.5, 5.0):
+        for p in anchors:
+            for dx, dy in ((d, d * 0.3), (-d - w, d * 0.3), (-w / 2.0, d), (-w / 2.0, -d - size), (d, -d - size * 0.6),
+                           (-d - w, -d - size * 0.6)):
+                bx = (p[0] + dx - 0.2, p[1] + dy - 0.3, p[0] + dx + w + 0.2, p[1] + dy + size + 0.2)
+                if _free(bx, taken, lim):
+                    taken.append(bx)
+                    items.append(("text", txt, p[0] + dx, p[1] + dy, size, col, True, "L", layer, None, None))
+                    return
+    p = anchors[0]
+    log.append(u"FLAG inset: no free spot for %s: set at its point (it may touch another name)" % txt)
+    items.append(("text", txt, p[0] + 0.8, p[1] + 0.3, size, col, True, "L", layer, None, None))
 
 
 def _survey_key(F, q):
