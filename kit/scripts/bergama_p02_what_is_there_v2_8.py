@@ -74,6 +74,8 @@ get a column of their own (four key columns), and a FLAG is written if any key c
 v2.7 (14 Nov 2026, Aras 13:02 UTC "make sure nothing repeats in the slides"): the node frames N1-N6 and the section
 cuts are no longer drawn here (slides 2 and 6 carry them); this page keeps the fabric key, the shop shades and the
 land-use ring, which no other slide repeats.
+v2.8 (14 Nov 2026, check loop of run 3): the inset's north arrow covered clash marker C6; the inset's north arrow and
+scale are now placed first and the bridge and clash markers keep off them (no collisions).
 
 Component: Rhino 8 > Grasshopper > Python 3 Script (the board builder places it from the cloud kit).
   input  run     Button (or the previous script's done text)
@@ -89,7 +91,7 @@ Writes ~/Downloads/Bergama/output/bergama_p02/Page02_What_is_there.pdf, Page02_W
 import os, time, json, math, re, glob
 
 # ---- SETTINGS ----
-VERSION = "v2.7"
+VERSION = "v2.8"
 SLIDE = 1                          # output/presentation/1.pdf (Aras 14 Nov 11:22 UTC; slide 1 = analysis)
 GH_LABEL = "Page02"
 OUT_FOLDER = "bergama_p02"
@@ -610,8 +612,10 @@ def main():
     INS_Y0 = 42.0
     items.append(("text", u"The site frame (site_alan) · bridges and clashes · 1:%s" % format(INSET_DEN, ",d"),
                   COL_X, INS_Y0 + (sbox[3] - sbox[1]) * ki + 3.0, 3.2, INK, True, "L", "inset", None, None))
+    cb = _no_box(B["corner_block"](F, S, INSET_DEN, COL_X + (sbox[2] - sbox[0]) * ki, INS_Y0))
+    taken.extend(_bbox(B, [t]) for t in cb)               # v2.8: markers keep off the inset's north arrow and scale
     draw_map(COL_X, INS_Y0, ki, sbox, True, "inset")
-    items += _no_box(B["corner_block"](F, S, INSET_DEN, COL_X + (sbox[2] - sbox[0]) * ki, INS_Y0))
+    items += cb
     log.append(u"inset: site frame %.0f x %.0f m at 1:%s, %.1f x %.1f mm; %d names and markers placed" % (
         sbox[2] - sbox[0], sbox[3] - sbox[1], format(INSET_DEN, ",d"), (sbox[2] - sbox[0]) * ki,
         (sbox[3] - sbox[1]) * ki, len(taken)))
@@ -756,6 +760,22 @@ def marker(items, x, y, txt, col, layer):
     items.append(("poly", [[(x + R_MK * math.cos(a_ * math.pi / 12.0), y + R_MK * math.sin(a_ * math.pi / 12.0))
                             for a_ in range(24)]], col, "FFFFFF", 0.25, None, layer, 1, None, None))
     items.append(("text", txt, x, y - 0.95, 2.6, "FFFFFF", True, "C", layer, None, None))
+
+
+def _bbox(B, its):
+    """v2.8: page box (mm) round a list of items (text by its width and alignment)"""
+    xs, ys = [], []
+    for t in its:
+        if t[0] == "text":
+            w = B["text_w"](t[1], t[4], t[6])
+            x0 = t[2] - (w if t[7] == "R" else w / 2.0 if t[7] == "C" else 0.0)
+            xs += [x0, x0 + w]
+            ys += [t[3], t[3] + t[4]]
+        elif t[0] in ("poly", "line"):
+            for q in ([q for R in t[1] for q in R] if t[0] == "poly" else t[1]):
+                xs.append(q[0])
+                ys.append(q[1])
+    return (min(xs) - 0.5, min(ys) - 0.5, max(xs) + 0.5, max(ys) + 0.5)
 
 
 def _free(bx, taken, lim):
