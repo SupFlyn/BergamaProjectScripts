@@ -45,7 +45,7 @@ Writes ~/Downloads/Bergama/output/bergama_sections/Sections.pdf          ONE pag
 import os, time, json, math, bisect
 
 # ---- SETTINGS ----
-VERSION = "v1.6"
+VERSION = "v1.6.1"
 GH_LABEL = "Sections"
 OUT_FOLDER = "bergama_sections"
 LOG_NAME = "bergama_sections_log.txt"
@@ -839,6 +839,13 @@ class Sec(object):
             ch0 -= 0.5
         while ch1 + 0.5 <= self.hi and self.surf(ch1 + 0.5) <= wet and ch1 - C.s_th < CHANNEL_M:
             ch1 += 0.5
+        if WALL_BED[0] <= C.z_th <= WALL_BED[1] and ch1 - ch0 > WALL_MAX_W:
+            # v1.6.1: in the walled town reach a low flat wider than WALL_MAX_W is not the channel (run 2: walls 62 m
+            # and 80 m apart on N3-A / N3-B): the channel is the DSI 20 m bed (SYGM 2019 summary p.75, measure 155:
+            # 20 m x 3.00 m planned channel; bank-depth REPORT s.1) centred on the bed low point
+            ch0, ch1 = C.s_th - DSI_BED_W / 2.0, C.s_th + DSI_BED_W / 2.0
+            C.notes.append(u"line %d: the low flat at the bed is wider than %.0f m: channel = the DSI %.0f m bed" % (
+                C.n, WALL_MAX_W, DSI_BED_W))
         self.channel = (ch0, ch1)
         runs, cur, kind = [], None, None
         s = self.lo
@@ -1118,6 +1125,8 @@ FLAT_ROOF_FLOORS = 4               # 4 floors and more: a flat concrete roof wit
 WIN_W, WIN_H, WIN_SILL, WIN_STEP = 1.2, 1.4, 0.9, 3.0     # m, window rows per floor (drawing rule)
 WALL_BED = (55.5, 73.5)            # the walled town reach by bed level (REPORT s.2: upstream entry +73.1 ... Uc Kemer +55.6)
 WALL_H_M, WALL_T_M, WALL_FILL = 5.0, 0.6, "BDB6A6"
+WALL_MAX_W = 30.0                  # m: v1.6.1: a wider low flat is not the walled channel
+DSI_BED_W = 20.0                   # m: DSI planned channel width (SYGM 2019 summary p.75, measure 155)
 LU_H = 4.0                         # mm, the land-use band
 LU = {"open": ("D9D6BE", u"open ground"), "street": ("706B62", u"street"), "stream": ("7FA4B3", u"stream"),
       "building": ("B9B2A2", u"building"), "wall": ("8E8578", u"wall")}
@@ -1599,10 +1608,10 @@ def write_pdf(path, pages, title):
                 A.append("B" if (fill and stroke) else "f" if fill else "S")
                 A.append("Q")
             elif t == "image":
-                x, y, wi, hi, path, _a, flip = it[1:8]
-                oid = images.get(path)
+                x, y, wi, hi, ipath, _a, flip = it[1:8]
+                oid = images.get(ipath)
                 if oid is None:
-                    oid = images[path] = _image_obj(path, add) or 0
+                    oid = images[ipath] = _image_obj(ipath, add) or 0
                 if oid:
                     A.append("q %s 0 0 %s %s %s cm /Im%d Do Q" % (_f(-wi if flip else wi), _f(hi),
                                                                _f(x + wi if flip else x), _f(y), oid))
