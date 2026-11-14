@@ -27,7 +27,7 @@ Data/bergama_pages_common.py, Data/section_lines.json, Data/bergama_access_herit
 """
 import os, re, glob, json, math, time
 
-NC_VERSION = "v4.3"   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
+NC_VERSION = "v4.4"   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
 ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 PAGE_W, PAGE_H = 420.0, 297.0
 NODE_MARGIN_M = 25.0                       # m of town round the node frame on the plan
@@ -507,7 +507,7 @@ def node_page(cfg, log):
             for wid in r["ways"]:
                 P_ = D["ways"].get(wid)
                 if P_:
-                    sline(P_, col, lw, "bus_lines", dash)
+                    sline(P_, P["mixh"](col, P["PAPER"], 0.55), lw * 0.45, "bus_lines", dash)   # v4.4: quiet
     stops = [(nm, xy, ln) for nm, xy, ln in G["pc_stop_groups"](D)]
     stops_in = []
     for nm, xy, ln in stops:
@@ -518,8 +518,19 @@ def node_page(cfg, log):
             items.append(T_(u"%s · %s" % (nm, u" ".join(sorted(ln, key=lambda r: (len(r), r)))), q[0] + 1.8, q[1] - 2.8,
                             2.2, INK, False, "L", "bus_stops"))
     H = sorted(D["heritage"], key=lambda h: int(h["n"]))
+    # v4.4 (Aras 12:15 UTC "public transport lines should be less appearant compared to our proposed path"): the
+    # proposed paths lead: the streamside spine K4 -> K5 and the stream walk (loop 3 -> 4) along the Selinos, strong
+    Cx = G["pc_context"](None, D, log)
+    sp = G["pc_selinos"](Cx, D["hubs"]["K4"], D["hubs"]["K5"])
+    if sp:
+        sline(sp, "FFFFFF", 2.2, "proposed_path")
+        sline(sp, SQUARE_C, 1.4, "proposed_path")
     for a, b in zip(H, H[1:]):
-        sline([a["xy"], b["xy"]], RED, 0.35, "heritage_loop", (0.01, 0.9))   # v4.1: dotted, legs are straight
+        sw = G["pc_selinos"](Cx, a["xy"], b["xy"]) if (a["key"], b["key"]) == ("tabak_koprusu", "ulucami_onu") else None
+        if sw:
+            sline(sw, RED, 0.9, "heritage_loop")
+        else:
+            sline([a["xy"], b["xy"]], RED, 0.35, "heritage_loop", (0.01, 0.9))   # v4.1: dotted, legs are straight
     her_in = []
     for h in H:
         q = pgS(h["xy"])
@@ -597,7 +608,7 @@ def node_page(cfg, log):
     rows1 = [("hdr", None, u"EXISTING: BUILDINGS · URBAN FABRIC")] + [("box", P["FAB"][f_], P["FAB_WORDS"][f_])
                                                             for f_ in P["FAB_ORDER"] if f_ in shown]
     rows2 = [("hdr", None, u"EXISTING: MOVEMENT AND HERITAGE"),
-             ("line", K["lines"]["town"][0], u"bus lines (OSM; weight = buses a weekday, ESHOT)"),
+             ("line", P["mixh"](K["lines"]["town"][0], P["PAPER"], 0.55), u"bus lines, quiet (OSM, ESHOT)"),
              ("disc", INK, u"bus stop with its lines (OSM)"),
              ("disc", RED, u"heritage loop stop, loop order (PageHeritage)"),
              ("box", K["hub"]["walk"], u"hub tile (K4, K3, T, K5, K6 as PageTransit)"),
@@ -605,6 +616,8 @@ def node_page(cfg, log):
              ("box", P["WATER_C"], u"the Selinos"),
              ("hdr", None, u"PROPOSAL MARKS"),
              ("line", SQUARE_C, u"city square idea: loop meets transit (place not designed)"),
+             ("line", SQUARE_C, u"streamside spine K4 - K5 along the Selinos (proposed path)"),
+             ("line", RED, u"stream walk of the heritage loop, Tabak Köprüsü - Ulucami Önü"),
              ("disc", SQUARE_C, u"V1 viewpoint of the perspective (place assumed)")]
     cw = (PLAN_BOX[2] - PLAN_BOX[0]) / 2.0
     yk1 = P["draw_rows"](B, items, rows1, PLAN_BOX[0], ky, cw - 3.0, step=3.4, ts=2.3)
