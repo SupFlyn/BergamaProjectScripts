@@ -966,7 +966,7 @@ def node_axo(G, K, X, nk, info, x0, y0, W, H, log):
     poly = lambda Q, f, st=None, w=0.0: it.append(P_([Q], f, st, w if st else 0.0, lay))
     AM = X.get("AM")
     clipP = lambda Q: clip_poly(Q, L1, L2)               # v2.34: the cut; the node frame unless the slide 1 model
-    clipL = lambda Q: clip_line(Q, L1, L2)               # sets K (frame inside site_alan)
+    clipL = lambda Q: clip_line(Q, L1, L2)               # sets KC (frame inside site_alan)
     inK = lambda q: 0 <= q[0] <= L1 and 0 <= q[1] <= L2
 
     def draw_move(Pj, poly, it):
@@ -1004,14 +1004,14 @@ def node_axo(G, K, X, nk, info, x0, y0, W, H, log):
         corners = [inv(0, 0), inv(L1, 0), inv(L1, L2), inv(0, L2)]
         # v2.34 (Aras 14:31 "use single cut plane"): ONE cut for everything = the node frame inside site_alan (the
         # slide 1 model ends at site_alan); ground, buildings, trees, slab, move, flows and pins all end on it
-        K = ccw(clip_convex(ccw(corners), ccw([tuple(q) for q in (getattr(M, "ring", None) or corners)])))
-        K = [q for i, q in enumerate(K) if math.hypot(q[0] - K[i - 1][0], q[1] - K[i - 1][1]) > 0.01] or ccw(corners)
-        Ku = ccw([uv(q) for q in K])
+        KC = ccw(clip_convex(ccw(corners), ccw([tuple(q) for q in (getattr(M, "ring", None) or corners)])))
+        KC = [q for i, q in enumerate(KC) if math.hypot(q[0] - KC[i - 1][0], q[1] - KC[i - 1][1]) > 0.01] or ccw(corners)
+        Ku = ccw([uv(q) for q in KC])
         clipP = lambda Q: [q for q in clip_convex(list(Q), Ku)] if len(Q) >= 3 else []
         clipL = lambda Q: clip_line_convex(list(Q), Ku)
         inK = lambda q: pip(q[0], q[1], Ku)
         back = axo_back(AM, D3)
-        Qd = [D3(*q) for q in dense(K, 5.0)]
+        Qd = [D3(*q) for q in dense(KC, 5.0)]
         ground, body, slab_fill, best = [], [], None, 0.0
         for sh in AM["shapes"]:
             g_ = sh.get("grp") or u""
@@ -1028,20 +1028,20 @@ def node_axo(G, K, X, nk, info, x0, y0, W, H, log):
                 continue
             anc = sh.get("anchor")
             if sh.get("bld") is not None or g_.startswith(u"trees"):
-                if anc and pip(anc[0], anc[1], K):
+                if anc and pip(anc[0], anc[1], KC):
                     body.append(sh)
                 continue
             Rs = [sh.get("pts") or []] if sh.get("t") == "line" else (sh.get("rings") or [])
             xs__ = [q[0] for R_ in Rs for q in R_]
             if not xs__ or max(xs__) < min(q[0] for q in Qd) or min(xs__) > max(q[0] for q in Qd):
                 continue                                 # off this node's columns of the drawing
-            if sh.get("t") == "line":                    # back to the plan, cut by K, draped again
-                runs = clip_line_convex([back(*q) for q in Rs[0]], K)
+            if sh.get("t") == "line":                    # back to the plan, cut by KC, draped again
+                runs = clip_line_convex([back(*q) for q in Rs[0]], KC)
                 runs = [[D3(*q) for q in dense(r_, 5.0, False)] for r_ in runs]
                 if runs:
                     ground.append((sh, runs))
             else:
-                rr = [clip_convex([back(*q) for q in R_], K) for R_ in Rs]
+                rr = [clip_convex([back(*q) for q in R_], KC) for R_ in Rs]
                 rr = [[D3(*q) for q in dense(R_, 5.0)] for R_ in rr if len(R_) >= 3]
                 if rr:
                     ground.append((sh, rr))
@@ -1059,8 +1059,8 @@ def node_axo(G, K, X, nk, info, x0, y0, W, H, log):
         # soil hatching), then the ground (the view keeps plan ccw as screen ccw: an edge running right faces us)
         Qp = [F(q) for q in Qd]
         dz = -AXO_SLAB
-        for i in range(len(K)):
-            a_, b_ = K[i - 1], K[i]
+        for i in range(len(KC)):
+            a_, b_ = KC[i - 1], KC[i]
             top_ = [F(D3(*q)) for q in dense([a_, b_], 5.0, False)]
             if top_[-1][0] - top_[0][0] <= 1e-6:
                 continue
@@ -1114,14 +1114,14 @@ def node_axo(G, K, X, nk, info, x0, y0, W, H, log):
                     hb = max(1.0, (sum(q[1] for q in rr_) / len(rr_) - gY) / Vw["kz"])
                 else:
                     hb = STOREY_M
-                Pw = ccw(clip_convex(ccw(P0), K)) if len(P0) >= 3 else []
+                Pw = ccw(clip_convex(ccw(P0), KC)) if len(P0) >= 3 else []
                 if len(Pw) < 3:
                     i_ = j_
                     continue
 
-                def on_e(q):                             # on the cut (an edge of K)
-                    for e_ in range(len(K)):
-                        a_, b_ = K[e_ - 1], K[e_]
+                def on_e(q):                             # on the cut (an edge of KC)
+                    for e_ in range(len(KC)):
+                        a_, b_ = KC[e_ - 1], KC[e_]
                         L_e = math.hypot(b_[0] - a_[0], b_[1] - a_[1]) or 1.0
                         if abs((b_[0] - a_[0]) * (q[1] - a_[1]) - (b_[1] - a_[1]) * (q[0] - a_[0])) / L_e < 0.05:
                             return True
