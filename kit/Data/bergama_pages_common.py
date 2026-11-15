@@ -25,7 +25,7 @@ Items are the Basemap writer's tuples (page mm, y up):
 """
 import os, re, json, math, time, glob
 
-PC_VERSION = "v3.28"  # v3.28: pc_text_c, a mark letter centred on its glyph box (Helvetica cap height 0.718 em: baseline = centre - 0.359 x size; Aras 15 Nov 13:50 UTC "letters are not centered in the boxes"); the loop badge numbers use it; v3.27: no white box behind any name (Aras 15 Nov 13:44 UTC "dont have a opaque background for texts in any single of the drawings"): Labels.put halo = pc_halo, a thin white text-shaped outline (8 white copies 0.1-0.25 mm round the name), no box; v3.26: pc_mapbase logs the fill rings read / in view per layer (MapBase v1.8 mb_fill_log; Aras 07:46 "you might be skipping somewhere in the fills"); v3.25: pc_mapbase a05 bridges a warm dark grey 7A7468 at 0.18 mm (run 1: black 0.3 mm bridge lines were the heaviest ink on the pale base); v3.24: pc_mapbase a05 streets a pale warm grey F5F3EE (MapBaseCheck run 1: white streets on white houses read as one white mass in the old town; houses stay white), the street-edge lines cut to the network (MapBase v1.7); v3.23: pc_mapbase context make-up (Aras 15 Nov 06:03-06:05 "too many stray lines ... houses fills are overlapping ... Roads are not clear"; "thousand times better as house designs" = the 13 Nov A05 house look): houses white with a pale outline (MapBase v1.6 adds the crisp grey shadow to the lower left and drops wall / edge pieces under 3 m); streets white on a darker ground with darker edges; walls lighter; style key "a05": False keeps the old look; v3.22: pc_dg_kit to DIAGRAM_STYLE v2 (ground 3 x other weights, pale-accent terraces, arches silhouette);  v3.21: v3.21: pc_dg_kit dashes at item[6] (Basemap writer), dash_at=4 for the Sections writer;  v3.20: v3.20: pc_dg_kit, the diagram kit of library/diagram_style/DIAGRAM_STYLE.md (Aras 21:30 UTC "all the diagrams are awful"); v3.19: v3.18 undone (the writer keeps a line's clip at item[4]: those lines were really unclipped); v3.17: SiteMap ring + b (survey box), pc_site_den, pc_north_deg, pc_sheet cols + span (legend columns beside a site_alan strip); v3.16: pc_loop names=True (stop names on the map), every stop outside the frame gets an edge arrow, the stream walk in either loop order (loop numbered from Asklepion, Aras 16:26); v3.15: SiteMap / pc_site_map (the map frame = site_alan turned flat, Aras 16:17 UTC "KEEP EVERY DRAWING STRICTLY IN SITE_ALAN"), pc_loop edge arrows to stops outside it, pc_north_items; v3.14: pc_cut_mark = two end arrows, no line between (Aras 16:05 UTC); v3.13: v3.13: pc_mp_data (MasterplanBase: the masterplan SVG cached in survey m); v3.12: pc_cut_mark, the R01 cut symbol (two arrows, Aras 15:37 UTC); v3.11: pc_loop (the heritage loop, one code for the heritage and the transit map; Aras 15:31) and pc_station_name; v3.10: pc_a3_den / pc_a3 (a map page fitted and centred on A3 or a slide panel, Aras 15:25-15:27 UTC); v3.9: no sources in the drawings (Aras 15:23 UTC): pc_nosrc on MapBase legend rows, empty credit skipped; v3.8: a name with no free place goes where it overlaps least (run 7); v3.7: Labels.block_line / block_items (names keep off lines: run 6 review); v3.6: the outside Python runs hidden (no console window, Aras 14 Nov 12:57 UTC); v3.5: frame check skips items with any clip id; pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
+PC_VERSION = "v3.29"  # v3.29 (Aras 15 Nov 14:45 UTC): pc_write puts the working-area dashes (layer study_area) on top of every other item ("make our working area dashed line as the most foreground line"); pc_masterplan draws master.svg (MasterplanBase cache, vector) on a map, for maps that use his masterplan as their base; v3.28: pc_text_c, a mark letter centred on its glyph box (Helvetica cap height 0.718 em: baseline = centre - 0.359 x size; Aras 15 Nov 13:50 UTC "letters are not centered in the boxes"); the loop badge numbers use it; v3.27: no white box behind any name (Aras 15 Nov 13:44 UTC "dont have a opaque background for texts in any single of the drawings"): Labels.put halo = pc_halo, a thin white text-shaped outline (8 white copies 0.1-0.25 mm round the name), no box; v3.26: pc_mapbase logs the fill rings read / in view per layer (MapBase v1.8 mb_fill_log; Aras 07:46 "you might be skipping somewhere in the fills"); v3.25: pc_mapbase a05 bridges a warm dark grey 7A7468 at 0.18 mm (run 1: black 0.3 mm bridge lines were the heaviest ink on the pale base); v3.24: pc_mapbase a05 streets a pale warm grey F5F3EE (MapBaseCheck run 1: white streets on white houses read as one white mass in the old town; houses stay white), the street-edge lines cut to the network (MapBase v1.7); v3.23: pc_mapbase context make-up (Aras 15 Nov 06:03-06:05 "too many stray lines ... houses fills are overlapping ... Roads are not clear"; "thousand times better as house designs" = the 13 Nov A05 house look): houses white with a pale outline (MapBase v1.6 adds the crisp grey shadow to the lower left and drops wall / edge pieces under 3 m); streets white on a darker ground with darker edges; walls lighter; style key "a05": False keeps the old look; v3.22: pc_dg_kit to DIAGRAM_STYLE v2 (ground 3 x other weights, pale-accent terraces, arches silhouette);  v3.21: v3.21: pc_dg_kit dashes at item[6] (Basemap writer), dash_at=4 for the Sections writer;  v3.20: v3.20: pc_dg_kit, the diagram kit of library/diagram_style/DIAGRAM_STYLE.md (Aras 21:30 UTC "all the diagrams are awful"); v3.19: v3.18 undone (the writer keeps a line's clip at item[4]: those lines were really unclipped); v3.17: SiteMap ring + b (survey box), pc_site_den, pc_north_deg, pc_sheet cols + span (legend columns beside a site_alan strip); v3.16: pc_loop names=True (stop names on the map), every stop outside the frame gets an edge arrow, the stream walk in either loop order (loop numbered from Asklepion, Aras 16:26); v3.15: SiteMap / pc_site_map (the map frame = site_alan turned flat, Aras 16:17 UTC "KEEP EVERY DRAWING STRICTLY IN SITE_ALAN"), pc_loop edge arrows to stops outside it, pc_north_items; v3.14: pc_cut_mark = two end arrows, no line between (Aras 16:05 UTC); v3.13: v3.13: pc_mp_data (MasterplanBase: the masterplan SVG cached in survey m); v3.12: pc_cut_mark, the R01 cut symbol (two arrows, Aras 15:37 UTC); v3.11: pc_loop (the heritage loop, one code for the heritage and the transit map; Aras 15:31) and pc_station_name; v3.10: pc_a3_den / pc_a3 (a map page fitted and centred on A3 or a slide panel, Aras 15:25-15:27 UTC); v3.9: no sources in the drawings (Aras 15:23 UTC): pc_nosrc on MapBase legend rows, empty credit skipped; v3.8: a name with no free place goes where it overlaps least (run 7); v3.7: Labels.block_line / block_items (names keep off lines: run 6 review); v3.6: the outside Python runs hidden (no console window, Aras 14 Nov 12:57 UTC); v3.5: frame check skips items with any clip id; pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
 PC_NOWIN = 0x08000000 if os.name == "nt" else 0   # v3.6: CREATE_NO_WINDOW for the review-PNG / photo subprocesses
 PC_DATA = os.path.join("Data", "bergama_access_heritage.json")
 PC_CENTRE = os.path.join("Data", "selinos_centreline.json")
@@ -860,9 +860,49 @@ def wrap(s, size, width, tw, bold=False):
 
 
 # ================================================================ outputs: PDF, SVG, review PNGs
+def pc_layer_of(it):
+    """v3.29: the layer of a Basemap-writer item (line: index 5, poly: 6, text: 8), else None"""
+    try:
+        return {"line": it[5], "poly": it[6], "text": it[8]}.get(it[0])
+    except Exception:
+        return None
+
+
+def pc_study_top(items, log=None, layer="study_area"):
+    """v3.29 (Aras 15 Nov 14:45 UTC): the working-area dashed line is the topmost line of every drawing: its items
+    move to the end of the list (drawn last), in their own order"""
+    top = [it for it in items if pc_layer_of(it) == layer]
+    if not top:
+        return items
+    if log is not None:
+        log.append(u"working-area line on top: %d piece(s)" % len(top))
+    return [it for it in items if pc_layer_of(it) != layer] + top
+
+
+PC_MP_MAX_M2 = 100000.0     # m2: v3.29, a bigger masterplan piece is a sheet / texture frame (nodes common v8.1)
+
+
+def pc_masterplan(M, log, lim=None):
+    """v3.29 (Aras 15 Nov 14:45 UTC "we gonna use masterplan svg as the base of the maps"): his masterplan
+    (master.svg via the MasterplanBase cache) as vector pieces through the map transform, cut to clip PC_CLIP; his own
+    copy of the existing roads and buildings (ev-yol) is left out by mp_draw, as are sheet frames over PC_MP_MAX_M2 and
+    4-corner picture rectangles (nodes common v8.1-8.2). Returns items"""
+    MPn, MPC = pc_mp_data(log)
+    ar_ = lambda P_: abs(sum(P_[i][0] * P_[i - 1][1] - P_[i - 1][0] * P_[i][1] for i in range(len(P_)))) / 2.0
+    cut_ = lambda e_: len(e_[4]) > 2 and (ar_(e_[4]) > PC_MP_MAX_M2 or (e_[0] == "a" and len(e_[4]) == 4))
+    n_big = sum(1 for v_ in MPC["layers"].values() for e_ in v_ if cut_(e_))
+    MPC = dict(MPC, layers=dict((kk, [e_ for e_ in v_ if not cut_(e_)]) for kk, v_ in MPC["layers"].items()))
+    items = []
+    cnt = MPn["mp_draw"](MPC, items, M.T, M.k, lim or M.box, PC_CLIP)
+    log.append(u"masterplan (master.svg): %d pieces drawn in %d layer(s); %d sheet frames / picture rectangles "
+               u"left out" % (sum(cnt.values()), len(cnt), n_big))
+    return items
+
+
 def pc_write(lib, M, items, out_dir, name, title, log, photos=None, clips=None):
     """v3.5: photos = pc_photos list (placed before the review PNGs); clips = own clip rings (default: the map box)"""
     os.makedirs(out_dir, exist_ok=True)
+    items = pc_study_top(items, log)                          # v3.29: the working-area dashes last = on top
     pc_frame_check(items, M.box, log, lib.get("text_w"))
     paths = []
     for ext, fn in ((".pdf", lib["write_pdf"]), (".svg", lib["write_svg"])):
