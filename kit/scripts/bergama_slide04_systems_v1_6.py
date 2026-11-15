@@ -1,0 +1,630 @@
+# -*- coding: utf-8 -*-
+"""Bergama Group 6: SLIDE 04 SYSTEMS v1 (15 Nov 2026): Panel Review II slide 4, water / green / edges / public space,
+ONE A3 landscape page (brief: "water/landscape/public space plan", perspectives marked V1, V2 on the plan).
+
+Aras 15 Nov 08:42 UTC: "yes start that way, water enrichment building stays in that is the building near industrial
+area ... it would serve as both industrial and education building, leave the placeholders".
+  TOP     his masterplan (master.svg) over the whole site_alan strip, rendered by Edge / Chrome (nodes common
+          svg_crop) with every layer of his drawing coloured by sub-system (SUB below): existing grey, water,
+          cleaning planting, green + trees, edges, public space. Over it: the water enrichment + education building
+          (his "desings" pieces inside the N6 frame, accent outline, "E"), the terrace close-up frame "D", V1 and V2,
+          an edge arrow toward the fields fed (water balance farm extent). Scale = the largest 1:250 step that fits
+          the sheet (1:2,000 would be 1.4 m long; Aras 14 Nov 15:25 "fit every drawing into A3's like the scale is
+          not important"); the scale bar is true.
+  BELOW   STORAGE (river months in / need months out, storage today vs design) | FARM FEED (order of use) |
+          PLANTING (trees per species and job, counted in master.svg) | D TERRACE CLOSE-UP (master.svg at 1:1,000,
+          the terrace stretch outside every node frame with the most terrace pieces) | V1 and V2 perspective
+          placeholders (Aras supplies the renders).
+Every figure is read live: water_balance_results.json (Water balance script; the cloud default copy in Data/ only if
+missing, FLAG), Data/water_balance_key_figures.json (farm extent), master.svg (tree counts), MasterplanBase cache.
+The two strip storage figures are the rain/river analysis table (CONCEPT_RECORD.md: tables/A6_strip_storage.csv).
+No sources on the sheet (Aras 14 Nov 15:23 UTC); they go to the log.
+
+Outputs: Downloads/Bergama/output/bergama_slide04_systems/Slide04_systems.pdf + review/ PNGs; output/presentation/4.pdf.
+Reads: Data/bergama_nodes_common.py (and what it loads), Data/assets/plan/master.svg, the MasterplanBase cache.
+Grasshopper: a Button on any input runs it.
+"""
+import os, re, json, math, time
+
+VERSION = "v1.6"   # v1.6 = run 4 review: N1-N6 brackets and names just above the plan frame (unreadable over the base map); v1.5 = v1.5 = Aras 15 Nov 13:50 UTC "letters are not centered in the boxes": marker letters centred on their glyph box (measured width, cap height 0.72 x size); v1.4 = v1.4 = Aras 15 Nov 13:44 UTC "dont have a opaque background for texts in any single of the drawings": no box behind any text (placeholder label band gone, E ring and farm-feed boxes outline only); v1.3 = v1.3 = Aras 15 Nov 13:41-13:42 UTC "Every 3D, 2D or whatever the drawing is should use the basemap": the existing town is MapBase (A05 look) under his drawing, his own existing roads/buildings (ev-yol, builts2) hidden, the crops transparent; v1.2 = v1.2 = own review vs the liked set (WHY_WE_LIKED.md: the stream is the darkest shape on a white sheet, A05; everything named on the drawing, bracket naming): water a deep blue-grey ribbon, N1-N6 named by hairline brackets along the plan top; v1.1 = v1.1 = run 1 review: his tree drawings ("assets", 80k paths) coloured as green + trees; D picked by terrace + water-step + pier-edge pieces (run 1 found 1 terrace piece); the farm extent holds the site, so no edge arrow (log line, no FLAG)
+SLIDE = 4
+GH_LABEL = "Slide04"
+OUT_FOLDER = "bergama_slide04_systems"
+LOG_NAME = "bergama_slide04_systems_log.txt"
+GH_INPUTS = {}
+COMMON = os.path.join("Data", "bergama_nodes_common.py")
+BERGAMA_ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
+OUT_DIR = os.path.join(BERGAMA_ROOT, "output", OUT_FOLDER)
+LOG_DIR = os.path.join(BERGAMA_ROOT, "logs")
+NAME = u"Slide04_systems"
+
+PAGE_W, PAGE_H = 420.0, 297.0
+MARGIN = 14.0
+PLAN_TOP = 268.0                 # mm: top of the plan
+PLAN_HMAX = 82.0                 # mm: the plan is at most this tall
+DETAIL_DEN = 1000.0              # the terrace close-up scale
+INK, GREY, ACC, WATER_LN = "2C2219", "6E675E", "C07A2E", "3F86B8"
+WB_FILE = "water_balance_results.json"
+WB_DEFAULT = os.path.join("Data", "water_balance_results_default.json")
+WB_KEY = os.path.join("Data", "water_balance_key_figures.json")
+SVG = os.path.join("Data", "assets", "plan", "master.svg")
+# strip storage, 4 m reference strip, worst case (CONCEPT_RECORD.md "Strip losses" table, tables/A6_strip_storage.csv):
+# "| **4 m (reference)** | 11,796 m² | 3,539 m³ | 18,208 / **26,675 m³** | 58,550 / **83,060 m³** |"
+STRIP_SEALED_M3, STRIP_UNSEALED_M3 = 26675, 83060
+
+# sub-systems: his layer ids (master.svg) -> colour pair (dark, light) of a duotone (his detail kept, one hue each);
+# palette: project board + library/examples/palettes (5C7A86 CFDBE4, 3C4733, 89986A 70754C, 4C2528, C07A2E)
+SUB = [
+    ("existing", u"EXISTING", ("5E5A54", "FFFFFF"),
+     ("heritage", "kizil_avlu")),
+    ("water", u"WATER", ("24404D", "8FAAB8"),
+     ("su_outline", "su_texture", "kaya", "ordek", "Doldurma_renk")),
+    ("clean", u"CLEANING PLANTING", ("2F3A28", "AFC2A6"),
+     ("yosun", "bitki2")),
+    ("green", u"GREEN + TREES", ("5E6440", "E3E6CF"),
+     ("belki_yesil", "kesin_yesil", "agaclar-2", "assets")),
+    ("edges", u"EDGES", ("4C2528", "E9DCD8"),
+     ("tas", "istinaat", "iskele_kenari", "teras", "yol_kenar", "begum_su_merdiven")),
+    ("public", u"PUBLIC SPACE", ("8A4E14", "F3E0C8"),
+     ("circulation", "bina_cerceve", "kopruler", "bisiklet", "kanopi", "desings")),
+]
+JOBS = {"stone_pine": u"ROAD + WIND", "willow": u"WATER EDGE", "plane": u"WALKS", "olive": u"HERITAGE",
+        "ash": u"MIXED GROVES", "tamarisk": u"MIXED GROVES", "rosemary": u"STRIPS UNDER 150 m2"}
+HIDE = ("ev-yol", "builts2")   # his own copy of the existing town: MapBase draws it (Aras 13:41)
+MONTHS = u"JFMAMJJASOND"
+MON3 = (u"JAN", u"FEB", u"MAR", u"APR", u"MAY", u"JUN", u"JUL", u"AUG", u"SEP", u"OCT", u"NOV", u"DEC")
+
+
+def hexmix(a, b, t):
+    ca = [int(a[i:i + 2], 16) for i in (0, 2, 4)]
+    cb = [int(b[i:i + 2], 16) for i in (0, 2, 4)]
+    return u"%02X%02X%02X" % tuple(int(round(x + (y - x) * t)) for x, y in zip(ca, cb))
+
+
+def css_text():
+    """filters + style put before his drawing: each listed layer becomes a duotone of its sub-system (lightness kept)"""
+    f = []
+    st = []
+    for key, _, (dk, lt), ids in SUB:
+        tv = lambda i: u"%.4f %.4f" % (int(dk[i:i + 2], 16) / 255.0, int(lt[i:i + 2], 16) / 255.0)
+        f.append(u'<filter id="sub_%s" color-interpolation-filters="sRGB" x="0" y="0" width="1" height="1">'
+                 u'<feColorMatrix type="matrix" values="0.2126 0.7152 0.0722 0 0 0.2126 0.7152 0.0722 0 0 '
+                 u'0.2126 0.7152 0.0722 0 0 0 0 0 1 0"/><feComponentTransfer><feFuncR type="table" tableValues="%s"/>'
+                 u'<feFuncG type="table" tableValues="%s"/><feFuncB type="table" tableValues="%s"/>'
+                 u'</feComponentTransfer></filter>' % (key, tv(0), tv(2), tv(4)))
+        st.append(u",".join(u'[id="%s"]' % i for i in ids) + u"{filter:url(#sub_%s)}" % key)
+    st.append(u",".join(u'[id="%s"]' % i for i in HIDE) + u"{display:none}")
+    return u"<defs>%s</defs><style>%s</style>" % (u"".join(f), u"".join(st))
+
+
+def wb_load(root, log):
+    """the Water balance results (live), else the cloud default copy (FLAG)"""
+    for parts in (("cached", "Bergama_water_balance_analysis", WB_FILE), ("output", "Bergama_water_balance_analysis",
+                                                                         WB_FILE)):
+        p = os.path.join(root, *parts)
+        if os.path.isfile(p):
+            log.append(u"water balance: %s" % p)
+            with open(p, encoding="utf-8") as f:
+                return json.load(f)
+    p = os.path.join(root, WB_DEFAULT)
+    log.append(u"FLAG water balance: no %s from the Water balance script; using the cloud default copy %s (24 Oct)" %
+               (WB_FILE, p))
+    with open(p, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def tree_counts(root, log):
+    """trees per species in his master.svg planting group (<use> per trees_<species> group), with the group name"""
+    p = os.path.join(root, SVG)
+    with open(p, encoding="utf-8") as f:
+        t = f.read()
+    m = re.search(r'id="(PLANTING_[^"]*)"', t)
+    out = []
+    for g in re.finditer(r'<g[^>]*\bid="trees_([a-z_]+)"[^>]*>', t[m.start() if m else 0:]):
+        s = (m.start() if m else 0) + g.end()
+        depth, n = 1, 0
+        for tag in re.finditer(r'<(/?)(g|use)\b[^>]*?(/?)>', t[s:s + 20000000]):
+            if tag.group(2) == "use":
+                n += 0 if tag.group(1) else 1
+            elif tag.group(1):
+                depth -= 1
+                if depth == 0:
+                    break
+            elif not tag.group(3):
+                depth += 1
+        out.append((g.group(1), n))
+    log.append(u"trees in master.svg %s: %s" % (m.group(1) if m else u"(no PLANTING group)",
+                                                 u", ".join(u"%s %d" % c for c in out)))
+    if not out:
+        log.append(u"FLAG no trees_<species> groups found in %s" % p)
+    return (m.group(1) if m else u""), out
+
+
+def span_name(flags):
+    """months where flags is True as 'NOV-APR' (one run, wrapping over the year end) or None"""
+    on = [i for i in range(12) if flags[i]]
+    if not on or len(on) == 12:
+        return None
+    start = next(i for i in range(12) if flags[i] and not flags[i - 1])
+    end = start
+    while flags[(end + 1) % 12]:
+        end = (end + 1) % 12
+    if sum(1 for i in range(12) if flags[i]) != (end - start) % 12 + 1:
+        return None
+    return u"%s-%s" % (MON3[start], MON3[end])
+
+
+def inside(p, R):
+    c = False
+    j = len(R) - 1
+    for i in range(len(R)):
+        if (R[i][1] > p[1]) != (R[j][1] > p[1]) and \
+                p[0] < (R[j][0] - R[i][0]) * (p[1] - R[i][1]) / (R[j][1] - R[i][1]) + R[i][0]:
+            c = not c
+        j = i
+    return c
+
+
+def fmt(v):
+    return format(int(round(v)), ",d")
+
+
+def main():
+    t0 = time.time()
+    log = []
+    p = os.path.join(BERGAMA_ROOT, COMMON)
+    if not os.path.isfile(p):
+        raise RuntimeError(u"%s missing: run Bergama.bat once (the kit copies it), then press again" % p)
+    NC = {"__name__": "bergama_nodes_common"}
+    with open(p, encoding="utf-8") as f:
+        exec(compile(f.read(), p, "exec"), NC)
+    log.append(u"common: %s (%s)" % (p, NC.get("NC_VERSION")))
+    root = NC["ROOT"]
+    T_, L_, R_, ring, box, wrap = NC["T_"], NC["L_"], NC["R_"], NC["ring"], NC["box"], NC["wrap"]
+    P, B, X, G, SL, D = NC["load_all"]("N6", OUT_FOLDER, log)       # loads the shared code (node name: caches only)
+    tw = B["text_w"]
+    items = []
+
+    def arrow(a, b, col, lw=0.35, hl=2.2, hw=0.9, layer="marks"):
+        L = math.hypot(b[0] - a[0], b[1] - a[1]) or 1.0
+        ux, uy = (b[0] - a[0]) / L, (b[1] - a[1]) / L
+        items.append(L_([a, (b[0] - ux * hl * 0.8, b[1] - uy * hl * 0.8)], col, lw, layer))
+        items.append(R_([[b, (b[0] - ux * hl - uy * hw, b[1] - uy * hl + ux * hw),
+                          (b[0] - ux * hl + uy * hw, b[1] - uy * hl - ux * hw)]], col, None, 0.0, layer))
+
+    def ctext(s, cx, cy, size, col, layer):
+        """a marker letter centred on (cx, cy): left-aligned at half its measured width, baseline at half the cap height"""
+        items.append(T_(s, cx - tw(s, size, True) / 2.0, cy - 0.36 * size, size, col, True, "L", layer))
+
+    def para(s, x, y, size, width, col=INK, bold=False, layer="text"):
+        for ln in wrap(B, s, size, width, bold):
+            items.append(T_(ln, x, y, size, col, bold, "L", layer))
+            y -= size * 1.4
+        return y
+
+    def vmark(q, look, name):
+        """viewpoint: accent dot, a short view cone toward look, its name"""
+        L = math.hypot(look[0] - q[0], look[1] - q[1]) or 1.0
+        ux, uy = (look[0] - q[0]) / L, (look[1] - q[1]) / L
+        a = (q[0] + ux * 5.0 - uy * 2.0, q[1] + uy * 5.0 + ux * 2.0)
+        b = (q[0] + ux * 5.0 + uy * 2.0, q[1] + uy * 5.0 - ux * 2.0)
+        items.append(R_([[q, a, b]], hexmix(ACC, "FFFFFF", 0.55), ACC, 0.2, "viewpoints"))
+        items.append(R_([ring(q[0], q[1], 1.1, 24)], ACC, "FFFFFF", 0.2, "viewpoints"))
+        items.append(T_(name, q[0] - ux * 2.2 - 1.5, q[1] - uy * 2.2 - 1.0, 2.4, ACC, True, "C", "viewpoints"))
+
+    # ---------------------------------------------------------------- the plan: site_alan strip, his drawing
+    M0 = G["pc_site_map"](7500, log)
+    F = M0.F
+    fw = PAGE_W - 2 * MARGIN
+    den = max(F.w * 1000.0 / fw, F.h * 1000.0 / PLAN_HMAX)
+    den = math.ceil(den / 250.0) * 250.0
+    k = 1000.0 / den
+    X0 = (PAGE_W - F.w * k) / 2.0
+    Y1 = PLAN_TOP
+    Y0 = Y1 - F.h * k
+    PB = (X0, Y0, X0 + F.w * k, Y1)
+    pgS = lambda xy: (X0 + F.local(xy)[0] * k, Y0 + F.local(xy)[1] * k)
+    log.append(u"plan: site_alan %.0f x %.0f m at 1:%s = %.0f x %.0f mm (1:2,000 would be %.0f mm long)" % (
+        F.w, F.h, fmt(den), F.w * k, F.h * k, F.w / 2.0))
+
+    def back(u, v):                                       # local m -> survey m (inverse of F.local)
+        rx, ry = u + F.u0, v + F.v0
+        return (F.ca * rx + F.sa * ry, -F.sa * rx + F.ca * ry)
+
+    MPn, MPC = G["pc_mp_data"](log)
+    CSS = css_text()
+    MB = NC["load_mb"](log)                               # the base map under every drawing (Aras 13:41-13:42)
+    MC = MB["mb_load"](log)
+    if MC is None:
+        raise RuntimeError(u"MapBase cache missing: press MapBase once, then this page")
+    items += NC["clip_plan"](B, NC["mb_plan"](MB, MC, F, pgS, k, PB, B, P, log)[0], PB, log)
+    png = NC["svg_crop"](u"slide04_plan", MPC["matrix"], pgS, PB, log, css=CSS, bg=False)
+    if png:
+        items.append(("image", X0, Y0, F.w * k, F.h * k, png, None, False, None, "masterplan_svg"))
+    else:                                                 # his drawing as vector pieces, same colours by layer word
+        log.append(u"FLAG plan: no crop, the MasterplanBase pieces are drawn instead (no trees in that cache)")
+        fills = {}
+        for key, _, (dk, lt), ids in SUB:
+            for i in ids:
+                fills[i] = hexmix(dk, lt, 0.55)
+        MPn["mp_draw"](MPC, items, pgS, k, PB, None, style={"fill": fills, "stroke": fills, "area": fills})
+    items.append(R_([box(*PB)], None, INK, 0.3, "map_frame"))
+
+    # ---- node frames (u ranges), the building, the terrace close-up
+    nodes = {}
+    for n, nd in sorted(SL["nodes"].items()):
+        us = [F.local(tuple(c))[0] for c in nd["corners"]]
+        nodes[n] = (min(us), max(us), [tuple(c) for c in nd["corners"]])
+    big = lambda P_: abs(sum(P_[i][0] * P_[i - 1][1] - P_[i - 1][0] * P_[i][1] for i in range(len(P_)))) / 2.0 > \
+        NC["MP_MAX_M2"]
+    cen = lambda P_: (sum(q[0] for q in P_) / len(P_), sum(q[1] for q in P_) / len(P_))
+    # node names by hairline brackets along the top of the plan (the 'agora' naming, DIAGRAM_STYLE; liked set: named)
+    for n, (a_, b_, _) in sorted(nodes.items()):
+        xa, xb = X0 + max(a_, 0.0) * k + 0.6, X0 + min(b_, F.w) * k - 0.6
+        if xb - xa < 4.0:
+            continue
+        yb_ = Y1 + 1.4                                   # v1.6: above the frame, ticks down toward it
+        items.append(L_([(xa, yb_ - 0.8), (xa, yb_), (xb, yb_), (xb, yb_ - 0.8)], INK, 0.15, "node_names"))
+        items.append(T_(n, (xa + xb) / 2.0 - tw(n, 2.0, True) / 2.0, yb_ + 0.9, 2.0, INK, True, "L", "node_names"))
+    # E: his proposed buildings ("desings") inside the N6 frame = the water enrichment + education building
+    bld = []
+    for key, recs in MPC["layers"].items():
+        if key.split("/")[0] != "desings":
+            continue
+        for e in recs:
+            if len(e[4]) >= 3 and not big(e[4]) and "N6" in nodes and inside(cen(e[4]), nodes["N6"][2]):
+                bld.append(e[4])
+    if bld:
+        for P_ in bld:
+            items.append(R_([[pgS(q) for q in P_]], None, ACC, 0.35, "building_E"))
+        allq = [pgS(q) for P_ in bld for q in P_]
+        bx = (min(q[0] for q in allq), min(q[1] for q in allq), max(q[0] for q in allq), max(q[1] for q in allq))
+        ec = ((bx[0] + bx[2]) / 2.0, bx[3] + 3.2 if bx[3] + 4.5 < Y1 else bx[1] - 3.2)
+        items.append(R_([ring(ec[0], ec[1], 1.9, 32)], None, ACC, 0.3, "building_E"))
+        ctext(u"E", ec[0], ec[1], 2.4, ACC, "building_E")
+        bc_s = cen([q for P_ in bld for q in P_])
+        log.append(u"E: %d 'desings' piece(s) inside the N6 frame, %.0f x %.0f m on the plan box, centre %.1f, %.1f" % (
+            len(bld), (bx[2] - bx[0]) / k, (bx[3] - bx[1]) / k, bc_s[0], bc_s[1]))
+    else:
+        bc_s = None
+        log.append(u"FLAG E: no 'desings' piece of his masterplan inside the N6 frame: the water enrichment building is "
+                   u"not marked (ask Aras where it is)")
+
+    # D: the terrace close-up (box size from its panel), the terrace stretch outside every node frame
+    col_w = (fw - 8.0) / 3.0
+    cols = [MARGIN + i * (col_w + 4.0) for i in range(3)]
+    row2 = (MARGIN, Y0 - 24.0 - (Y0 - 24.0 - MARGIN - 6.0) / 2.0)   # bottom row y0, y1 (top row above it)
+    row1 = (row2[1] + 6.0, Y0 - 24.0)
+    dbox = (cols[0], row2[0], cols[0] + col_w, row2[1] - 8.0)
+    k2 = 1000.0 / DETAIL_DEN
+    Wm, Hm = (dbox[2] - dbox[0]) / k2, (dbox[3] - dbox[1]) / k2
+    ter = [cen([F.local(q) for q in e[4]]) for key, recs in MPC["layers"].items() if set(key.split("/")) & {"teras", "begum_su_merdiven", "iskele_kenari"}
+           for e in recs if len(e[4]) >= 2 and not big(e[4])]
+    free = lambda ua: all(ua + Wm <= a or ua >= b for a, b, _ in nodes.values())
+    best = None
+    ua = 0.0
+    while ua + Wm <= F.w:
+        if free(ua):
+            n_ = sum(1 for q in ter if ua <= q[0] <= ua + Wm)
+            if n_ and (best is None or n_ > best[0]):
+                best = (n_, ua)
+        ua += 10.0
+    D_ok = best is not None
+    if D_ok:
+        ua = best[1]
+        vs = sorted(q[1] for q in ter if ua <= q[0] <= ua + Wm)
+        vc = vs[len(vs) // 2]
+        va = min(max(vc - Hm / 2.0, 0.0), max(F.h - Hm, 0.0))
+        log.append(u"D: %d terrace / water-step / pier-edge pieces in u %.0f-%.0f m, v %.0f-%.0f m (outside N1-N6)" % (best[0], ua, ua + Wm, va,
+                                                                                                va + Hm))
+        dr = (X0 + ua * k, Y0 + va * k, X0 + (ua + Wm) * k, Y0 + min(va + Hm, F.h) * k)
+        items.append(R_([box(*dr)], None, ACC, 0.3, "detail_D"))
+        items.append(T_(u"D", dr[0] + 0.6, dr[3] + 1.0, 2.4, ACC, True, "L", "detail_D"))
+        q1 = (X0 + (ua + Wm * 0.12) * k, Y0 + vc * k)
+        vmark(q1, (X0 + (ua + Wm * 0.6) * k, Y0 + vc * k), u"V1")
+    else:
+        log.append(u"FLAG D: no terrace pieces outside the node frames: no close-up")
+    if bc_s is not None:
+        CL = G["pc_selinos_line"]()
+        cp = min(CL, key=lambda q: math.hypot(q[0] - bc_s[0], q[1] - bc_s[1]))
+        bq, cq = pgS(bc_s), pgS(cp)
+        d_ = math.hypot(cq[0] - bq[0], cq[1] - bq[1]) or 1.0
+        q2 = (cq[0] + (cq[0] - bq[0]) / d_ * 3.0, cq[1] + (cq[1] - bq[1]) / d_ * 3.0)   # just over the stream
+        q2 = (min(max(q2[0], PB[0] + 4.0), PB[2] - 4.0), min(max(q2[1], PB[1] + 4.0), PB[3] - 4.0))
+        vmark(q2, bq, u"V2")
+
+    # the fields fed: an edge arrow toward the farm extent (water balance key figures)
+    try:
+        with open(os.path.join(root, WB_KEY), encoding="utf-8") as f:
+            KF = json.load(f)
+        fc = cen([tuple(c) for c in KF["farms_fed"]["corners_survey_xy"]])
+        a_ = F.local(back(F.w / 2.0, F.h / 2.0))
+        b_ = F.local(fc)
+        if 0 <= b_[0] <= F.w and 0 <= b_[1] <= F.h:
+            log.append(u"fields: the farm extent (around2.pdf) holds the site: no edge arrow")
+        else:
+            dx, dy = b_[0] - a_[0], b_[1] - a_[1]
+            t = min([v for v in ((F.w - a_[0]) / dx if dx > 0 else (-a_[0] / dx if dx < 0 else 9e9),
+                                 (F.h - a_[1]) / dy if dy > 0 else (-a_[1] / dy if dy < 0 else 9e9)) if v > 0])
+            ex = (a_[0] + dx * t, a_[1] + dy * t)
+            L = math.hypot(dx, dy)
+            ux, uy = dx / L, dy / L
+            tip = (X0 + ex[0] * k - ux * 1.0, Y0 + ex[1] * k - uy * 1.0)
+            tail = (tip[0] - ux * 14.0, tip[1] - uy * 14.0)
+            arrow(tail, tip, WATER_LN, 0.5, 2.6, 1.2, "fields")
+            dist = math.hypot(fc[0] - back(*ex)[0], fc[1] - back(*ex)[1])
+            lab = u"TO THE FIELDS"
+            lx = tail[0] - (tw(lab, 2.0, True) + 1.5 if ux > 0 else -1.5)
+            items.append(T_(lab, min(max(lx, PB[0] + 1.0), PB[2] - tw(lab, 2.0, True) - 1.0),
+                            tail[1] - 0.7, 2.0, WATER_LN, True, "L", "fields"))
+            log.append(u"fields: farm extent centre %.0f, %.0f (around2.pdf, %s ha); %.0f m beyond the site edge "
+                       u"(calculated)" % (fc[0], fc[1], KF["farms_fed"]["area_ha"], dist))
+    except Exception as ex_:
+        log.append(u"FLAG fields arrow not drawn (%s: %s)" % (type(ex_).__name__, ex_))
+
+    # ---- legend row + scale + north under the plan
+    yl = Y0 - 9.0
+    x = MARGIN
+    for key, nm, (dk, lt), ids in SUB:
+        items.append(R_([box(x, yl, x + 6.0, yl + 3.2)], hexmix(dk, lt, 0.45), dk, 0.15, "legend"))
+        items.append(T_(nm, x + 7.5, yl + 0.6, 2.0, INK, True, "L", "legend"))
+        x += 7.5 + tw(nm, 2.0, True) + 5.0
+    for sym, nm in ((u"E", u"WATER ENRICHMENT + EDUCATION BUILDING (PROPOSAL)"), (u"D", u"TERRACE CLOSE-UP"),
+                    (u"V", u"VIEWPOINT")):
+        if sym == u"V":
+            items.append(R_([ring(x + 1.6, yl + 1.6, 1.1, 24)], ACC, None, 0.0, "legend"))
+        else:
+            items.append(R_([box(x, yl, x + 3.2, yl + 3.2)], None, ACC, 0.3, "legend"))
+            ctext(sym, x + 1.6, yl + 1.6, 2.0, ACC, "legend")
+        items.append(T_(nm, x + 4.5, yl + 0.6, 2.0, INK, True, "L", "legend"))
+        x += 4.5 + tw(nm, 2.0, True) + 5.0
+    sn = NC["scale_north"](F, den, PAGE_W - MARGIN, Y0 - 17.0)
+    sx0 = min(it[2] for it in sn if it[0] == "text") if sn else PAGE_W
+    items += sn
+    items.append(T_(u"1:%s" % fmt(den), PAGE_W - MARGIN, Y0 - 3.6, 2.0, INK, True, "R", "scale_north"))
+    if x > sx0 - 22.0:
+        log.append(u"FLAG legend row (to x %.0f mm) runs into the scale bar (from %.0f mm)" % (x, sx0 - 20.0))
+
+    def panel_title(x0, y1, head, claim):
+        items.append(T_(u"%s · %s" % (head, claim), x0, y1 - 3.0, 2.8, INK, True, "L", "titles"))
+        items.append(L_([(x0, y1 - 5.0), (x0 + col_w, y1 - 5.0)], INK, 0.15, "titles"))
+        return y1 - 9.0
+
+    WB = wb_load(root, log)
+    dz = WB["design"]
+    mix = dz.get("mix") or list(WB["farm_demand_m3"].keys())[0]
+    river = WB["river_month_m3"]
+    need = [a + b for a, b in zip(WB["strip_month_m3"], WB["farm_demand_month_m3"][mix]["mean"])]
+    flow_on = span_name([v > 0 for v in river])
+    dry = span_name([v <= 0 for v in river])
+
+    # ---------------------------------------------------------------- A STORAGE
+    x0, y1 = cols[0], row1[1]
+    y = panel_title(x0, y1, u"STORAGE", u"WINTER WATER CARRIES THE DRY SUMMER")
+    lab_w = 17.0
+    cw = (col_w - lab_w) / 12.0
+    ax = y - 21.0                                         # month axis
+    rmax, nmax = max(river) or 1.0, max(need) or 1.0
+    for i in range(12):
+        xa = x0 + lab_w + i * cw
+        if river[i] > 0:
+            h = 17.0 * river[i] / rmax
+            items.append(R_([box(xa + 0.6, ax + 0.4, xa + cw - 0.6, ax + 0.4 + h)], "A2B6B5", None, 0.0, "storage"))
+        if need[i] > 0:
+            h = 13.0 * need[i] / nmax
+            items.append(R_([box(xa + 0.6, ax - 0.4 - h, xa + cw - 0.6, ax - 0.4)], hexmix(ACC, "FFFFFF", 0.35), None,
+                            0.0, "storage"))
+        items.append(T_(MONTHS[i], xa + cw / 2.0, ax - 16.0, 1.7, GREY, True, "C", "storage"))
+    items.append(L_([(x0 + lab_w, ax), (x0 + col_w, ax)], INK, 0.5, "storage"))
+    items.append(T_(u"RIVER IN", x0, ax + 6.0, 1.7, WATER_LN, True, "L", "storage"))
+    items.append(T_(u"NEED OUT", x0, ax - 7.0, 1.7, ACC, True, "L", "storage"))
+    items.append(T_(u"STRIP + FIELDS", x0, ax - 9.4, 1.5, GREY, True, "L", "storage"))
+    if dry:
+        on = [i for i in range(12) if river[i] <= 0]
+        xa, xb = x0 + lab_w + min(on) * cw + 0.6, x0 + lab_w + (max(on) + 1) * cw - 0.6
+        if max(on) - min(on) + 1 == len(on):
+            items.append(L_([(xa, ax + 4.0), (xa, ax + 3.2), (xb, ax + 3.2), (xb, ax + 4.0)], INK, 0.15, "storage"))
+            items.append(T_(u"RIVER DRY: STORAGE SERVES", (xa + xb) / 2.0, ax + 5.0, 1.7, INK, True, "C", "storage"))
+    yb = ax - 24.0
+    bars = [(STRIP_SEALED_M3, None, u"%s m3 · STRIP, SEALED BED (TODAY)" % fmt(STRIP_SEALED_M3)),
+            (STRIP_UNSEALED_M3, None, u"%s m3 · STRIP, UNSEALED BED" % fmt(STRIP_UNSEALED_M3)),
+            (dz["central_range_m3"][1], dz["central_range_m3"][0],
+             u"%s-%s m3 · FIELDS + STRIP · UNVERIFIED (BOREHOLE TESTS)" % (fmt(dz["central_range_m3"][0]),
+                                                                                   fmt(dz["central_range_m3"][1])))]
+    smax = float(max(b[0] for b in bars))
+    for v, v0, nm in bars:
+        L = (col_w - 1.0) * v / smax
+        items.append(R_([box(x0, yb, x0 + L, yb + 2.4)], "A2B6B5" if v0 is None else hexmix(ACC, "FFFFFF", 0.35),
+                        None, 0.0, "storage"))
+        if v0 is not None:
+            items.append(L_([(x0 + (col_w - 1.0) * v0 / smax, yb), (x0 + (col_w - 1.0) * v0 / smax, yb + 2.4)],
+                            "FFFFFF", 0.3, "storage"))
+        items.append(T_(nm, x0, yb + 3.2, 1.7, INK, True, "L", "storage"))
+        yb -= 6.6
+    if yb + 6.6 < row1[0]:
+        log.append(u"FLAG storage panel runs %.1f mm below its row" % (row1[0] - yb - 6.6))
+    log.append(u"storage: river months %s, dry %s (calendar months of river_month_m3), need = strip + fields '%s' mean;"
+               u" design %s m3 (%s)" % (flow_on, dry, mix, fmt(dz["storage_m3"]), dz.get("note", u"")))
+
+    # ---------------------------------------------------------------- B FARM FEED
+    x0 = cols[1]
+    y = panel_title(x0, y1, u"FARM FEED", u"THE STRIP FIRST, THEN THE FIELDS")
+    lands = WB["lands"]
+    fd = WB["farm_demand_m3"][mix]["mean"]
+    bw, bh = 34.0, 13.0
+    rows_ = [y - 4.0 - bh, y - 4.0 - bh - 16.0, y - 4.0 - bh - 32.0]
+    xs = (x0, x0 + 46.0, x0 + col_w - bw)
+
+    def node_box(xa, yb_, title, sub, fill=None, edge=INK):
+        items.append(R_([box(xa, yb_, xa + bw, yb_ + bh)], None, edge, 0.3, "farm"))   # v1.4: no fill behind text
+        items.append(T_(title, xa + 1.5, yb_ + bh - 3.6, 1.9, INK, True, "L", "farm"))
+        yy = yb_ + bh - 6.6
+        for ln in wrap(B, sub, 1.6, bw - 3.0)[:3]:
+            items.append(T_(ln, xa + 1.5, yy, 1.6, GREY, True, "L", "farm"))
+            yy -= 2.3
+    node_box(xs[0], rows_[1], u"RIVER", u"FLOWS %s" % (flow_on or u""), "DCE7EC", WATER_LN)
+    node_box(xs[1] - 6.0, rows_[1], u"STORAGE", u"%s m3 DESIGN · UNVERIFIED" % fmt(dz["storage_m3"]), "DCE7EC",
+             WATER_LN)
+    node_box(xs[2], rows_[0], u"1 · RIVER STRIP", u"%s m3 A YEAR, %s" % (
+        fmt(WB["strip_m3_per_year"]), span_name([v > 0 for v in WB["strip_month_m3"]]) or u""), "DCE7EC", WATER_LN)
+    node_box(xs[2], rows_[1], u"2 · FIELDS VIA E", u"%s ha CROPLAND + %s ha ORCHARD · %s m3 A YEAR" % (
+        lands["cropland_ha"], lands["orchard_ha"], fmt(fd)), hexmix(ACC, "FFFFFF", 0.8), ACC)
+    node_box(xs[2], rows_[2], u"3 · SURPLUS VIA E", u"TREATED FOR THE CITY NETWORK", hexmix(ACC, "FFFFFF", 0.8),
+             ACC)
+    arrow((xs[0] + bw, rows_[1] + bh / 2.0), (xs[1] - 6.0, rows_[1] + bh / 2.0), WATER_LN, 0.35)
+    sx = xs[1] - 6.0 + bw
+    for r_ in rows_:
+        arrow((sx, rows_[1] + bh / 2.0), (xs[2], r_ + bh / 2.0), WATER_LN if r_ == rows_[0] else ACC, 0.35)
+    yt = rows_[2] - 4.0
+    yt = para(u"E = WATER ENRICHMENT + EDUCATION BUILDING (N6, INDUSTRIAL AREA, NEAR DE\u00dc BERGAMA): ENRICHES THE "
+              u"IRRIGATION LINE, NEVER THE STREAM; LEARNING OPEN TO EVERYONE. PROPOSAL, UNVERIFIED.", x0, yt, 1.7, col_w, GREY, True, "farm")
+    if yt < row1[0]:
+        log.append(u"FLAG farm feed panel runs %.1f mm below its row" % (row1[0] - yt))
+    log.append(u"farm feed: lands %s ha cropland + %s ha orchard (around2.pdf), need '%s' mean %s m3/yr, strip %s m3/yr "
+               u"(water balance)" % (lands["cropland_ha"], lands["orchard_ha"], mix, fmt(fd),
+                                     fmt(WB["strip_m3_per_year"])))
+
+    # ---------------------------------------------------------------- C PLANTING
+    x0 = cols[2]
+    grp, TC = tree_counts(root, log)
+    TC = sorted([c for c in TC if c[1] > 0], key=lambda c: -c[1])
+    tot = sum(c[1] for c in TC)
+    y = panel_title(x0, y1, u"PLANTING", u"%s TREES, EACH ON ITS JOB" % fmt(tot))
+    gdk, glt = SUB[3][2]
+    cmax = float(max([c[1] for c in TC] or [1]))
+    nm_w = 44.0
+    step = min(7.5, (y - row1[0] - 2.0) / max(len(TC), 1))
+    for sp, n in TC:
+        items.append(T_(sp.replace(u"_", u" ").upper(), x0, y - 2.2, 1.9, INK, True, "L", "planting"))
+        items.append(T_(JOBS.get(sp, u""), x0, y - 4.6, 1.5, GREY, True, "L", "planting"))
+        L = (col_w - nm_w - 12.0) * n / cmax
+        items.append(R_([box(x0 + nm_w, y - 4.2, x0 + nm_w + L, y - 1.0)], hexmix(gdk, glt, 0.45), None, 0.0,
+                        "planting"))
+        items.append(T_(fmt(n), x0 + nm_w + L + 1.2, y - 3.5, 1.8, INK, True, "L", "planting"))
+        y -= step
+    if y < row1[0] - 0.5:
+        log.append(u"FLAG planting panel runs %.1f mm below its row" % (row1[0] - y))
+    if grp and "v13_2" not in grp:
+        log.append(u"FLAG planting: master.svg holds %s, not the approved v13.2 (434 trees): paste v13.2 into it to "
+                   u"count that" % grp)
+
+    # ---------------------------------------------------------------- D TERRACE CLOSE-UP, V1, V2
+    x0, y1 = cols[0], row2[1]
+    panel_title(x0, y1, u"D", u"TERRACE CLOSE-UP")
+    if D_ok:
+        pgS2 = lambda xy: (dbox[0] + (F.local(xy)[0] - ua) * k2, dbox[1] + (F.local(xy)[1] - va) * k2)
+        items += NC["clip_plan"](B, NC["mb_plan"](MB, MC, F, pgS2, k2, dbox, B, P, log)[0], dbox, log)
+        png2 = NC["svg_crop"](u"slide04_detail", MPC["matrix"], pgS2, dbox, log, css=CSS, bg=False)
+        if png2:
+            items.append(("image", dbox[0], dbox[1], dbox[2] - dbox[0], dbox[3] - dbox[1], png2, None, False, None,
+                          "detail_svg"))
+        else:
+            log.append(u"FLAG D: the close-up crop failed")
+        items.append(R_([box(*dbox)], None, INK, 0.3, "detail_frame"))
+        items += NC["scale_north"](F, DETAIL_DEN, dbox[2], dbox[1])
+    else:
+        items.append(R_([box(*dbox)], None, GREY, 0.3, "detail_frame"))
+
+    def holder(x0_, y0_, x1_, y1_, title, sub):
+        items.append(L_(box(x0_, y0_, x1_, y1_) + [(x0_, y0_)], GREY, 0.3, "placeholder_perspective", (2.0, 1.2)))
+        hw = min(34.0, (x1_ - x0_) / 2.0 - 2.0)
+        cx, cy = (x0_ + x1_) / 2.0, (y0_ + y1_) / 2.0
+        items.append(T_(title, cx, cy + 2.0, 2.8, INK, True, "C", "placeholder_perspective"))
+        yy = cy - 2.0
+        for ln in wrap(B, sub, 2.0, 2 * hw - 2.0):
+            items.append(T_(ln, cx, yy, 2.0, GREY, False, "C", "placeholder_perspective"))
+            yy -= 2.6
+    for i, (vn, what) in enumerate(((u"V1", u"THE TERRACES"), (u"V2", u"WATER ENRICHMENT + EDUCATION BUILDING"))):
+        x0 = cols[1 + i]
+        panel_title(x0, y1, vn, what)
+        holder(x0, row2[0], x0 + col_w, y1 - 8.0, u"%s · PERSPECTIVE" % vn,
+               u"placeholder: Aras's render from %s on the plan" % vn)
+
+    # ---------------------------------------------------------------- title band
+    items.append(T_(u"SLIDE %d · SYSTEMS" % SLIDE, MARGIN, 288.0, 2.6, INK, True))
+    items.append(T_(u"WATER, GREEN, EDGES AND PUBLIC SPACE", MARGIN, 278.5, 7.5, INK, True))
+    log.append(u"Sources: masterplan master.svg (Aras, 15 Nov) via MasterplanBase; water balance results "
+               u"(bergama_water_balance, DSI flows, FAO-56, around2.pdf lands); strip storage CONCEPT_RECORD.md table "
+               u"(tables/A6_strip_storage.csv); farm extent water_balance_key_figures.json; planting jobs v13.2 "
+               u"(Aras 15 Nov 04:58). Distances straight line, calculated.")
+    items = [(it[0], NC["no_src"](it[1])) + tuple(it[2:]) if it[0] == "text" else it for it in items]
+    bb = X["items_bbox"](items)
+    if bb[0] < -0.5 or bb[1] < -0.5 or bb[2] > PAGE_W + 0.5 or bb[3] > PAGE_H + 0.5:
+        log.append(u"FLAG drawing runs past the page: x %.0f-%.0f, y %.0f-%.0f mm" % (bb[0], bb[2], bb[1], bb[3]))
+    os.makedirs(OUT_DIR, exist_ok=True)
+    pdf = X["write_pdf_node"](os.path.join(OUT_DIR, NAME + u".pdf"), [(PAGE_W, PAGE_H, items)],
+                              u"Slide %d, water, green, edges and public space" % SLIDE)
+    log.append(u"%s  %s" % (pdf, time.strftime("%H:%M:%S")))
+    G["pc_present"](pdf, SLIDE, log)
+    G["pc_review"](pdf, os.path.join(OUT_DIR, "review"), log)
+    flags = [l for l in log if u"FLAG" in l]
+    return u"%s\n%s %s, %d FLAG line(s), %.1f s" % (u"\n".join(log), GH_LABEL, VERSION, len(flags), time.time() - t0)
+
+
+def chain_fire(v, key):
+    if isinstance(v, (list, tuple)):
+        v = next((x for x in v if x is not None), None)
+    s = str(v) if v is not None else ""
+    if not s.startswith("done "):
+        return False
+    try:
+        import scriptcontext as _scx
+        try:
+            key = key + ":" + str(ghenv.Component.InstanceGuid)              # noqa: F821
+        except Exception:
+            pass
+        if _scx.sticky.get(key) == s:
+            return False
+        _scx.sticky[key] = s
+        return True
+    except Exception:
+        return False
+
+
+def done_text(ran, ok, secs):
+    return ("done " if ok else "ERROR ") + time.strftime("%H:%M:%S") + ".%02d" % int((time.time() % 1) * 100) + \
+        " · %.0f s" % secs if ran else None
+
+
+def write_log(text):
+    try:
+        os.makedirs(LOG_DIR, exist_ok=True)
+        with open(os.path.join(LOG_DIR, LOG_NAME), "w", encoding="utf-8") as f:
+            f.write(text)
+    except Exception:
+        pass
+    return text
+
+
+if "ghenv" in globals():
+    import scriptcontext as _sc
+    _k = "bergama_" + OUT_FOLDER
+    try:
+        _k += ":" + str(ghenv.Component.InstanceGuid)   # noqa: F821
+    except Exception:
+        pass
+    _pressed = any(v is True for k, v in list(globals().items())
+                   if not k.startswith("_") and isinstance(v, bool) and k not in ("True", "False", "done")) or \
+        any(chain_fire(v, _k + "_chain") for k, v in list(globals().items()) if not k.startswith("_") and k != "done" and isinstance(v, str))
+    if _pressed:
+        _t0 = time.time()
+        try:
+            _res = main()
+        except Exception as _ex:
+            import traceback as _tb
+            _res = "ERROR: %s: %s\n%s" % (type(_ex).__name__, _ex, _tb.format_exc()[-900:])
+        _sc.sticky[_k + "_log"] = write_log(_res)
+        _sc.sticky[_k + "_status"] = ("ERROR" if _res.startswith("ERROR") else
+                                      time.strftime("%H:%M") + " · %.0f s" % (time.time() - _t0))
+        _sc.sticky[_k + "_done"] = done_text(True, not _res.startswith("ERROR"), time.time() - _t0)
+        _sc.sticky[_k + "_ver"] = VERSION
+    if _sc.sticky.get(_k + "_ver") != VERSION:
+        for _s in ("_log", "_status", "_done"):
+            _sc.sticky.pop(_k + _s, None)
+    done = _sc.sticky.get(_k + "_done", "idle")
+    log = _sc.sticky.get(_k + "_log", "Press the Button to export to " + OUT_DIR)
+    print(log)
+    try:
+        ghenv.Component.Message = GH_LABEL + " " + VERSION + " · " + _sc.sticky.get(_k + "_status", "idle")  # noqa: F821
+    except Exception:
+        pass
