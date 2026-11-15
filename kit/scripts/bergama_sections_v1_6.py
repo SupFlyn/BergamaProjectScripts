@@ -45,7 +45,7 @@ Writes ~/Downloads/Bergama/output/bergama_sections/Sections.pdf          ONE pag
 import os, re, time, json, math, bisect, glob, random
 
 # ---- SETTINGS ----
-VERSION = "v1.19"   # v1.19 (Aras 15 Nov 05:57 UTC "our canopies are triangle shaped ... many triangles pulled into together"): canopies drawn as folded triangle plates, folds where his plan's canopy triangle corners fall along the cut, facets toned alternately, posts at the valleys; canopy triangles behind merged into one canopy; v1.18.2: Kızıl Avlu reads as the brick hall (brick courses, cut wall ends in poché 1.2 m thick, ASSUMED; no windows drawn: the source places them only vaguely); v1.18.1: Kızıl Avlu main hall from the masterplan outline, walls 19 m (Wikipedia "Red Basilica": "Its walls still survive up to a height of 19 metres"), drawn as a roofless brick mass; the S4 log line says only the low point is the engine's; v1.18 (Aras 15 Nov 04:58 UTC "All defaults are fine"): proposals outlined in the accent C07A2E, S4 drawn from the B19 masterplan (parts cached for the seasons page), N4-A moved 22.6 m onto the Red Hall (section_lines.json); v1.17.4 v1.17.4: S4 bed and strip from the engine's own low point (they came from the cut drawn before it); v1.17.3 v1.17.3 (error review of v1.17.2): no plan wall inside the channel, seat walls start on the ground, decks 0.25 m clear, near-coincident dashed levels merged, existing ground a fine light dashed hairline; v1.17.2 v1.17.2 (fresh review of v1.17): canopy trunks on the ground and branches meeting the shell, overlapping canopies / pavilions thinned (nearer first), deck balustrade as rail and posts (the glass box read as a tank); v1.17.1 v1.17.1: the cut line drawn whole (an end trim had dropped most of it since v1.6.13); v1.17 v1.17 (two independent reviews of v1.16): the cut line on top of the ground skin (it lay hidden), butt ends; clouds under the frame top and off the ground; land-use band 2.8 mm, words 1.7 mm, street lighter; scale bar in the title line (cells give the drawing ~6 mm more height); v1.16.1 v1.16.1: land-use band words one size on every cut (they ran 1.6-3.3 mm); v1.16 v1.16 (600 dpi read of the v1.15.2 PDF): one-line titles and a tighter band / scale bar (drawings larger), bridges at bank level (N2-A on the bed), seat walls where the ground is flat, water ripples only inside water, thinner water surface; v1.15.2: v1.15.2: sheet fix (KeyError on the smallest scale, v1.15.1 crashed before the PDF and the cache); v1.15.1 v1.15.1: dashed water levels 0.1 mm, water surface line and wall outlines thin at small scales (600 dpi read of the v1.14 PDF); v1.15 v1.15 (Aras 21:33 "do a proper check"): each cut on the A3 sheet at its own largest scale, fitted to its cell (the sheet was about 60 % empty), titles one size, cut line heavier (0.4-0.6 mm); v1.14 v1.14 (Aras 21:31 "please remove these kind of showings"): no floating text labels with dashed leader lines over the cuts (Road, Canopy, Building n floors, ...); cut houses drawn like the background houses, light (Aras 21:32); v1.13 (Aras 21:26 "drawings flows out fix that"): every fill cut at the cut frame, clouds / cutouts / circles crossing it left out; v1.12 (recheck of v1.11 output): footbridges only on cuts that cross the stream; canopy edge thin at small scales; v1.11: masterplan read right (no 2.1 km2 texture frame as "green", open lines only for walls, kopruler = bridges), plan trees 12-20 m apart, drawing lines cut at the frame; v1.10: channel walls only to the bank ground + a 0.9 m parapet (Aras 16:23); masterplan spans merged per kind, a progress file logs/bergama_sections_progress.txt (v1.9 ran > 17 min); v1.9 (Aras 14 Nov 16:12-16:13): section_lines.json v2: per node A square to the stream and B along the bank crossing it, both from frame edge to frame edge (drawn whole), looking different ways; v1.8 (Aras 14 Nov 15:38-15:41): the sections are the masterplan in 3D: every piece of his plan the cut crosses (MasterplanBase cache of B19_setB_layers259.svg) drawn as a designed form (stepped terraces as the finished ground, promenade and cycle paving, retaining walls, boulders, water decks, lens footbridges, saddle-shell canopies on steel trees, sedum-roof pavilions; canopies and pavilions behind the cut in elevation), heights design intent; v1.7 (Aras 14 Nov 15:25-15:35): all 12 cuts on ONE A3 landscape sheet, no 1:x printed; planting drawn at 1:75 and scaled to the page (true proportions), no soil root hairs; cut houses as plain silhouettes; houses behind more detailed (plinth, tiles, chimney, sills, glazing bars, shutters, balconies, door hood) and up to 200 m behind
+VERSION = "v1.19.1"   # v1.19.1 (Aras 15 Nov 06:00 "four seasons one cut doesnt have any context" / 05:59 "left wall looks weird"): S4 finds its survey houses up to S4_BACK_M behind (only 1 within 200 m there), a house behind that overlaps the channel is trimmed to the bank instead of dropped, retaining walls on a slope drawn as cut walls held in the ground with a flush coping (no free-standing box), path slabs with a hairline edge, "green" labelled "Green"; v1.19 (Aras 15 Nov 05:57 UTC "our canopies are triangle shaped ... many triangles pulled into together"): canopies drawn as folded triangle plates, folds where his plan's canopy triangle corners fall along the cut, facets toned alternately, posts at the valleys; canopy triangles behind merged into one canopy; v1.18.2: Kızıl Avlu reads as the brick hall (brick courses, cut wall ends in poché 1.2 m thick, ASSUMED; no windows drawn: the source places them only vaguely); v1.18.1: Kızıl Avlu main hall from the masterplan outline, walls 19 m (Wikipedia "Red Basilica": "Its walls still survive up to a height of 19 metres"), drawn as a roofless brick mass; the S4 log line says only the low point is the engine's; v1.18 (Aras 15 Nov 04:58 UTC "All defaults are fine"): proposals outlined in the accent C07A2E, S4 drawn from the B19 masterplan (parts cached for the seasons page), N4-A moved 22.6 m onto the Red Hall (section_lines.json); v1.17.4 v1.17.4: S4 bed and strip from the engine's own low point (they came from the cut drawn before it); v1.17.3 v1.17.3 (error review of v1.17.2): no plan wall inside the channel, seat walls start on the ground, decks 0.25 m clear, near-coincident dashed levels merged, existing ground a fine light dashed hairline; v1.17.2 v1.17.2 (fresh review of v1.17): canopy trunks on the ground and branches meeting the shell, overlapping canopies / pavilions thinned (nearer first), deck balustrade as rail and posts (the glass box read as a tank); v1.17.1 v1.17.1: the cut line drawn whole (an end trim had dropped most of it since v1.6.13); v1.17 v1.17 (two independent reviews of v1.16): the cut line on top of the ground skin (it lay hidden), butt ends; clouds under the frame top and off the ground; land-use band 2.8 mm, words 1.7 mm, street lighter; scale bar in the title line (cells give the drawing ~6 mm more height); v1.16.1 v1.16.1: land-use band words one size on every cut (they ran 1.6-3.3 mm); v1.16 v1.16 (600 dpi read of the v1.15.2 PDF): one-line titles and a tighter band / scale bar (drawings larger), bridges at bank level (N2-A on the bed), seat walls where the ground is flat, water ripples only inside water, thinner water surface; v1.15.2: v1.15.2: sheet fix (KeyError on the smallest scale, v1.15.1 crashed before the PDF and the cache); v1.15.1 v1.15.1: dashed water levels 0.1 mm, water surface line and wall outlines thin at small scales (600 dpi read of the v1.14 PDF); v1.15 v1.15 (Aras 21:33 "do a proper check"): each cut on the A3 sheet at its own largest scale, fitted to its cell (the sheet was about 60 % empty), titles one size, cut line heavier (0.4-0.6 mm); v1.14 v1.14 (Aras 21:31 "please remove these kind of showings"): no floating text labels with dashed leader lines over the cuts (Road, Canopy, Building n floors, ...); cut houses drawn like the background houses, light (Aras 21:32); v1.13 (Aras 21:26 "drawings flows out fix that"): every fill cut at the cut frame, clouds / cutouts / circles crossing it left out; v1.12 (recheck of v1.11 output): footbridges only on cuts that cross the stream; canopy edge thin at small scales; v1.11: masterplan read right (no 2.1 km2 texture frame as "green", open lines only for walls, kopruler = bridges), plan trees 12-20 m apart, drawing lines cut at the frame; v1.10: channel walls only to the bank ground + a 0.9 m parapet (Aras 16:23); masterplan spans merged per kind, a progress file logs/bergama_sections_progress.txt (v1.9 ran > 17 min); v1.9 (Aras 14 Nov 16:12-16:13): section_lines.json v2: per node A square to the stream and B along the bank crossing it, both from frame edge to frame edge (drawn whole), looking different ways; v1.8 (Aras 14 Nov 15:38-15:41): the sections are the masterplan in 3D: every piece of his plan the cut crosses (MasterplanBase cache of B19_setB_layers259.svg) drawn as a designed form (stepped terraces as the finished ground, promenade and cycle paving, retaining walls, boulders, water decks, lens footbridges, saddle-shell canopies on steel trees, sedum-roof pavilions; canopies and pavilions behind the cut in elevation), heights design intent; v1.7 (Aras 14 Nov 15:25-15:35): all 12 cuts on ONE A3 landscape sheet, no 1:x printed; planting drawn at 1:75 and scaled to the page (true proportions), no soil root hairs; cut houses as plain silhouettes; houses behind more detailed (plinth, tiles, chimney, sills, glazing bars, shutters, balconies, door hood) and up to 200 m behind
 CUT_HOUSE_DIST_M = 60.0   # v1.14: cut houses toned like a house 60 m behind (light, quiet; drawing value, ours)
 LEVEL_LW = 0.1   # v1.15: dashed water levels as hairlines (mm)
 ACCENT = "C07A2E"   # v1.18: the project accent = our intervention (DIAGRAM_STYLE), Aras 15 Nov 04:58 UTC
@@ -70,6 +70,7 @@ SEASON = "autumn"          # the one drawing per line: Q500, Q100 and the Oct-De
 # 3.0 m; civic (3.5) and industry (4.5) are not told apart in the cache yet and are drawn at 3.0 m.
 STOREY_M = 3.0             # m per floor, every building that is not heritage / sacred
 STOREY_HERITAGE_M = 5.0    # m per floor, the Basemap's heritage outlines (sacred and heritage)
+S4_BACK_M = 500.0          # v1.19.1: S4 (open edge of town) looks for its survey houses this far behind (8 there, 1 within 200 m)
 BACK_M = 200.0             # v1.7 (Aras 15:28 "there is no houses at the background"): 200 m; v1.6: 120 m; buildings up to this far behind the cut are drawn as background (was 30 m)
 ROAD_EDGE_M = 12.0         # a street centreline crossing counts as a road between survey edges this close to it
 ROAD_T = 0.25              # m, drawn thickness of the road surface
@@ -222,7 +223,8 @@ def context_for(C, BM, tin, ox, oy, lg):
         return
     w0, w1 = C.window
     pa, pb = C.xy(w0), C.xy(w1)
-    pad = BACK_M + 5.0
+    reach = S4_BACK_M if C.is_s4 else BACK_M            # v1.19.1
+    pad = reach + 5.0
     box = (min(pa[0], pb[0]) - pad, min(pa[1], pb[1]) - pad, max(pa[0], pb[0]) + pad, max(pa[1], pb[1]) + pad)
     no_h = 0
     for x0, y0, x1, y1, r, h, fl in BM["buildings"]:
@@ -230,7 +232,7 @@ def context_for(C, BM, tin, ox, oy, lg):
             continue
         so = [C.su(q[0], q[1]) for q in r]
         omin, omax = min(o for _, o in so), max(o for _, o in so)
-        if omax <= 0.0 or omin > BACK_M:
+        if omax <= 0.0 or omin > reach:
             continue
         is_cut = omin < 0.0
         if is_cut:
@@ -299,7 +301,7 @@ def context_for(C, BM, tin, ox, oy, lg):
     C.streets = [x for x in sorted(C.streets) if not any(a - 0.5 <= x <= b + 0.5 for a, b in C.roads)]
     lg.append(u"context %s: %d building(s) cut, %d behind within %.0f m, %d without a floor count drawn as 1 floor (assumed); %d road(s) %s; %d "
               u"street line(s) without survey edges (marked, no width)" % (
-                  C.name, sum(1 for t in C.bld if t[4]), sum(1 for t in C.bld if not t[4]), BACK_M, no_h, len(C.roads),
+                  C.name, sum(1 for t in C.bld if t[4]), sum(1 for t in C.bld if not t[4]), reach, no_h, len(C.roads),
                   u", ".join(u"%.1f-%.1f m" % r for r in C.roads), len(C.streets)))
 
 
@@ -1174,7 +1176,11 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
     # slopes); none mostly behind a cut building (N5-B roof sat on a cut box)
     for a, b, zb_, h, is_cut, dist, fl in sorted(C.bld, key=lambda t: -t[5]):
         a, b = max(a, S.lo + EAVE_M), min(b, S.hi - EAVE_M)
-        if is_cut or b - a < 0.5 or (a < ch[1] + 1.0 and b > ch[0] - 1.0) or _cover(a, b, cuts_) > 0.5:
+        if a < ch[1] + 1.0 and b > ch[0] - 1.0:        # v1.19.1: trimmed to the wider bank side, not dropped
+            a, b = max((a, ch[0] - 1.0), (ch[1] + 1.0, b), key=lambda t: t[1] - t[0])
+            if b - a < 3.0:
+                continue
+        if is_cut or b - a < 0.5 or _cover(a, b, cuts_) > 0.5:
             continue
         n_ = max(2, int((b - a) / 0.5))
         # v1.6.13: on the highest cut ground of its span (lowest buried N1 houses, highest alone stood on stilts),
@@ -2255,7 +2261,7 @@ CANOPY_LO, CANOPY_HI, CANOPY_T = 3.6, 5.4, 0.15   # m: valley / ridge above the 
 MP_BEHIND_M = 60.0                 # m: canopies and pavilions this far behind the cut are drawn in elevation
 MP_LABEL = {"terrace": u"Stepped terraces", "deck": u"Water deck", "canopy": u"Canopy", "pavilion": u"Pavilion",
             "bridge": u"Footbridge", "wall": u"Retaining wall", "walk": u"Promenade", "plaza": u"Square",
-            "cycle": u"Cycle path"}
+            "cycle": u"Cycle path", "green": u"Green"}
 HARD = ("terrace", "deck", "walk", "plaza", "cycle", "pavilion")
 RISE_M, SEAT_TREAD_M = 0.45, 0.9   # terrace seat steps (design)
 P_CONC, P_CONC_LT, P_TIMBER, P_STEEL = "BDB7AA", "D9D4C8", "A9794B", "4F5559"
@@ -2432,7 +2438,7 @@ def mp_ground(pg, S, C):
         if kind in ("walk", "plaza", "cycle"):
             col, th = (P_CYCLE, 0.12) if kind == "cycle" else (P_PAVE, 0.25)
             _sh(pg, [S.P(x, S.surf(x)) for x in top] + [S.P(x, S.surf(x) - th) for x in reversed(top)], col,
-                "proposal ground", INK_CUT, 0.12)
+                "proposal ground", INK_CUT, 0.05)              # v1.19.1: hairline edge (read as a dark slab on S4)
             if 0.6 * K >= 0.6:                                              # paving joints
                 for x in top[1:-1]:
                     pg.line([S.P(x, S.surf(x)), S.P(x, S.surf(x) - th)], INK_CUT, 0.04, layer="proposal ground")
@@ -2444,8 +2450,10 @@ def mp_ground(pg, S, C):
             zl, zh = min(S.ex(m - 1.5), S.ex(m + 1.5)), max(S.ex(m - 1.5), S.ex(m + 1.5))
             # v1.16 (600 dpi read: free-standing dark posts on flat ground): where the ground holds no step the
             # plan's wall is a 0.45 m seat wall; the outline thin at sheet scales
-            up = 0.9 if zh - zl >= 0.3 else 0.45
-            zb_w = zl - 0.8 if up > 0.45 else min(S.surf(m - 0.35), S.surf(m + 0.35))   # v1.17.3: a seat wall
+            # v1.19.1 (Aras 05:59 "left wall looks weird", S4 s 570: a 0.9 m box standing free on the slope): on a
+            # slope the wall is cut, held in the ground from below the low side to a coping flush with the high side
+            up = 0.15 if zh - zl >= 0.3 else 0.45
+            zb_w = zl - 0.8 if zh - zl >= 0.3 else min(S.surf(m - 0.35), S.surf(m + 0.35))   # v1.17.3: a seat wall
             #                                            starts on the ground (its foot showed under the cut line, N2-A)
             _sh(pg, [S.P(m - 0.35, zb_w), S.P(m + 0.35, zb_w), S.P(m + 0.35, zh + up), S.P(m - 0.35, zh + up)],
                 WALL_FILL, "proposal ground", INK_CUT, min(0.25, max(0.04, 0.12 * K)))
