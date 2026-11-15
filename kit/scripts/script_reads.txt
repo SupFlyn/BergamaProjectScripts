@@ -227,3 +227,4 @@ bergama_page05_access: scripts/bergama_page_transit_v2_14.py  # hand, 14 Nov
 bergama_page05_access: scripts/bergama_page_transit_v2_15.py  # hand, 14 Nov
 bergama_page05_access: scripts/bergama_page_transit_v2_16.py  # hand, 14 Nov
 bergama_page05_access: scripts/bergama_page_transit_v2_17.py  # hand, 15 Nov
+bergama_page05_access: scripts/bergama_page_transit_v2_18.py  # hand, 15 Nov
