@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Bergama Group 6: PAGE TRANSIT v2.13 (14 Nov 2026; v2.13 = the shared diagram style (library/diagram_style/DIAGRAM_STYLE.md rule 5, Aras 21:31 UTC "all the diagrams are awful"): one accent C07A2E = our moves (spine, walk links and now the hub tiles); existing = ink and grey, so the bus lines go grey and blue is water only; the heritage loop keeps its deep red (Aras 15:31 "just like the old diagram"); v2.12 = recheck of the 20:01 UTC laptop run against Aras's feedback: the loop badges 4 and 5 sat under the K4 / K3 tiles (now on the tile corner), the hub walk metres repeated the legend and covered "Tabak Köprüsü" and "Üç Kemer Köprüsü" (now only the links the legend does not list, placed after the names), the heritage places inside site_alan (Ulucami, Tabaklar Hamamı) named (Aras 16:27 "the names of the heritages is not in the map"); v2.11 = Aras 16:26-16:27 UTC: "remove the not needed stops you can keep the route in terms of lines however you dont need to write every single stops name"; "route should start from askepelion"; "the names of the heritages is not in the map that is on the left side": only the hub stops drawn and named (the bus lines stay), the heritage loop numbered from Asklepion with its stop names on the map, title for the one slide-5 map; v2.10 = Aras 15:31 UTC "the bold connection between the heritage should stay there just like the old diagram": the heritage loop (bold red legs, numbered stops) drawn here too by pages_common pc_loop, before the names, so no name sits on it; v2.9 = Aras 15:23 UTC "dont give sources in the brackets dont give sources in the drawings at all", 15:24 "no sources for nothing": no source in any label, legend row, note or credit (sources in the log only); v2.8 = run 8 review: a hub stop is named without its line numbers (they are in the legend, hub by hub: printed once; "Bergama Sanayi · 643 ... 936" covered the roundabout); v2.7 = Aras 13:02 rule check, run 6 review: names kept off the spine, the Selinos and the study line (Labels.block_line); WorldCover off (its 10 m cells drew stair steps); v2.6 = Aras 13:02 UTC "make sure nothing repeats in the slides": the heritage places are left out (the heritage loop page draws them); v2.5 = run 4 review: the 2023 satellite cover ends inside this frame (x 29521, y 32880) and drew a straight seam west and north, so WorldCover alone (it covers the whole frame), fainter; v2.4 = Aras 12:16 UTC "update all maps to include every detail, and top of the map, data is missing": the context is the one MapBase (survey + OSM + satellite + contours), quiet look; v2.3 = run 2 review: Bergama Garajı still two squares (50 m merge); v2.2 v2.2 = brief plan rules as the node pages: the legend in
+"""Bergama Group 6: PAGE TRANSIT v2.21 (15 Nov 2026; v2.21 = run 10 review: loop badges 4 and 5 were still half under the K4 / K3 tiles (the hubs layer prints above the loop): a badge near a hub tile or gondola station now sits fully clear of it, off its upper right corner by the smallest step (tile half + badge radius / sqrt 2 + 0.3 mm), no leader; v2.20 = Aras 15 Nov 13:43-13:44 UTC "dont use these dashed lines to connect the stops to areas in the heritage loop map" / "it makes drawing too busy also dont have a opaque background for texts in any single of the drawings": no dashed links from hubs or loop stops to bus stops (every pin and tile sits at its true spot; stop names and metres stay in the legend and the log), no white boxes behind names (a thin text-shaped halo, pages_common v3.27 pc_halo); v2.19 = Aras 15 Nov 06:02 UTC "write the stop names that are closest to marked areas and our nodes. like stop that is closest to k4 should be written etc. same goes for asklepoion aswell": the hub stop names back on the map, and each heritage loop stop gets the nearest bus stop of the data, drawn, named and tied to it on foot (metres in the log); v2.18 = run 6: "Tabaklar Hamamı" still went under the K4 stop (every place near its ring crosses a line); a heritage-place name with no free place now goes right beside its ring, on a white halo, even over a thin line; v2.17 = run 5 review: "Tabaklar Hamamı" had no free place and the least-overlap search put it about 7 mm from its ring, by the K4 stop; a heritage-place name now searches only within 3.6 mm of its ring (gap 1.0); v2.16 = run 4 review (23:18 UTC): "Yıldız Garajı (Eski Garaj)" had no free place and sat on the loop and the bus lines, and the 570 m walk from the Teleferik ended at a stop that was not drawn: the bus station and the Teleferik's nearest town-bus stop are named with their walking metres in the legend, the stop is drawn, and no metres are printed on the map; v2.15 = run 3 review (23:11 UTC): the hub stop names left off the map (each hub row of the legend names its stop, and the dashed link ties the stop to its tile; Aras 16:26 "you dont need to write every single stops name"); they were forced over the loop names; the spine 1.2 mm (was 2.4: it outweighed the loop), bus line weights 0.9 / 0.6 / 0.35 / 0.25 so the weight steps read, the "ridership not known" note dropped; badge 7 sat on the lower Teleferik station: it moves to the station corner, and that station is named by the loop alone; v2.14 = the loop legend row names the edge arrows only when a stop lies beyond the frame (Page05 v1.6 frames the whole loop, Aras 21:30 / 21:37 UTC); v2.13 = the shared diagram style (library/diagram_style/DIAGRAM_STYLE.md rule 5, Aras 21:31 UTC "all the diagrams are awful"): one accent C07A2E = our moves (spine, walk links and now the hub tiles); existing = ink and grey, so the bus lines go grey and blue is water only; the heritage loop keeps its deep red (Aras 15:31 "just like the old diagram"); v2.12 = recheck of the 20:01 UTC laptop run against Aras's feedback: the loop badges 4 and 5 sat under the K4 / K3 tiles (now on the tile corner), the hub walk metres repeated the legend and covered "Tabak Köprüsü" and "Üç Kemer Köprüsü" (now only the links the legend does not list, placed after the names), the heritage places inside site_alan (Ulucami, Tabaklar Hamamı) named (Aras 16:27 "the names of the heritages is not in the map"); v2.11 = Aras 16:26-16:27 UTC: "remove the not needed stops you can keep the route in terms of lines however you dont need to write every single stops name"; "route should start from askepelion"; "the names of the heritages is not in the map that is on the left side": only the hub stops drawn and named (the bus lines stay), the heritage loop numbered from Asklepion with its stop names on the map, title for the one slide-5 map; v2.10 = Aras 15:31 UTC "the bold connection between the heritage should stay there just like the old diagram": the heritage loop (bold red legs, numbered stops) drawn here too by pages_common pc_loop, before the names, so no name sits on it; v2.9 = Aras 15:23 UTC "dont give sources in the brackets dont give sources in the drawings at all", 15:24 "no sources for nothing": no source in any label, legend row, note or credit (sources in the log only); v2.8 = run 8 review: a hub stop is named without its line numbers (they are in the legend, hub by hub: printed once; "Bergama Sanayi · 643 ... 936" covered the roundabout); v2.7 = Aras 13:02 rule check, run 6 review: names kept off the spine, the Selinos and the study line (Labels.block_line); WorldCover off (its 10 m cells drew stair steps); v2.6 = Aras 13:02 UTC "make sure nothing repeats in the slides": the heritage places are left out (the heritage loop page draws them); v2.5 = run 4 review: the 2023 satellite cover ends inside this frame (x 29521, y 32880) and drew a straight seam west and north, so WorldCover alone (it covers the whole frame), fainter; v2.4 = Aras 12:16 UTC "update all maps to include every detail, and top of the map, data is missing": the context is the one MapBase (survey + OSM + satellite + contours), quiet look; v2.3 = run 2 review: Bergama Garajı still two squares (50 m merge); v2.2 v2.2 = brief plan rules as the node pages: the legend in
 EXISTING / PROPOSAL MARKS groups, proposal marks orange (spine, walking links; key in the data file). v2.1 v2.1 = fixes after the first run's review PNGs: heritage dots were
 drawn over the K4 / K3 tiles; walking links too faint (now 0.6 / 0.5 mm dashes); Yıldız Garajı drawn as two overlapping
 squares (OSM station + its unnamed building, now one); Turkish letters in the regional-line legend row (data file).
@@ -23,7 +23,7 @@ What is drawn (nothing is invented; every element names its source in the legend
                with their lines (ESHOT where it differs from OSM: İstiklal Meydanı also 831-833)
   stations     OSM bus stations (Yıldız Garajı, Bergama Garajı) as squares; the Teleferik (gondola) lower and upper
                stations and its cable, ticked, then the walk up to Akropol
-  hubs         K4, K3, T, K5, K6 as code tiles (the hub cards' codes); a dotted walking link from each hub to its stop(s)
+  hubs         K4, K3, T, K5, K6 as code tiles (the hub cards' codes); its stop(s) named in its legend row (v2.20: no link lines)
                and from the gondola to the nearest stop with a town line, with straight-line metres (calculated)
   spine        the streamside spine K4 -> K5 along the Selinos (OSM line), as on p09
   heritage     v2.6: not drawn (the heritage loop page draws them; Aras 13:02 "make sure nothing repeats")
@@ -37,7 +37,8 @@ Basemap once). Grasshopper: a Button on any input runs it; input `scale` (defaul
 """
 import os, time
 
-VERSION = "v2.13"
+VERSION = "v2.21"
+NO_STOP_NAMES = False                # v2.19: the stop names on the map again (Aras 06:02)
 SLIDE = 5                          # output/presentation/5.pdf (Aras 14 Nov 11:22 UTC)
 GH_LABEL = "PageTransit"
 OUT_FOLDER = "bergama_page_transit"
@@ -77,8 +78,9 @@ def main():
     K = dict(D["key"])
     ACC = "C07A2E"                                           # v2.13: DIAGRAM_STYLE rule 5, one accent = our moves
     K["hub"] = {k_: ACC for k_ in K["hub"]}
-    K["lines"] = {"town": ["5E5E5E", 0.6, None], "656": ["7A7A7A", 0.42, None],     # existing = ink and grey
-                  "village": ["8E8E8E", 0.3, [1.4, 0.8]], "regional": ["ABABAB", 0.25, None]}
+    K["lines"] = {"town": ["5E5E5E", 0.9, None], "656": ["7A7A7A", 0.6, None],      # existing = ink and grey
+                  "village": ["8E8E8E", 0.35, [1.4, 0.8]], "regional": ["ABABAB", 0.25, None]}   # v2.15: steps that read
+    K["spine_w"] = 1.2                                       # v2.15: the loop is the one heavy line (review 23:15)
     K["station"] = K["ink"]
     den = int(globals().get("scale") or K["scale"])
     M = G["Map"](D, den)
@@ -190,11 +192,28 @@ def main():
         qa, qb = T(a), T(b)
         if dist(qa, qb) < 1.0:
             continue
-        items.append(L_([qa, qb], K["walk_link"], 0.35, "walking_links", (0.6, 0.5)))
-        mid = ((qa[0] + qb[0]) / 2.0, (qa[1] + qb[1]) / 2.0)
-        if not (code in hubpts and nm in stop_q):          # v2.12: the hub rows of the legend give these metres
-            dl.append((u"%d m" % round(d_, -1 if d_ >= 100 else 0), mid))
+        if code == "Teleferik" and M.inside(qb):          # v2.16: the stop the walk ends at is drawn
+            items.append(P_([circle(qb[0], qb[1], K["hub_stop_r"], 24)], "FFFFFF", INK, 0.45, "bus_stops"))
+            lab.block_pt(qb, K["hub_stop_r"] + 0.4)
         log.append(u"walking link: %s -> %s %.0f m (straight line)" % (code, nm, d_))
+    near = {}                                                # v2.19: the bus stop nearest each loop stop
+    for h in D["heritage"]:
+        qh = T(h["xy"])
+        if not M.inside(qh):
+            continue
+        cands = [(dist(h["xy"], xy), nm, xy) for nm, v in stop_all.items() for (_q, xy, _l) in v]
+        if not cands:
+            continue
+        d_, nm, xy = min(cands)
+        qb = T(xy)
+        log.append(u"nearest bus stop: %s %s -> %s %.0f m (straight line)" % (h["n"], h["name"], nm, d_))
+        tel = nm in [l_[1] for l_ in links if l_[0] == "Teleferik"]   # that walk and stop are drawn already
+        if nm in stop_q or nm in near or not M.inside(qb):
+            continue
+        near[nm] = [(qb, xy, [])]
+        if not tel:
+            items.append(P_([circle(qb[0], qb[1], K["hub_stop_r"], 24)], "FFFFFF", INK, 0.45, "bus_stops"))
+        lab.block_pt(qb, K["hub_stop_r"] + 0.4)
     for code, pts in hubpts.items():
         col = K["hub"][D["hub_kind"][code]]
         s_ = K["hub_tile"]
@@ -208,43 +227,68 @@ def main():
             items.append(T_(code, q[0], q[1] - tm["label"] * 0.36, tm["label"], "FFFFFF", "hubs", True, "C"))
             lab.block_pt(q, s_ / 2 + 0.4)
     # v2.12: a loop badge under a hub tile (4 = K4, 5 = K3; run of 20:01 UTC) moves to the tile's upper right corner
-    hq = [T(hp) for pts in hubpts.values() for hp in pts if M.inside(T(hp))]
-    sh, keep, moved = K["hub_tile"] * 0.62, [], []
+    hq = [T(hp) for pts in hubpts.values() for hp in pts if M.inside(T(hp))] + \
+        [T(s["xy"]) for s in st_g if M.inside(T(s["xy"]))]          # v2.15: a gondola station too
+    keep, moved, shift = [], [], {}                          # v2.21: badge centre -> its move, clear of the tile
+    for it_ in items:
+        if it_[0] == "poly" and it_[6] == "loop_stops" and it_[2] == RED and len(it_[1][0]) == 32:
+            c_ = (sum(p[0] for p in it_[1][0]) / 32.0, sum(p[1] for p in it_[1][0]) / 32.0)
+            near_h = [h_ for h_ in hq if dist(c_, h_) < K["hub_tile"]]
+            if near_h:
+                h_ = min(near_h, key=lambda h: dist(c_, h))
+                rb = max(dist(c_, p) for p in it_[1][0])
+                a_ = K["hub_tile"] / 2.0 + rb / 1.41421 + 0.3
+                shift[c_] = (h_[0] + a_ - c_[0], h_[1] + a_ - c_[1])
     for it_ in items:
         if it_[0] == "poly" and it_[6] == "loop_stops" and it_[2] == RED and len(it_[1][0]) == 32:
             c_ = (sum(p[0] for p in it_[1][0]) / 32.0, sum(p[1] for p in it_[1][0]) / 32.0)
         elif it_[0] == "text" and it_[8] == "loop_stops":
-            c_ = (it_[2], it_[3] + tm["label"] * 0.36)
+            c_ = (it_[2], it_[3] + G["PC_CAP"] * it_[4])
         else:
             keep.append(it_)
             continue
-        if not any(dist(c_, h_) < K["hub_tile"] for h_ in hq):
+        k_ = min(shift, key=lambda c: dist(c, c_)) if shift else None
+        if k_ is None or dist(k_, c_) > 0.5:
             keep.append(it_)
             continue
+        dx, dy = shift[k_]
         if it_[0] == "poly":
-            moved.append(P_([[(p[0] + sh, p[1] + sh) for p in it_[1][0]]], it_[2], it_[3], it_[4], "loop_stops"))
-            lab.block_pt((c_[0] + sh, c_[1] + sh), R + 0.6)
+            moved.append(P_([[(p[0] + dx, p[1] + dy) for p in it_[1][0]]], it_[2], it_[3], it_[4], "loop_stops"))
+            lab.block_pt((c_[0] + dx, c_[1] + dy), R + 0.6)
         else:
-            moved.append(it_[:2] + (it_[2] + sh, it_[3] + sh) + it_[4:])
+            moved.append(it_[:2] + (it_[2] + dx, it_[3] + dy) + it_[4:])
     items = keep + moved
-    log.append(u"loop badges moved onto a hub tile corner: %d" % (len(moved) // 2))
+    log.append(u"loop badges moved clear of a hub tile / station: %d" % (len(moved) // 2))
 
     # names, most important first: hub stops, stations, other stops, heritage (the hubs' names are in the legend)
-    for name, v in stop_q.items():
+    for name, v in ([] if NO_STOP_NAMES else list(stop_q.items()) + list(near.items())):   # v2.19: hub + loop stops
         for q, xy, lines in v:
             hub = name in hub_stop_names
             off = next((fx["official_name"] for fx in D.get("official_fixes", []) if fx["name"] == name and
                         fx.get("official_name")), None)
             nm_ = name + (u" (%s)" % off if off else u"")
-            lab.put(nm_, q, tm["label"] if hub else tm["small"],
+            lab.put(nm_, q, tm["label"],
                     INK, "stop_names", hub, gap=1.8)
     for s in D["stations"]:
         q = T(s["xy"])
-        if M.inside(q) and s.get("name"):
+        if M.inside(q) and s.get("name") and s["kind"] == "gondola" and u"Aşağı" not in s["name"]:   # v2.15/16
             nm = G["pc_station_name"](s)
             lab.put(nm, q, tm["label"], K["cable"] if s["kind"] == "gondola" else K["station"], "station_names", True)
     for d_ in dots:
-        lab.put(d_["name"], T(d_["xy"]), tm["small"], RED, "loop_names", gap=1.6)
+        n_f = len(lab.forced)
+        lab.put(d_["name"], T(d_["xy"]), tm["small"], RED, "loop_names", gap=1.0)   # v2.17: kept by its ring
+        if len(lab.forced) > n_f and lab.items and lab.items[-1][0] == "text":      # v2.18: right beside its ring
+            q, w_ = T(d_["xy"]), lib["text_w"](d_["name"], tm["small"], False)
+            x_, y_ = q[0] + 1.6, q[1] - tm["small"] * 0.375
+            b_ = (x_ - 0.3, y_ - 0.25 * tm["small"] - 0.3, x_ + w_ + 0.3, y_ + tm["small"] * 0.75 + 0.3)
+            del lab.items[-1]
+            while lab.items and (lab.items[-1][8] if lab.items[-1][0] == "text" else lab.items[-1][6]) == \
+                    "loop_names_halo":                       # v2.20: the halo copies of pages_common v3.27
+                del lab.items[-1]
+            lab.boxes[-1] = b_
+            lab.items += G["pc_halo"](d_["name"], x_, y_, tm["small"], False, "L", "loop_names_halo")   # v2.20: no box
+            lab.items.append(T_(d_["name"], x_, y_, tm["small"], RED, "loop_names", False, "L"))
+            log.append(u"%s: no free place, printed right beside its ring" % d_["name"])
     for s_t, mid in dl:                                      # v2.12: metres last (names first)
         lab.put(s_t, mid, tm["small"], K["walk_link"], "walking_links_text", gap=0.8)
     items += lab.items
@@ -270,21 +314,25 @@ def main():
                 u"%s: %s a weekday" % (LN[g]["word"], LN[g]["per_weekday"])) for g in order]
     legend += [
         (lambda x, y: [P_([circle(x, y, K["hub_stop_r"], 24)], "FFFFFF", INK, 0.45, "legend")],
-         u"bus stop at a hub (its lines: hub rows below)"),
-        (sw_sq("FFFFFF", K["station"], 0.45), u"bus station"),
+         u"bus stop nearest a hub or a loop stop, named (a hub's stop, lines and metres on foot: hub rows below)"),
+        (sw_sq("FFFFFF", K["station"], 0.45), u"bus station" + u"".join(
+            u": %s, %d m on foot from T" % (G["pc_station_name"]({"name": nm}), round(d_, -1))
+            for c_, nm, _a, _b, d_ in links if c_ == "T" and nm not in stop_q)),
         (lambda x, y: G["ticked"]([(x - 4.5, y), (x + 4.5, y)], K["cable"], 0.35, 2.5, 0.9, "legend") +
-         sw_sq(K["cable"], "FFFFFF", 0.2, 2.6)(x + 4.5, y), u"Teleferik (gondola) and its stations; dotted: on foot to Akropol"),
+         sw_sq(K["cable"], "FFFFFF", 0.2, 2.6)(x + 4.5, y), u"Teleferik (gondola) and its stations; dotted: on foot to Akropol" + u"".join(
+            u"; nearest town-bus stop %s, %d m on foot" % (nm, round(d_, -1))
+            for c_, nm, _a, _b, d_ in links if c_ == "Teleferik")),
         (None, u"EXISTING: CONTEXT"),
     ] + mb_rows + [
         (sw_line(K["water"][0], 0.3), u"Selinos and side streams"),
         (sw_line(K["study"][0], K["study"][1], (2.4, 0.8)), u"study area"),
         (None, u"PROPOSAL MARKS"),
         (sw_line(K["spine"], K["spine_w"]), u"streamside spine, K4 to K5, along the Selinos"),
-        (sw_line(K["walk_link"], 0.35, (0.6, 0.5)), u"on foot from a hub to its stop, straight-line metres"),
         (lambda x, y: [L_([(x - 4.5, y), (x + 4.5, y)], "FFFFFF", K["heritage_w"] + 0.6, "legend"),
                        L_([(x - 4.5, y), (x + 4.5, y)], K["heritage"], K["heritage_w"], "legend"),
                        P_([circle(x + 4.5, y, 1.4, 24)], K["heritage"], "FFFFFF", 0.3, "legend")],
-         u"heritage loop, stop to stop, from 1 Asklepion to 7 Teleferik; arrows: stops beyond the map"),
+         u"heritage loop, stop to stop, from 1 Asklepion to 7 Teleferik" +
+         (u"; arrows: stops beyond the map" if any(not M.inside(T(h["xy"])) for h in D["heritage"]) else u"")),
         (lambda x, y: [P_([circle(x, y, 1.0, 16)], "FFFFFF", K["heritage"], 0.4, "legend")],
          u"other heritage place"),
     ]
@@ -297,8 +345,7 @@ def main():
                        u"%s = %s, %s; stop: %s" % (code, D["hub_names"][code], word[kd], u"; ".join(st) or u"none")))
     notes = [u"No metro, tram or train runs in Bergama. The nearest rail is İZBAN at Aliağa: line 835 runs there 44 times "
              u"each way a weekday, timed to İZBAN.",
-             u"Line weight = buses a weekday. Where line groups share a road they run side by side.",
-             u"Ridership by line or stop: not known."]
+             u"Line weight = buses a weekday. Where line groups share a road they run side by side."]
     log.append(u"sources (log only, Aras 15:23): " + u"; ".join(D["sources"][k] for k in ("osm", "eshot")) +
                u". Distances: straight line, calculated.")
     credit = u""
