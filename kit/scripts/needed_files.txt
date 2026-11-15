@@ -92,6 +92,6 @@ Data/assets/planting_areas_seed.svg
 Data/assets/plan/B19_setB_layers3.2.svg
 Data/cutouts/
 Data/heritage_photos/
-scripts/bergama_slide04_systems_v1_5.py
+scripts/bergama_slide04_systems_v1_6.py
 Data/water_balance_results_default.json
 Data/water_balance_key_figures.json
