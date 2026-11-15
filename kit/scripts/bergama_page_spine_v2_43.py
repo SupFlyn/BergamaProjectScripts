@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Bergama Group 6: PAGE SPINE v2.35 (15 Nov 2026; v2.35 = Aras 14:32 UTC "fill all the informations that are beneath those axonometric diagrams": every card now carries its idea, its story, its building (programme, areas EST.) and its links (hubs, loop stops, bus lines), all from library/node_ideas_2026-11-15/NODE_IDEAS.md (N2, N4 on Aras's marks; N1, N3, N5 stories still drafts there); v2.34 = Aras 14:31 UTC "cut the buildings in axonometric", "use single cut plane" (the orange was our masterplan: Aras 14:33 "keep the masterplan out of this axonometric diagram" for now, so the node axos drop it and its key): one cut for everything in a node axonometric = the node frame inside site_alan (the slide 1 model ends there): the ground pieces are taken back to the plan, cut by it and draped again, the slab top and its hatched faces follow its draped edge, our move, the flows and the pins end on it; in the node axonometrics every building is rebuilt from its MapBase footprint cut to the node frame and raised to the height slide 1 gave it (read back from its roof in the slide 1 model), so buildings end at the slab edge with a darker cut face; v2.33 = Aras 14:29 UTC "use masterplan over here and use the areas backreading of our working area like the place that falls out of our working area in masterplan": the areas are the back-reading of the town around our working area (the Basemap study-area cache "calisma" rings): no area colour or blob inside the working area, where the base map and the masterplan show; buildings inside it stay as the base map draws them; v2.32 = Aras 14:21 UTC "make those areas fit into the story ... find out what is the differences between upper side of the housings and lower side ... make sure that areas really cultural heritage": each area's profile calculated and logged (no drawing change): buildings, recorded floors (count, median, share of 3+), main fabric types (MapBase), shop buildings, terrain height and slope at its buildings (GLO-30 DEM), and the OpenStreetMap heritage inside it (historic / heritage / place of worship / museum / attraction, by name); v2.31 = Aras 14:17-14:19 UTC "fill the empty areas aswell", "make them look a whole", "make bazaar different colour", "divide the settled housings into two", "divide the industrial areas into two", "dont make areas to cross across river": the map is split whole among the areas (every pixel to the nearest area ring), so the areas meet edge to edge with no blank ground, the river left open; every area reaching both banks becomes two (one per bank: Cultural Heritage, Bazaar, Settled Housing, Industrial Area), slivers across the river go to that bank's areas; buildings take the area under their middle; Bazaar saffron, Archaeological Site taupe (no purple); N1 tagged as Upper and Lower Neighbourhood; v2.30 = Aras 13:34 UTC "reuse these by cutting and orienting what the previous axo have generated" and 13:41 "every 3D, 2D or whatever the drawing is should use the basemap and it's extruded version": each node axonometric is cut out of the slide 1 urban fabric axonometric (Page01Axo v3 cache axo_model.json, itself drawn from MapBase: terrain, parks, river, streets, buildings, asset trees) in that drawing's own view: its ground pieces cut to the node frame, its buildings and trees standing in the frame kept whole, the buildings recoloured by area (each face keeps its light / shade step), the node frame as a slab with soil-hatched cut faces; our move, the flows and the pins drawn on the same terrain; without the cache the v2.29 drawing stays (FLAG); v2.29 = Aras 13:44 UTC "it makes drawing too busy also dont have a opaque background for texts in any single of the drawings": the node tags on the map are bold text in the node colour with no box (the leader ends under the text), the neighbourhood fabric names dropped (the fabric reading is gone); v2.28 = Aras 13:32-13:34 UTC "every building that is for neighborhood is same colour a bit more darker shade of it blobs around those buildings and under that blob everything is same colour ... each colour is dedicated to a area", "there is a distinct difference between upper neighborhood and lower neighborhood", "every building should belong to a blob and every building should be coloured": the fabric colouring is replaced by his seven areas (his 9 Nov marked zones, Data/bergama_area_zones.json: Upper and Lower Neighbourhood, Cultural Heritage, Bazaar, Archaeological Site, Settled Housing, Industrial Area); every building on the map takes the colour of the area it stands in (outside all areas: the nearest one), each area an opaque blob a shade darker closed around its buildings (overlaps split by the nearest building), the legend lists the areas, the node axonometrics colour their buildings by area too; v2.27 = run 23 check against the liked set: the axonometrics filled about two thirds of their box (the scale assumed the tallest building at the back corner), now fitted to the real roof tops so each tile is larger and the white gap above it closes; v2.26 = Aras 12:10 UTC "compare with the examples ... bring it closer": the liked set (library/examples/liked_2026-11-12/WHY_WE_LIKED.md) keeps the context pale and quiet with colour strong only where the project acts, and its axo tiles (B08) stand on a hatched soil slab: the buildings keep their fabric colours mixed 55 % toward the paper, the slab 1.4 mm with hairline soil hatching on its cut faces; v2.25 = run 20 check (Aras 10:33 "a little bit more gentle"): the axonometric walls and outlines darkened half as much as the slide 1 steps (the dark fabrics read as black masses); v2.24 = run 18-20 check: a pin whose badge would sit on another pin's stem (N2: loop stop 4 under the K4 tile) leans 4.5 mm aside on a slanted leader; v2.23 = run 20 FLAG: a shorter legend row for the node area; v2.22 = Aras 10:33 UTC "a little bit more gentle lines": building outlines 0.06 in the lit-wall tone, slab and ground lines warm grey not black, map building edges and neighbourhood lines lighter; Aras 10:32 UTC "every single building should be attached to this reading maybe colouring buildings like in the urban fabric": on the map every building in site_alan coloured by its fabric type (MapBase FAB / FAB_COM, as the urban fabric drawings and the axonometrics), drawn over the node areas (lighter, 0.22), the neighbourhood-part tints dropped (the buildings carry the fabric now), legend rows per fabric type; Aras 10:31 UTC "these axo diagrams needs a facelift ... colourize the buildings just we have on the urban fabric axo drawing, take good care of the lines, and the thickness of the ground": buildings in the slide 1 axo's colours (roof = MapBase FAB / FAB_COM of its fabric, walls and outline darkened by that axo's own steps), outlines 0.10 in the building's dark tone, thinner flows with a narrow white casing, the slab 1.0 mm with a 0.35 base line on the slide 1 axo's paper ground; v2.21 = run 18 check: in the axonometrics the bus routes and the heritage loop drawn over the buildings (they were hidden behind them); the terrace edges in the accent (master.svg draws them olive) and the legend swatch of a masterplan group taken from an area piece first; v2.20 = run 17: the axonometric 51 mm high (N2 text ran 3.6 mm below its card); v2.19 = run 16 review: the slab's ground painted (warm grey, outlined) so nothing floats on white paper, its two cut faces darker with a 0.70 base line, shop roofs mid grey (the near-black read as holes), pins that would touch are raised in steps, the axonometric 56 mm high; v2.18 = run 16 check: the axonometrics larger (52 mm high, a flatter view turned 16 degrees, shorter pins, room above kept only for the pins a node has); v2.17 = Aras 06:41 UTC "god these diagrams are awful": the six flat strips replaced by six axonometrics of each node's own ground, from the data (node frame as a slab with its cut face; streets, stream, buildings raised by their recorded floors, shop buildings with dark roofs; our move from the masterplan in the accent; the bus routes and the heritage loop as bold flows; pins for the hub, loop stops and places), in a 3 x 2 grid of cards with one key; v2.16 = Aras 06:43 UTC "dont leave white spots that are not painted and every painting needs to be a blob without any gaps in the middle": each node area is closed wider step by step (from 12 m up to 60 m) until it is one piece, then every hole inside it is filled; v2.15 = Aras 06:19 UTC master.svg is the masterplan (MasterplanBase v1.5): its walk layer yuruyus/circulation in the accent like the other walks; v2.14 = Aras 05:53 UTC "why is buildings etc. is not showing over there": 42 of the bridges' texture pieces in the masterplan cache are picture-area outlines larger than the whole map (each about 21,000 mm2) and drew an opaque grey sheet over the buildings and streets; any masterplan piece over a quarter of the map is now dropped (logged), and the bridges get their accent colour; v2.13 = Aras 15 Nov 04:58 UTC "All defaults are fine" (default: the proposed masterplan pieces get stronger colours): the proposal on the map and its legend rows in the accent family (C07A2E, the one colour for our move), the existing fabric stays grey; v2.12 = run 10 check: the N4 tunnel mouth drawn as a portal in the bank wall (it read as a rock), the shops arrow shorter and further right so it never crosses the raised point's stems; v2.11 = run 9 review: short arrows (12 mm) from each cause toward the hub, grey where no hub exists (the accent is only our move), the hub tile on the street ground clear of the figures, the Roman bridge drawn at N2 and the tunnel mouth at N4 (the ideas name them), map places nudged off the hub tiles with a hairline leader, legend rows for the stream and the node colours, N6 says what is missing, a wider gutter after the strip; v2.10 = run 8 review: the six nodes as rows across the page (the cards were 60-75 % empty, the strips 58 x 6 mm), each strip about 140 x 29 mm with the hub as its map tile on the ground and up to 3 arrows running to it, a dashed empty footprint where there is no hub, the bus road in grey, one dome for the heritage loop, the town one continuous band; the stream line on the map; neighbourhood names placed after the node tags and kept off them; v2.9 = DIAGRAM_STYLE.md v2 refinements (ground low with ~70 % air, the cut 3 x the rest, a small accent, names on brackets under the ground, no numbers on the strip: counts as text under it); v2.8 = Aras 21:31 UTC "all the diagrams are awful": "What meets here" redrawn to library/diagram_style/DIAGRAM_STYLE.md v1 with pages_common pc_dg_kit (one cut across the stream, poché ground, context rhythm, drivers at the edges, one accent for the move, people on it, at most 4 labels, the claim as title); the card plans, tiles and hub glyph removed; v2.7 = Aras 21:21 UTC "recheck every drawing for not applied feedback": the Q500 level mark left in the hub glyph and its key removed (Aras: remove the water and level markers), card plans and their counts cut to site_alan (16:17 rule), masterplan rows say "proposed" not "masterplan" (no sources on drawings), card water textured (water rule); v2.6 = run 7 review: neighbourhood and street lines cut to their frames (a line's clip id sits at item[4]), smoother area edges (8 mask pixels a mm); v2.5 = run 6: a shorter legend row (it ran over its column); v2.4 = Aras 16:19 UTC "mark the areas properly mark the areas that are neighborhoods diversify neighborhoods according to their specialities" and 16:22 UTC on the what-meets-here diagrams "too basic ... more diagramatic more in a architectural design language way": node areas follow their blocks, not boxes; the neighbourhoods (OSM mahalle boundaries) drawn and named with their main fabric, the two neighbourhood nodes (N1, N5) coloured by it; each card's diagram is now the node's own plan (figure-ground, stream, masterplan, hub / loop stops / places at their points, bar, north) over a row of four tiles; the legend a band under the map; the frame from pages_common SiteMap; v2.3 = Aras 16:17 UTC "KEEP EVERY DRAWING STRICTLY IN SITE_ALAN" (the one exception: Plan 01, Page02): the map strip is now exactly site_alan, turned along its long side, nothing drawn outside it; v2.2 = Aras 15:3x UTC "please take these from the masterplan that i have given you anything that concerns masterplans that should use it": the proposal on the map (terraces, canopy, walks, bridges, retaining walls, cycle route, designs) now comes from the MasterplanBase cache (his B19_setB_layers259.svg), the hand-drawn spine line is gone; v2.1 = run 4 review: upper spoke names clear of their marks, the diagram taller and the cards down to the page margin (23 mm were empty)), Panel Review II slide 2: the six nodes along the streamside spine
+"""Bergama Group 6: PAGE SPINE v2.43 (15 Nov 2026; v2.43 = Aras 15:57 UTC "make these blue and red lines thinner like scale the lines according to the drawing size please across all drawings": in the node axonometrics the bus routes and the heritage loop take weights given for a full-width A3 drawing scaled by the drawing's width: about 0.3 / 0.4 mm in a card (were 0.6 / 0.8); v2.42 = Aras 15:22 UTC no placeholder-looking text anywhere: the building areas on the cards read "proposed" (our design proposals), not "EST."; v2.41 = run 27a FLAGs: three area names (Cultural Heritage both banks, Bazaar north bank) had no room inside their narrow strips: a name may now break into two lines (at its comma) before it shrinks to 1.3 mm; card text ran 4.6 / 6.9 / 1.4 mm below the N2 / N3 / N4 cards: axonometric 43 mm high (was 50), card text 1.7 mm (was 1.75); v2.40 = Aras 15:15 UTC "fix this area in six nodes along the spine drawing" (the east end): the area edges smoothed (each edge pixel the mean of its 5 x 5 window: no stair steps), the base map (quiet, flat river) drawn under master.svg so no part of the frame is left white where master.svg draws nothing, the mahalle boundary lines (a grey line cutting across the areas) and their legend row dropped; v2.39 = Aras 15:07 UTC "this is better however still really awful" (N1): area names smaller (2.3 mm down to 1.6), measured by the true letter widths and kept 1.5 mm inside the frame, a hairline white halo (0.09 mm, was 0.25), no leaders (a small black dot marks each node); master.svg picture tiles that have no colour of their own (the grey squares) left out; v2.38 = Aras 15:06 UTC "what is those green areas that covering areas ?" (master.svg's green picture areas, kesin_yesil / belki_yesil / bitki2, drawn over the area colours) and "just put the .svg directly into that drawing and do the colouring on most foreground layer": the map's base is master.svg as it is (every group, his existing roads and buildings included), no MapBase drawing under it; the area blobs and area-coloured buildings are drawn over it outside the working area, the working-area dashes over everything; Aras 14:56 UTC rule: every number or letter in a marker centred exactly (pages_common pc_text_c on the marker centre); N6 building ~1,560 m2 (the NODE_IDEAS.md rooms' sum); v2.37 = Aras 14:42 UTC "write the names onto the areas that have been painted BOLD BLACK in a readable way": every painted area carries its name in bold black with a thin white letter halo (no box), placed wholly inside its own colour (never across an area edge, the river or the working area), as near its node as fits, the node code in front of the areas a node stands in; the node tags with leaders are gone (a black dot marks each node, with a hairline to its name when the name sits away from it); Aras 14:42 "n2 lower and upper parts not gonna be same please show the difference on the map aswell": the two parts of Cultural Heritage (N2) on the two banks get clearly different colours (rose and brick; the hillside around Ulu Cami and the flat old town), so the map and the N2 axonometric show them apart; Aras 14:43 "the n2 lower and upper parts being different applies to all areas that have been divided": Bazaar, Settled Housing and Industrial Area get a clearly darker second colour on their other bank (Upper / Lower Neighbourhood were already sand / sage); "for that drawings basemaps use masterplan svg aswell" and 14:44 "use the masterplan svg as it is for that map": the map draws all of master.svg (MasterplanBase cache) in its own colours and lines, no longer recoloured into the accent; node axonometrics still without the masterplan (Aras 14:33); Aras 14:43-14:44 "you sure that right top area is industrial ?": no (OSM: no industrial landuse there, small buildings, farm supply shops, the district agriculture office, car dealers and vets on Adnan Menderes Bulvarı): it is now "Boulevard Trade and Services" in its own olive, and Industrial Area is the south bank alone (1. and 2. Sanayi Sitesi); Aras 14:45 "make our working area dashed line as the most foreground line": the working-area dashes drawn over every other line of the map (only the area names above them); node axonometric crash of v2.36 fixed (the cut polygon had taken the colour dict's name K); v2.36 = Aras 14:21 UTC "make those areas fit into the story ... find out what is the differences between upper side of the housings and lower side": each area's legend row carries one short line of what sets it apart, read from its calculated profile (run 25 log: MapBase fabric and shop flags, recorded floors, GLO-30 terrain, OSM heritage), each line logged with the figures behind it; Aras 14:38 UTC "dont do hatches to river" (standing rule): the river is one flat colour on the map (no hatch, no grain) and in the node axonometrics; the heritage count in the profile says when only the first 8 are listed; v2.35 = Aras 14:32 UTC "fill all the informations that are beneath those axonometric diagrams": every card now carries its idea, its story, its building (programme, areas EST.) and its links (hubs, loop stops, bus lines), all from library/node_ideas_2026-11-15/NODE_IDEAS.md (N2, N4 on Aras's marks; N1, N3, N5 stories still drafts there); v2.34 = Aras 14:31 UTC "cut the buildings in axonometric", "use single cut plane" (the orange was our masterplan: Aras 14:33 "keep the masterplan out of this axonometric diagram" for now, so the node axos drop it and its key): one cut for everything in a node axonometric = the node frame inside site_alan (the slide 1 model ends there): the ground pieces are taken back to the plan, cut by it and draped again, the slab top and its hatched faces follow its draped edge, our move, the flows and the pins end on it; in the node axonometrics every building is rebuilt from its MapBase footprint cut to the node frame and raised to the height slide 1 gave it (read back from its roof in the slide 1 model), so buildings end at the slab edge with a darker cut face; v2.33 = Aras 14:29 UTC "use masterplan over here and use the areas backreading of our working area like the place that falls out of our working area in masterplan": the areas are the back-reading of the town around our working area (the Basemap study-area cache "calisma" rings): no area colour or blob inside the working area, where the base map and the masterplan show; buildings inside it stay as the base map draws them; v2.32 = Aras 14:21 UTC "make those areas fit into the story ... find out what is the differences between upper side of the housings and lower side ... make sure that areas really cultural heritage": each area's profile calculated and logged (no drawing change): buildings, recorded floors (count, median, share of 3+), main fabric types (MapBase), shop buildings, terrain height and slope at its buildings (GLO-30 DEM), and the OpenStreetMap heritage inside it (historic / heritage / place of worship / museum / attraction, by name); v2.31 = Aras 14:17-14:19 UTC "fill the empty areas aswell", "make them look a whole", "make bazaar different colour", "divide the settled housings into two", "divide the industrial areas into two", "dont make areas to cross across river": the map is split whole among the areas (every pixel to the nearest area ring), so the areas meet edge to edge with no blank ground, the river left open; every area reaching both banks becomes two (one per bank: Cultural Heritage, Bazaar, Settled Housing, Industrial Area), slivers across the river go to that bank's areas; buildings take the area under their middle; Bazaar saffron, Archaeological Site taupe (no purple); N1 tagged as Upper and Lower Neighbourhood; v2.30 = Aras 13:34 UTC "reuse these by cutting and orienting what the previous axo have generated" and 13:41 "every 3D, 2D or whatever the drawing is should use the basemap and it's extruded version": each node axonometric is cut out of the slide 1 urban fabric axonometric (Page01Axo v3 cache axo_model.json, itself drawn from MapBase: terrain, parks, river, streets, buildings, asset trees) in that drawing's own view: its ground pieces cut to the node frame, its buildings and trees standing in the frame kept whole, the buildings recoloured by area (each face keeps its light / shade step), the node frame as a slab with soil-hatched cut faces; our move, the flows and the pins drawn on the same terrain; without the cache the v2.29 drawing stays (FLAG); v2.29 = Aras 13:44 UTC "it makes drawing too busy also dont have a opaque background for texts in any single of the drawings": the node tags on the map are bold text in the node colour with no box (the leader ends under the text), the neighbourhood fabric names dropped (the fabric reading is gone); v2.28 = Aras 13:32-13:34 UTC "every building that is for neighborhood is same colour a bit more darker shade of it blobs around those buildings and under that blob everything is same colour ... each colour is dedicated to a area", "there is a distinct difference between upper neighborhood and lower neighborhood", "every building should belong to a blob and every building should be coloured": the fabric colouring is replaced by his seven areas (his 9 Nov marked zones, Data/bergama_area_zones.json: Upper and Lower Neighbourhood, Cultural Heritage, Bazaar, Archaeological Site, Settled Housing, Industrial Area); every building on the map takes the colour of the area it stands in (outside all areas: the nearest one), each area an opaque blob a shade darker closed around its buildings (overlaps split by the nearest building), the legend lists the areas, the node axonometrics colour their buildings by area too; v2.27 = run 23 check against the liked set: the axonometrics filled about two thirds of their box (the scale assumed the tallest building at the back corner), now fitted to the real roof tops so each tile is larger and the white gap above it closes; v2.26 = Aras 12:10 UTC "compare with the examples ... bring it closer": the liked set (library/examples/liked_2026-11-12/WHY_WE_LIKED.md) keeps the context pale and quiet with colour strong only where the project acts, and its axo tiles (B08) stand on a hatched soil slab: the buildings keep their fabric colours mixed 55 % toward the paper, the slab 1.4 mm with hairline soil hatching on its cut faces; v2.25 = run 20 check (Aras 10:33 "a little bit more gentle"): the axonometric walls and outlines darkened half as much as the slide 1 steps (the dark fabrics read as black masses); v2.24 = run 18-20 check: a pin whose badge would sit on another pin's stem (N2: loop stop 4 under the K4 tile) leans 4.5 mm aside on a slanted leader; v2.23 = run 20 FLAG: a shorter legend row for the node area; v2.22 = Aras 10:33 UTC "a little bit more gentle lines": building outlines 0.06 in the lit-wall tone, slab and ground lines warm grey not black, map building edges and neighbourhood lines lighter; Aras 10:32 UTC "every single building should be attached to this reading maybe colouring buildings like in the urban fabric": on the map every building in site_alan coloured by its fabric type (MapBase FAB / FAB_COM, as the urban fabric drawings and the axonometrics), drawn over the node areas (lighter, 0.22), the neighbourhood-part tints dropped (the buildings carry the fabric now), legend rows per fabric type; Aras 10:31 UTC "these axo diagrams needs a facelift ... colourize the buildings just we have on the urban fabric axo drawing, take good care of the lines, and the thickness of the ground": buildings in the slide 1 axo's colours (roof = MapBase FAB / FAB_COM of its fabric, walls and outline darkened by that axo's own steps), outlines 0.10 in the building's dark tone, thinner flows with a narrow white casing, the slab 1.0 mm with a 0.35 base line on the slide 1 axo's paper ground; v2.21 = run 18 check: in the axonometrics the bus routes and the heritage loop drawn over the buildings (they were hidden behind them); the terrace edges in the accent (master.svg draws them olive) and the legend swatch of a masterplan group taken from an area piece first; v2.20 = run 17: the axonometric 51 mm high (N2 text ran 3.6 mm below its card); v2.19 = run 16 review: the slab's ground painted (warm grey, outlined) so nothing floats on white paper, its two cut faces darker with a 0.70 base line, shop roofs mid grey (the near-black read as holes), pins that would touch are raised in steps, the axonometric 56 mm high; v2.18 = run 16 check: the axonometrics larger (52 mm high, a flatter view turned 16 degrees, shorter pins, room above kept only for the pins a node has); v2.17 = Aras 06:41 UTC "god these diagrams are awful": the six flat strips replaced by six axonometrics of each node's own ground, from the data (node frame as a slab with its cut face; streets, stream, buildings raised by their recorded floors, shop buildings with dark roofs; our move from the masterplan in the accent; the bus routes and the heritage loop as bold flows; pins for the hub, loop stops and places), in a 3 x 2 grid of cards with one key; v2.16 = Aras 06:43 UTC "dont leave white spots that are not painted and every painting needs to be a blob without any gaps in the middle": each node area is closed wider step by step (from 12 m up to 60 m) until it is one piece, then every hole inside it is filled; v2.15 = Aras 06:19 UTC master.svg is the masterplan (MasterplanBase v1.5): its walk layer yuruyus/circulation in the accent like the other walks; v2.14 = Aras 05:53 UTC "why is buildings etc. is not showing over there": 42 of the bridges' texture pieces in the masterplan cache are picture-area outlines larger than the whole map (each about 21,000 mm2) and drew an opaque grey sheet over the buildings and streets; any masterplan piece over a quarter of the map is now dropped (logged), and the bridges get their accent colour; v2.13 = Aras 15 Nov 04:58 UTC "All defaults are fine" (default: the proposed masterplan pieces get stronger colours): the proposal on the map and its legend rows in the accent family (C07A2E, the one colour for our move), the existing fabric stays grey; v2.12 = run 10 check: the N4 tunnel mouth drawn as a portal in the bank wall (it read as a rock), the shops arrow shorter and further right so it never crosses the raised point's stems; v2.11 = run 9 review: short arrows (12 mm) from each cause toward the hub, grey where no hub exists (the accent is only our move), the hub tile on the street ground clear of the figures, the Roman bridge drawn at N2 and the tunnel mouth at N4 (the ideas name them), map places nudged off the hub tiles with a hairline leader, legend rows for the stream and the node colours, N6 says what is missing, a wider gutter after the strip; v2.10 = run 8 review: the six nodes as rows across the page (the cards were 60-75 % empty, the strips 58 x 6 mm), each strip about 140 x 29 mm with the hub as its map tile on the ground and up to 3 arrows running to it, a dashed empty footprint where there is no hub, the bus road in grey, one dome for the heritage loop, the town one continuous band; the stream line on the map; neighbourhood names placed after the node tags and kept off them; v2.9 = DIAGRAM_STYLE.md v2 refinements (ground low with ~70 % air, the cut 3 x the rest, a small accent, names on brackets under the ground, no numbers on the strip: counts as text under it); v2.8 = Aras 21:31 UTC "all the diagrams are awful": "What meets here" redrawn to library/diagram_style/DIAGRAM_STYLE.md v1 with pages_common pc_dg_kit (one cut across the stream, poché ground, context rhythm, drivers at the edges, one accent for the move, people on it, at most 4 labels, the claim as title); the card plans, tiles and hub glyph removed; v2.7 = Aras 21:21 UTC "recheck every drawing for not applied feedback": the Q500 level mark left in the hub glyph and its key removed (Aras: remove the water and level markers), card plans and their counts cut to site_alan (16:17 rule), masterplan rows say "proposed" not "masterplan" (no sources on drawings), card water textured (water rule); v2.6 = run 7 review: neighbourhood and street lines cut to their frames (a line's clip id sits at item[4]), smoother area edges (8 mask pixels a mm); v2.5 = run 6: a shorter legend row (it ran over its column); v2.4 = Aras 16:19 UTC "mark the areas properly mark the areas that are neighborhoods diversify neighborhoods according to their specialities" and 16:22 UTC on the what-meets-here diagrams "too basic ... more diagramatic more in a architectural design language way": node areas follow their blocks, not boxes; the neighbourhoods (OSM mahalle boundaries) drawn and named with their main fabric, the two neighbourhood nodes (N1, N5) coloured by it; each card's diagram is now the node's own plan (figure-ground, stream, masterplan, hub / loop stops / places at their points, bar, north) over a row of four tiles; the legend a band under the map; the frame from pages_common SiteMap; v2.3 = Aras 16:17 UTC "KEEP EVERY DRAWING STRICTLY IN SITE_ALAN" (the one exception: Plan 01, Page02): the map strip is now exactly site_alan, turned along its long side, nothing drawn outside it; v2.2 = Aras 15:3x UTC "please take these from the masterplan that i have given you anything that concerns masterplans that should use it": the proposal on the map (terraces, canopy, walks, bridges, retaining walls, cycle route, designs) now comes from the MasterplanBase cache (his B19_setB_layers259.svg), the hand-drawn spine line is gone; v2.1 = run 4 review: upper spoke names clear of their marks, the diagram taller and the cards down to the page margin (23 mm were empty)), Panel Review II slide 2: the six nodes along the streamside spine
 (output/presentation/2.pdf; one script per page, Aras 14 Nov 10:46 UTC).
 
 v2 = Aras 15:25 UTC: "dont have this like that have nodes more like pointers and give some diagrams to explain and draw it
@@ -22,7 +22,7 @@ Grasshopper: a Button on any input runs it.
 """
 import os, re, time, math, zlib, json
 
-VERSION = "v2.35"
+VERSION = "v2.43"
 SLIDE = 2
 GH_LABEL = "PageSpine"
 OUT_FOLDER = "bergama_page_spine"
@@ -36,8 +36,8 @@ NAME = "Spine"
 PAGE_W, PAGE_H, MARGIN = 420.0, 297.0, 12.0      # A3 landscape (mm)
 SIDE_W = 95.0                                    # the column right of the map: title, north, scale (v2.4: legend under the map)
 DEN_STEP = 500                                   # the scale is rounded up to a 1:500 step
-CARD_PT = 1.75                                   # v2.35: card text size (mm; was 1.9: the cards now hold idea, story, building, links)
-AXO_H = 50.0                                     # v2.17: the axonometric's height in a card (mm); v2.33: 50 (run 25: N2 text 0.9 mm over)
+CARD_PT = 1.7                                   # v2.35: card text size (mm; was 1.9: the cards now hold idea, story, building, links)
+AXO_H = 43.0                                     # v2.17: the axonometric's height in a card (mm); v2.33: 50 (run 25: N2 text 0.9 mm over)
 CARD_GAP = 6.0                                   # mm
 ROW_COLS = (44.0, 140.0, 80.0)                   # v2.10 node rows: name + claim | strip | what meets (mm); the rest = idea
 ROW_GAP = 4.0                                    # mm
@@ -51,13 +51,46 @@ MIN_BLD = 15                                     # a neighbourhood with fewer bu
 CHAR_COL = {"traditional": "B5562F", "block": "4A6A8A", "regular": "C8A03C", "selfbuilt": "6E8B5E",
             "large": "5F5F66", "monument": "A33B2B", "sacred": "A33B2B"}   # our picks; a neighbourhood's main fabric
 MAH_C = "6E675E"                                 # v2.4: neighbourhood lines and names
-DG = dict(ground="F4F1EA", street="FFFFFF", water="~A2B6B5", bld="8E897F")   # v2.7: water with the grain (textured)     # v2.4: the card plans
+DG = dict(ground="F4F1EA", street="FFFFFF", water="A2B6B5", bld="8E897F")   # v2.36: flat water (Aras 14:38)     # v2.4: the card plans
 NODE_COL = dict(N1="70754C", N2="8B2D2D", N3="5C7A86", N4="4C2528", N5="89986A", N6="8E8F8A")   # palette colours
 AREA_FILE = os.path.join("Data", "bergama_area_zones.json")   # v2.28: Aras's seven areas (9 Nov zones, survey m)
 AREA_COL = {"YN": "D8C48C", "DN": "A9BC8E", "2": "D29C9A", "3": "E8B04F", "4": "B39C86", "5": "9FC7BD", "6": "B3B1AB",
-            "2b": "B07A80", "3b": "C79434", "5b": "6FA8A0", "6b": "8F8C84"}
+            "2b": "C0674A", "3b": "A7782E", "5b": "5F8F7E", "6b": "7D7A72"}   # v2.37: each split pair clearly apart (Aras 14:43)
 # v2.31: Bazaar saffron, Archaeological taupe (no purple); "b" = the part of an area on its other bank (split at the river)
 SPLIT_AREAS = ("5", "6")                         # v2.31: Aras 14:18 split these two in two (at the river)
+AREA_STORY = {   # v2.36: one line per area, from the area profiles (spine_run25 log, PageSpine v2.32); keyed by the map name
+    u"Upper Neighbourhood": (u"highest and steepest; planned houses, no shops",
+                             u"mean 103 m, slope 24 %; fabric regular 67 %; shop buildings 0"),
+    u"Lower Neighbourhood": (u"lower slope, 3x the old fabric; Kozan Mescidi",
+                             u"mean 90 m, slope 22 %; traditional 21 % (Upper 7 %); shop buildings 4; OSM Kozan Mescidi"),
+    u"Cultural Heritage, north bank": (u"hillside around Ulu Cami, old and new mixed",
+                                       u"slope 21 %; regular 52 %, traditional 31 %; OSM Bergama Ulu Cami (historic)"),
+    u"Cultural Heritage, south bank": (u"flat old town, Parmaklı Mescidi and two mosques",
+                                       u"slope 4 %; traditional 63 %; OSM Parmaklı Mescidi (historic), Ansarlı, Divan Hızır"),
+    u"Bazaar, south bank": (u"the market: one building in six a shop",
+                            u"shop buildings 39 of 245 (16 %); traditional 61 %; slope 4 %"),
+    u"Bazaar, north bank": (u"historic slope: a museum, few shops",
+                            u"shop buildings 11 of 247 (4 %); slope 17 %; OSM Bergamalı Kadri museum + 7 historic=building"),
+    u"Archaeological Site": (u"Kızıl Avlu and Eski Kışla among old houses",
+                             u"traditional 46 %, monument 8 %; OSM Kızıl Avlu (temple), Eski Kışla Binası"),
+    u"Settled Housing, north bank": (u"planned houses and blocks, no shops",
+                                     u"regular 79 %, block 13 %; shop buildings 0; slope 6 %"),
+    u"Settled Housing, south bank": (u"older and mixed, one building in seven a shop",
+                                     u"traditional 37 % (north 0 % in top 3); shop buildings 27 of 182 (15 %)"),
+    u"Boulevard Trade and Services": (u"farm trade and services, two tumuli",
+                                      u"OSM: farm supply shops, District Agriculture office, car dealers, vets; "
+                                      u"Tumulus Tepe A, Tavşan Tepe Tümülüsü; no industrial landuse"),
+    u"Industrial Area": (u"the estate: large sheds, no shops",
+                                     u"large 19 %; shop buildings 0; OSM Sanayi Cami"),
+}
+AREA_RENAME = {   # v2.37: Aras 14:43-14:44 "you sure that right top area is industrial ?" (OSM check, 15 Nov, in site_alan)
+    u"Industrial Area, north bank": (u"Boulevard Trade and Services", "8C8A4E",
+                                     u"OSM in its part of site_alan: no landuse=industrial (6,282 m2 commercial only), 47 "
+                                     u"buildings with median 223 m2 (south 1,143 m2); on Adnan Menderes Bulvari: farm supply "
+                                     u"shops (Akguller Un-Yem sales point, Endal Tarim), the District Agriculture and Forestry "
+                                     u"office, car dealers, vets, a wholesale market; the south bank holds 206,660 m2 "
+                                     u"landuse=industrial and Bergama 1. and 2. Sanayi Sitesi"),
+    u"Industrial Area, south bank": (u"Industrial Area", None, u"the one industrial part (see the north bank)")}
 AREA_DARK = 0.15                                 # v2.28: the blob = the area colour this much toward black
 AREA_PPM = 5.0                                   # v2.28: blob pixels a mm
 for _k, _n in (("N2", "2"), ("N3", "3"), ("N4", "4"), ("N5", "5"), ("N6", "6")):   # v2.28: tags in their area's tone
@@ -67,7 +100,8 @@ MP_ROWS = [(u"terraces (proposed)", ("teras_-_canopy/teras",)), (u"canopy (propo
            (u"walks (proposed)", ("yuruyus",)), (u"bridges (proposed)", ("kopruler",)),
            (u"designs (proposed)", ("desings",)), (u"retaining walls (proposed)", ("istinaat",)),
            (u"cycle route (proposed)", ("bisiklet",))]   # the layer names as the nodes pages use them
-MP_STYLE = {   # v2.13: the proposal in the accent family (DIAGRAM_STYLE: C07A2E = our intervention); key words of the layers
+MP_STYLE = {"area": {}, "fill": {}, "stroke": {}}   # v2.37: Aras 14:44 "use the masterplan svg as it is for that map"
+MP_STYLE_V213 = {   # v2.13 (not used since v2.37): the proposal in the accent family (DIAGRAM_STYLE: C07A2E = our intervention); key words of the layers
     "area": {"kopruler": "A8641F", "teras": "D9A46A", "kanopi": "F2DCC0"},
     "fill": {"kopruler": "A8641F", "teras": "D9A46A", "kanopi": "F2DCC0", "iskele_kenari": "C07A2E", "normal": "C07A2E", "circulation": "C07A2E", "desings": "E6BE8E"},
     "stroke": {"teras": "A8641F", "kanopi": "C07A2E", "desings": "A8641F", "istinaat": "7A3E0C", "kopruler": "8F4E14",
@@ -75,25 +109,25 @@ MP_STYLE = {   # v2.13: the proposal in the accent family (DIAGRAM_STYLE: C07A2E
 NODE_INFO = {   # v2.35: library/node_ideas_2026-11-15/NODE_IDEAS.md (15 Nov); areas = estimates (EST.), no source
     "N1": dict(idea=u"a neighbourhood house for both banks · a waiting room for the village buses",
                story=u"The oldest riverbank: Hellenistic embankment · Roman bank wall at Eski Kozak Cd",
-               bld=u"neighbourhood house ~500 m² EST.: hall 200 · kitchen 80 · 3 workshops · children 60 · tool / seed library 40",
+               bld=u"neighbourhood house ~500 m² proposed: hall 200 · kitchen 80 · 3 workshops · children 60 · tool / seed library 40",
                links=u"Kozak Cd, Tekkeboğazı Sk stops · village lines 831-833"),
     "N2": dict(story=u"1,800 years of one crossing: Roman bridge 2nd-3rd c AD · Ulu Cami 1398-99 · Tabaklar Hamamı",
-               bld=u"heritage walk point ~400 m² EST.: exhibition 250 · info 40 · café 80 · lookout",
+               bld=u"heritage walk point ~400 m² proposed: exhibition 250 · info 40 · café 80 · lookout",
                links=u"K4 walk hub · heritage loop stop 4 · Camikebir Cd (831-833)"),
     "N3": dict(idea=u"show the hidden stream, no opening (Roman tunnels): viewing steps at the tunnel mouth · a water line in the İstiklal paving",
                story=u"The river under the market: Tabak Köprüsü · tanneries · Hacı Hekim arasta 1513",
-               bld=u"craft + produce hall ~850 m² EST.: market 600 · 3 workshops · arrival + WC 60",
+               bld=u"craft + produce hall ~850 m² proposed: market 600 · 3 workshops · arrival + WC 60",
                links=u"K3 walk hub · İstiklal transit hub · loop stops 3, 5 · Yıldız Garajı"),
     "N4": dict(story=u"The temple that stands on the river: Kızıl Avlu over the Selinos · Üç Kemer Roman bridge",
                bld=u"raised canopy platform on the north bank, no contact with the monument",
                links=u"Kızıl Avlu transit hub · K5 walk hub · loop stop 2 · lines 651-653, 656"),
     "N5": dict(idea=u"where the town meets the plain: courts on the dry terraces",
                story=u"Üç Kemer, the last stone bridge before the plain · 1861 ginning factory",
-               bld=u"day-care + sports pavilion ~280 m² EST.: day-care 150 · changing / WC 100 · store 30",
+               bld=u"day-care + sports pavilion ~280 m² proposed: day-care 150 · changing / WC 100 · store 30",
                links=u"Üç Kemer, Akasya, Cumhuriyet Lisesi stops · lines 651-653, 656"),
     "N6": dict(idea=u"water-enrichment research + education centre, open to everyone, with DEÜ Bergama MYO",
                story=u"The gateway: industry, the plain and the school meet",
-               bld=u"~1,580 m² EST.: labs 160 · pilot line 150 · canteen 200 · display hall 250 · greenhouse 400 + trial plots",
+               bld=u"~1,560 m² proposed: labs 160 · pilot line 150 · canteen 200 · display hall 250 · greenhouse 400 + trial plots",
                links=u"K6 gateway hub · Bergama Sanayi, İlçe Tarım stops · lines 651-653, 656 + regional 643, 644, 836, 936")}
 IDEAS = {   # Aras's two marks (thread "Develop building function ideas", 14 Nov 15:13-15:16 UTC); the others still open
     "N2": u"stepped gathering terraces into the river by the Roman bridge · a split ramp down to the water",
@@ -308,6 +342,39 @@ def soft_grid(vals, W, H, gx0, gy1, ppm, colour, layer, clip):
     return ("soft", zlib.compress(bytes(vals), 9), W, H, gx0, gy1 - H / ppm, W / ppm, H / ppm, colour, None, layer, clip)
 
 
+def smooth_mask(g, W, H, r=2):
+    """v2.40 (Aras 15:15: the area edge stair-stepped): every pixel near an edge of the 0/255 mask becomes the mean of
+    its (2r+1)^2 window, so the edge fades over about half a millimetre instead of stepping pixel by pixel"""
+    near = set()
+    for i in range(W * H):
+        v = g[i]
+        x = i % W
+        if (x < W - 1 and g[i + 1] != v) or (i + W < W * H and g[i + W] != v):
+            near.add(i)
+    if not near:
+        return g
+    out = bytearray(g)
+    n2 = (2 * r + 1) ** 2
+    done = set()
+    for i in near:
+        x0, y0 = i % W, i // W
+        for dy in range(-r, r + 1):
+            for dx in range(-r, r + 1):
+                x, y = x0 + dx, y0 + dy
+                if 0 <= x < W and 0 <= y < H:
+                    j = y * W + x
+                    if j in done:
+                        continue
+                    done.add(j)
+                    t = 0
+                    for ey in range(-r, r + 1):
+                        yy = min(H - 1, max(0, y + ey)) * W
+                        for ex in range(-r, r + 1):
+                            t += g[yy + min(W - 1, max(0, x + ex))]
+                    out[j] = t // n2
+    return out
+
+
 def cen_of(R):
     return (sum(p[0] for p in R) / len(R), sum(p[1] for p in R) / len(R))
 
@@ -402,11 +469,11 @@ def area_profile(Z, order, lab, W, H, gx0, gy1, T, M, C, area_of, inmap, her, mi
         hh = [h for h in her if M.inside(T(h[:2])) and lab_at(T(h[:2])) == n_ + 1]
         log.append(u"area profile %s: %d buildings; floors recorded for %d (median %s, 3+ floors %s); fabric %s; shop "
                    u"buildings %d (%.0f %%); terrain at its buildings: mean %s above sea, mean slope %s (GLO-30, 15 m "
-                   u"steps); OSM heritage %d: %s" % (
+                   u"steps); OSM heritage %d%s: %s" % (
                        Z["areas"][a_]["name"], len(mine), len(fl), (u"%.0f" % fl[len(fl) // 2]) if fl else u"-",
                        (u"%.0f %%" % (100.0 * sum(1 for v in fl if v >= 3) / len(fl))) if fl else u"-",
                        u", ".join(u"%s %.0f %%" % (k_, 100.0 * v / len(mine)) for k_, v in top2), com,
-                       100.0 * com / len(mine), el, sl, len(hh),
+                       100.0 * com / len(mine), el, sl, len(hh), u" (first 8 listed)" if len(hh) > 8 else u"",
                        u"; ".join(u"%s (%s)" % (h[2], h[3]) for h in hh[:8]) or u"none"))
 
 
@@ -513,6 +580,13 @@ def area_layer(M, T, k, C, mixh, log, sel=None, her=None, work=None):
     def lab_ix(i):
         q_ = T(cen_of(C["bld"][i][0]))
         return min(H - 1, max(0, int((gy1 - q_[1]) * AREA_PPM))) * W + min(W - 1, max(0, int((q_[0] - gx0) * AREA_PPM)))
+    for a_ in order:                                     # v2.37: a part the data does not support under its name
+        rn = AREA_RENAME.get(Z["areas"][a_]["name"])
+        if rn:
+            log.append(u"areas: %s renamed %s (%s)" % (Z["areas"][a_]["name"], rn[0], rn[2]))
+            Z["areas"][a_] = dict(Z["areas"][a_], name=rn[0])
+            if rn[1]:
+                AREA_COL[a_] = rn[1]
     wk = bytearray(W * H)                                # v2.33: our working area: no area colour inside it
     for R in work or []:
         fill_ring(wk, W, H, gx0, gy1, AREA_PPM, [T(tuple(q)) for q in R], 1)
@@ -533,12 +607,43 @@ def area_layer(M, T, k, C, mixh, log, sel=None, her=None, work=None):
             log.append(u"area %s: not on the map" % Z["areas"][a_]["name"])
             continue
         col = AREA_COL.get(a_, "B3B1AB")
-        blobs.append(soft_grid(g, W, H, gx0, gy1, AREA_PPM, mixh(col, "000000", AREA_DARK), "area_blobs", "map"))
+        blobs.append(soft_grid(smooth_mask(g, W, H), W, H, gx0, gy1, AREA_PPM, mixh(col, "000000", AREA_DARK),
+                               "area_blobs", "map"))       # v2.40: smooth edges
         for i in mine:
             blds.append(("poly", [[T(p) for p in C["bld"][i][0]]], col, mixh(col, "000000", 0.35), 0.04, None,
                          "buildings_area", 1, None, "map"))
         log.append(u"area %s: %d buildings, %.0f %% of the map" % (
             Z["areas"][a_]["name"], len(mine), 100.0 * sum(1 for v in g if v) / (W * H)))
+    # v2.37: where each area is (for its name): the label at a point, and a box test against any edge (summed table)
+    okg = [lab[i] if (not rv[i] and not wk[i]) else 0 for i in range(W * H)]
+    edge = bytearray(W * H)
+    for i in range(W * H):
+        x_ = i % W
+        if not okg[i] or (x_ < W - 1 and okg[i + 1] != okg[i]) or (i + W < W * H and okg[i + W] != okg[i]) or \
+                (x_ > 0 and okg[i - 1] != okg[i]) or (i >= W and okg[i - W] != okg[i]):
+            edge[i] = 1
+    sat = [0] * ((W + 1) * (H + 1))
+    for y_ in range(H):
+        run, b0, b1 = 0, y_ * (W + 1), (y_ + 1) * (W + 1)
+        for x_ in range(W):
+            run += edge[y_ * W + x_]
+            sat[b1 + x_ + 1] = sat[b0 + x_ + 1] + run
+    px_ = lambda q: (int((q[0] - gx0) * AREA_PPM), int((gy1 - q[1]) * AREA_PPM))
+
+    def key_at(q):
+        c_, r_ = px_(q)
+        if 0 <= c_ < W and 0 <= r_ < H and okg[r_ * W + c_]:
+            return order[okg[r_ * W + c_] - 1]
+        return None
+
+    def box_clear(b):                                    # b = (x0, y0, x1, y1) page mm: no area edge inside it
+        c0, r1 = px_((b[0], b[1]))
+        c1, r0 = px_((b[2], b[3]))
+        if c0 < 0 or r0 < 0 or c1 >= W or r1 >= H:
+            return False
+        return sat[(r1 + 1) * (W + 1) + c1 + 1] - sat[r0 * (W + 1) + c1 + 1] - sat[(r1 + 1) * (W + 1) + c0] + \
+            sat[r0 * (W + 1) + c0] == 0
+    Z["key_at"], Z["box_clear"] = key_at, box_clear
     log.append(u"areas: the whole map split among %d areas (nearest ring), the river left open; %d buildings coloured"
                % (len(blobs), len(inmap)))
     return blobs, blds, area_of, Z
@@ -942,7 +1047,7 @@ def node_axo(G, K, X, nk, info, x0, y0, W, H, log):
     poly = lambda Q, f, st=None, w=0.0: it.append(P_([Q], f, st, w if st else 0.0, lay))
     AM = X.get("AM")
     clipP = lambda Q: clip_poly(Q, L1, L2)               # v2.34: the cut; the node frame unless the slide 1 model
-    clipL = lambda Q: clip_line(Q, L1, L2)               # sets K (frame inside site_alan)
+    clipL = lambda Q: clip_line(Q, L1, L2)               # sets KC (frame inside site_alan)
     inK = lambda q: 0 <= q[0] <= L1 and 0 <= q[1] <= L2
 
     def draw_move(Pj, poly, it):
@@ -980,19 +1085,21 @@ def node_axo(G, K, X, nk, info, x0, y0, W, H, log):
         corners = [inv(0, 0), inv(L1, 0), inv(L1, L2), inv(0, L2)]
         # v2.34 (Aras 14:31 "use single cut plane"): ONE cut for everything = the node frame inside site_alan (the
         # slide 1 model ends at site_alan); ground, buildings, trees, slab, move, flows and pins all end on it
-        K = ccw(clip_convex(ccw(corners), ccw([tuple(q) for q in (getattr(M, "ring", None) or corners)])))
-        K = [q for i, q in enumerate(K) if math.hypot(q[0] - K[i - 1][0], q[1] - K[i - 1][1]) > 0.01] or ccw(corners)
-        Ku = ccw([uv(q) for q in K])
+        KC = ccw(clip_convex(ccw(corners), ccw([tuple(q) for q in (getattr(M, "ring", None) or corners)])))
+        KC = [q for i, q in enumerate(KC) if math.hypot(q[0] - KC[i - 1][0], q[1] - KC[i - 1][1]) > 0.01] or ccw(corners)
+        Ku = ccw([uv(q) for q in KC])
         clipP = lambda Q: [q for q in clip_convex(list(Q), Ku)] if len(Q) >= 3 else []
         clipL = lambda Q: clip_line_convex(list(Q), Ku)
         inK = lambda q: pip(q[0], q[1], Ku)
         back = axo_back(AM, D3)
-        Qd = [D3(*q) for q in dense(K, 5.0)]
+        Qd = [D3(*q) for q in dense(KC, 5.0)]
         ground, body, slab_fill, best = [], [], None, 0.0
         for sh in AM["shapes"]:
             g_ = sh.get("grp") or u""
-            if g_.startswith(u"labels"):
+            if g_.startswith(u"labels") or u"hatch" in g_:
                 continue
+            if g_.startswith(u"water") and isinstance(sh.get("fill"), str) and sh["fill"].startswith("~"):
+                sh = dict(sh, fill=sh["fill"][1:])       # v2.36 (Aras 14:38): the river one flat colour
             if g_.startswith(u"slab"):
                 R0 = (sh.get("rings") or [[]])[0]
                 if sh.get("fill") and len(R0) >= 3:
@@ -1002,20 +1109,20 @@ def node_axo(G, K, X, nk, info, x0, y0, W, H, log):
                 continue
             anc = sh.get("anchor")
             if sh.get("bld") is not None or g_.startswith(u"trees"):
-                if anc and pip(anc[0], anc[1], K):
+                if anc and pip(anc[0], anc[1], KC):
                     body.append(sh)
                 continue
             Rs = [sh.get("pts") or []] if sh.get("t") == "line" else (sh.get("rings") or [])
             xs__ = [q[0] for R_ in Rs for q in R_]
             if not xs__ or max(xs__) < min(q[0] for q in Qd) or min(xs__) > max(q[0] for q in Qd):
                 continue                                 # off this node's columns of the drawing
-            if sh.get("t") == "line":                    # back to the plan, cut by K, draped again
-                runs = clip_line_convex([back(*q) for q in Rs[0]], K)
+            if sh.get("t") == "line":                    # back to the plan, cut by KC, draped again
+                runs = clip_line_convex([back(*q) for q in Rs[0]], KC)
                 runs = [[D3(*q) for q in dense(r_, 5.0, False)] for r_ in runs]
                 if runs:
                     ground.append((sh, runs))
             else:
-                rr = [clip_convex([back(*q) for q in R_], K) for R_ in Rs]
+                rr = [clip_convex([back(*q) for q in R_], KC) for R_ in Rs]
                 rr = [[D3(*q) for q in dense(R_, 5.0)] for R_ in rr if len(R_) >= 3]
                 if rr:
                     ground.append((sh, rr))
@@ -1033,8 +1140,8 @@ def node_axo(G, K, X, nk, info, x0, y0, W, H, log):
         # soil hatching), then the ground (the view keeps plan ccw as screen ccw: an edge running right faces us)
         Qp = [F(q) for q in Qd]
         dz = -AXO_SLAB
-        for i in range(len(K)):
-            a_, b_ = K[i - 1], K[i]
+        for i in range(len(KC)):
+            a_, b_ = KC[i - 1], KC[i]
             top_ = [F(D3(*q)) for q in dense([a_, b_], 5.0, False)]
             if top_[-1][0] - top_[0][0] <= 1e-6:
                 continue
@@ -1088,14 +1195,14 @@ def node_axo(G, K, X, nk, info, x0, y0, W, H, log):
                     hb = max(1.0, (sum(q[1] for q in rr_) / len(rr_) - gY) / Vw["kz"])
                 else:
                     hb = STOREY_M
-                Pw = ccw(clip_convex(ccw(P0), K)) if len(P0) >= 3 else []
+                Pw = ccw(clip_convex(ccw(P0), KC)) if len(P0) >= 3 else []
                 if len(Pw) < 3:
                     i_ = j_
                     continue
 
-                def on_e(q):                             # on the cut (an edge of K)
-                    for e_ in range(len(K)):
-                        a_, b_ = K[e_ - 1], K[e_]
+                def on_e(q):                             # on the cut (an edge of KC)
+                    for e_ in range(len(KC)):
+                        a_, b_ = KC[e_ - 1], KC[e_]
                         L_e = math.hypot(b_[0] - a_[0], b_[1] - a_[1]) or 1.0
                         if abs((b_[0] - a_[0]) * (q[1] - a_[1]) - (b_[1] - a_[1]) * (q[0] - a_[0])) / L_e < 0.05:
                             return True
@@ -1193,14 +1300,17 @@ def node_axo(G, K, X, nk, info, x0, y0, W, H, log):
     # ---- the flows over the buildings (v2.21): bus routes (OSM ways), the heritage loop's legs
     seen = set()
     nbus = 0
+    # v2.43 (Aras 15:57 "make these blue and red lines thinner like scale the lines according to the drawing size"):
+    # a line weight is given for a full-width A3 drawing (400 mm) and scaled by this drawing's width
+    lw = lambda b_: b_ * min(1.0, W / 400.0)
     for r_ in (D.get("routes") or {}).values():
         for wid in r_.get("ways", []):
             if wid in seen or wid not in D.get("ways", {}):
                 continue
             seen.add(wid)
             for run in clipL([uv(p) for p in D["ways"][wid]]):
-                it.append(L_([Pj(u, v) for u, v in run], "FFFFFF", 0.9, lay))
-                it.append(L_([Pj(u, v) for u, v in run], AX["bus"], 0.6, lay))
+                it.append(L_([Pj(u, v) for u, v in run], "FFFFFF", lw(1.5), lay))
+                it.append(L_([Pj(u, v) for u, v in run], AX["bus"], lw(1.0), lay))
                 nbus += 1
     Hh = sorted(D["heritage"], key=lambda h: int(h["n"]))
     nloop = 0
@@ -1209,8 +1319,8 @@ def node_axo(G, K, X, nk, info, x0, y0, W, H, log):
         if {a["key"], b["key"]} == {"tabak_koprusu", "ulucami_onu"}:
             Pl = G["pc_selinos"](a["xy"], b["xy"]) or Pl
         for run in clipL([uv(p) for p in Pl]):
-            it.append(L_([Pj(u, v) for u, v in run], "FFFFFF", 1.1, lay))
-            it.append(L_([Pj(u, v) for u, v in run], AX["loop"], 0.8, lay))
+            it.append(L_([Pj(u, v) for u, v in run], "FFFFFF", lw(1.8), lay))
+            it.append(L_([Pj(u, v) for u, v in run], AX["loop"], lw(1.3), lay))
             nloop += 1
     # ---- the pins: hub (tall), loop stops, places
     pins = []
@@ -1246,13 +1356,13 @@ def node_axo(G, K, X, nk, info, x0, y0, W, H, log):
             c_ = K["hub"]["transit" if obj["kind"] == "hidden" else obj["kind"]]
             it.append(P_([[(tp[0] - 2.0, tp[1]), (tp[0] + 2.0, tp[1]), (tp[0] + 2.0, tp[1] + 3.6),
                            (tp[0] - 2.0, tp[1] + 3.6)]], c_, "FFFFFF", 0.25, lay))
-            it.append(T_(obj["code"], tp[0], tp[1] + 1.1, 2.0, "FFFFFF", lay, True, "C"))
+            it.append(G["pc_text_c"](obj["code"], tp[0], tp[1] + 1.8, 2.0, "FFFFFF", lay, True))
         elif kd == "loop":
             it.append(P_([circle(tp[0], tp[1] + 1.6, 1.6, 24)], AX["loop"], "FFFFFF", 0.3, lay))
-            it.append(T_(obj["n"], tp[0], tp[1] + 0.95, 1.9, "FFFFFF", lay, True, "C"))
+            it.append(G["pc_text_c"](str(obj["n"]), tp[0], tp[1] + 1.6, 1.9, "FFFFFF", lay, True))
         else:
             it.append(P_([circle(tp[0], tp[1] + 1.5, 1.5, 24)], "FFFFFF", PLACE_C, 0.35, lay))
-            it.append(T_(str(obj), tp[0], tp[1] + 0.85, 1.8, PLACE_C, lay, True, "C"))
+            it.append(G["pc_text_c"](str(obj), tp[0], tp[1] + 1.5, 1.8, PLACE_C, lay, True))
     log.append(u"%s diagram: %d bus way runs, %d loop legs, %d pieces of our move, %d pins; drawn at %.3f mm a m" % (
         nk, nbus, nloop, nmove, len(pins), mm_m))
     return it
@@ -1278,7 +1388,7 @@ def node_card(G, lib, K, X, nk, nd, info, x, ytop, w, h, log):
     tile = (8.0, 5.0)
     yh = ytop - 2.6
     it.append(P_([[(x, yh - tile[1]), (x + tile[0], yh - tile[1]), (x + tile[0], yh), (x, yh)]], col, None, 0.0, "cards"))
-    it.append(T_(nk, x + tile[0] / 2, yh - tile[1] + 1.4, 2.8, "FFFFFF", "cards", True, "C"))
+    it.append(G["pc_text_c"](nk, x + tile[0] / 2, yh - tile[1] / 2, 2.8, "FFFFFF", "cards", True))
     it.append(T_(nd["name"], x + tile[0] + 2.0, yh - 2.3, 2.8, INK, "cards", True))
     it.append(T_(strip_claim(nk, info), x + tile[0] + 2.0, yh - 4.9, 2.0, col, "cards", True))
     yd = yh - tile[1] - 1.5
@@ -1309,7 +1419,7 @@ def node_card(G, lib, K, X, nk, nd, info, x, ytop, w, h, log):
         for n in info["places"]:
             f = PLACES[n]
             it.append(P_([circle(xd + 1.3, y - 1.3, 1.3, 20)], "FFFFFF", PLACE_C, 0.3, "cards"))
-            it.append(T_(str(n), xd + 1.3, y - 1.95, 1.7, PLACE_C, "cards", True, "C"))
+            it.append(G["pc_text_c"](str(n), xd + 1.3, y - 1.3, 1.7, PLACE_C, "cards", True))
             y = para(f["name"] + u": " + f["kw"][0] + u" · " + f["kw"][1], y, CARD_PT, xd + 3.6, cw - 3.6) - 0.3
     miss = [s for s, v in ((u"no hub", info["hubs"]), (u"no heritage loop stop", info["loop"]),
                            (u"no bus line", info["bus"]), (u"no shops", info["shops"])) if not v]
@@ -1393,15 +1503,27 @@ def main():
             len(bus), info[nk]["shops"], u" ".join(str(n) for n in info[nk]["places"]) or u"-"))
 
     # ---- the map
-    MB = G["pc_mapbase"](M, K, log, MB_LAYERS, {"lc_light": 0.8})
-    items = MB[0]
-    items += G["pc_study"](M, K, log)
+    # v2.38 (Aras 15:06 "just put the .svg directly into that drawing and do the colouring on most foreground layer"):
+    # the base of the map is master.svg as it is (every group, his existing roads and buildings too, its own colours),
+    # the area colours over it (outside the working area), the working-area dashes over everything
+    MB = G["pc_mapbase"](M, K, log, MB_LAYERS, {"lc_light": 0.8, "water_hatch": None})   # v2.40: under master.svg,
+    items = [it_ for it_ in MB[0] if not (it_[0] == "line" and len(it_) > 5 and it_[5] == "water_hatch")]   # no white
+    for i_, it_ in enumerate(items):                     # gaps where master.svg draws nothing; river flat (14:38)
+        if it_[0] == "poly" and len(it_) > 6 and it_[6] == "water" and isinstance(it_[2], str) and it_[2].startswith("~"):
+            items[i_] = tuple(it_[:2]) + (it_[2][1:],) + tuple(it_[3:])
+    mp_all = set(k_.split("/")[0] for k_ in MPC["layers"])
+    cnt = mpns["mp_draw"](MPC, items, T, k, M.box, "map", mp_all, MP_STYLE)
+    n0 = len(items)                                      # v2.39 (Aras 15:07 "still really awful"): his picture tiles
+    items = [it_ for it_ in items if not (it_[0] == "poly" and it_[2] == mpns["AREA_DEFAULT"])]   # with no colour
+    log.append(u"map: %d master.svg picture tiles with no colour of their own left out (grey squares)" % (n0 - len(items)))
+    log.append(u"map: master.svg as the base, %d pieces from %d groups (%s)" % (
+        sum(cnt.values()), len(mp_all), u", ".join(sorted(mp_all))))
+    study_its = G["pc_study"](M, K, log)                 # v2.37: drawn last of the lines (Aras 14:45), see below
     lab = G["Labels"](M, lib)
     a_blobs, a_blds, area_of, AZ = area_layer(M, T, k, C, ns["mixh"], log,
                                               [T(p) for p in G["pc_selinos_line"]()], read_heritage_osm(lib, log),
                                               read_work(G, log))   # v2.28: the areas under the proposal
-    items += a_blobs + a_blds
-    cnt = mpns["mp_draw"](MPC, items, T, k, M.box, "map", set(p for _, ps in MP_ROWS for p in ps), MP_STYLE)
+    items += a_blobs + a_blds                            # v2.38: over master.svg (the colouring on top)
     mapA, drop = M.mw * M.mh, 0                          # v2.14: no sheet over the map (picture-area outlines bigger
     for i_ in range(len(items) - 1, -1, -1):             # than the frame in the cache, kopruler/texture)
         it_ = items[i_]
@@ -1437,9 +1559,7 @@ def main():
         char[name] = dict(fab=main_, n=tot, share=100.0 * cnt_.get(main_, 0) / tot, pts=pts_, rings=rings)
         log.append(u"neighbourhood %s: %d buildings in site_alan; main fabric %s %.0f %% (%s)" % (
             name, tot, main_, char[name]["share"], u", ".join(u"%s %d" % kv for kv in sorted(cnt_.items()))))
-    for name, c_ in char.items():                        # the boundaries, dashed, cut to the map
-        for R_ in c_["rings"]:
-            items.append(("line", [T(p) for p in R_ + [R_[0]]], MAH_C, 0.2, "map", "neighbourhoods", (1.4, 0.8)))
+    # v2.40 (Aras 15:15 "fix this area"): the mahalle boundary lines no longer drawn (they cut across the areas)
     # v2.28: the node areas and the fabric colours gave way to the areas (area_layer, drawn under the proposal)
     sel = [T(p) for p in G["pc_selinos_line"]()]       # v2.10: the spine, the stream's line, cut to the map
     items.append(("line", sel, "3F86B8", 0.7, "map", "stream", 1))
@@ -1465,7 +1585,7 @@ def main():
                 log.append(u"place %d moved %.1f mm off a hub tile or place, with a leader" % (n, dist(q, q0)))
             obst.append(q)
             items.append(P_([circle(q[0], q[1], 1.5, 20)], "FFFFFF", PLACE_C, 0.35, "places"))
-            items.append(T_(str(n), q[0], q[1] - 0.65, 1.8, PLACE_C, "places", True, "C"))
+            items.append(G["pc_text_c"](str(n), q[0], q[1], 1.8, PLACE_C, "places", True))
             lab.block_pt(q, 1.8)
     s_ = 3.6
     for hb in HUBS:
@@ -1477,28 +1597,80 @@ def main():
                 continue
             items.append(P_([[(q[0] - s_ / 2, q[1] - s_ / 2), (q[0] + s_ / 2, q[1] - s_ / 2), (q[0] + s_ / 2, q[1] + s_ / 2),
                               (q[0] - s_ / 2, q[1] + s_ / 2)]], c_, "FFFFFF", 0.25, "hubs"))
-            items.append(T_(hb["code"], q[0], q[1] - 0.7, 2.0, "FFFFFF", "hubs", True, "C"))
+            items.append(G["pc_text_c"](hb["code"], q[0], q[1], 2.0, "FFFFFF", "hubs", True))
             lab.block_pt(q, s_ / 2 + 0.3)
-    # pointers: a tag above (odd) or below (even) the node's area, a leader to its middle
-    tags = []                                            # v2.31: N1 as its two areas (Upper / Lower Neighbourhood)
-    for i, nk in enumerate(nks):
-        RR = [T(p) for p in NODES[nk]["corners"]]
-        if nk == "N1" and all(a_ in AZ.get("cent", {}) for a_ in ("YN", "DN")):
-            for a_, up_ in (("YN", True), ("DN", False)):
-                tags.append((u"N1 %s" % AZ["areas"][a_]["name"], AZ["cent"][a_], up_, RR,
-                             ns["mixh"](AREA_COL[a_], "000000", 0.45)))
-        else:
-            tags.append((u"%s %s" % (nk, NODES[nk]["name"]), T(cen[nk]), i % 2 == 0, RR, NODE_COL.get(nk, NODE_C)))
-    for txt, c, up, RR, col in tags:
-        ye = (max(p[1] for p in RR) + 5.0) if up else (min(p[1] for p in RR) - 5.0)
-        ye = min(M.box[3] - 6.0, max(M.box[1] + 6.0, ye))
-        wt = tw(txt, 2.6, True) + 3.0
-        xe = min(M.box[2] - wt / 2.0 - 1.0, max(M.box[0] + wt / 2.0 + 1.0, c[0]))
-        items.append(L_([c, (xe, ye - 1.4 if up else ye + 2.1)], col, 0.3, "node_pointers"))
-        items.append(P_([circle(c[0], c[1], 0.9, 16)], col, "FFFFFF", 0.2, "node_pointers"))
-        items.append(T_(txt, xe, ye - 0.95, 2.6, col, "node_pointers", True, "C"))   # v2.29: no box behind the text
-        lab.boxes.append((xe - wt / 2 - 0.6, ye - 2.8, xe + wt / 2 + 0.6, ye + 2.8))   # v2.10: names keep off the tags
-        lab.block_line([c, (xe, ye - 2.2 if up else ye + 2.2)], 0.8)
+    items += study_its                                   # v2.37 (Aras 14:45 "make our working area dashed line as
+    # the most foreground line"): over every other line of the map, under the area names only
+    # v2.37 (Aras 14:42 "write the names onto the areas that have been painted BOLD BLACK in a readable way"): each
+    # painted area named inside its own colour, bold black on a thin white letter halo (no box), never across an edge
+    nk_of = {}                                           # area key -> the node standing in it (both parts of a split area)
+    for nk in nks:
+        c = T(cen[nk])
+        a0 = AZ["key_at"](c) if "key_at" in AZ else None
+        bases = ("YN", "DN") if nk == "N1" else ((a0[:-1] if a0 and a0.endswith("b") else a0),) if a0 else ()
+        for a_ in AZ["order"]:
+            if a_ in bases or (a_.endswith("b") and a_[:-1] in bases):
+                nk_of.setdefault(a_, nk)
+        items.append(P_([circle(c[0], c[1], 0.55, 16)], "000000", "FFFFFF", 0.15, "node_pointers"))
+        lab.block_pt(c, 1.0)
+    placed = []
+    for a_ in AZ["order"]:
+        if a_ not in AZ.get("cent", {}):
+            continue
+        nk = nk_of.get(a_)
+        txt = (u"%s %s" % (nk, AZ["areas"][a_]["name"])) if nk else AZ["areas"][a_]["name"]
+        tgt = T(cen[nk]) if nk else AZ["cent"][a_]
+        pts = []
+        y_ = M.box[1] + 2.0
+        while y_ < M.box[3] - 2.0:
+            x_ = M.box[0] + 2.0
+            while x_ < M.box[2] - 2.0:
+                if AZ["key_at"]((x_, y_)) == a_:
+                    pts.append(((x_ - tgt[0]) ** 2 + (y_ - tgt[1]) ** 2, x_, y_))
+                x_ += 1.2
+            y_ += 1.2
+        pts.sort()
+        hit = None
+        mw = (lambda t_, z_: G["pc_mark_w"](t_, z_, True) * 1.08) if "pc_mark_w" in G else \
+            (lambda t_, z_: tw(t_, z_, True) * 1.15)
+        two = txt.split(u", ", 1) if u", " in txt else (txt.rsplit(u" ", 1) if u" " in txt else [txt])
+        two = [two[0] + (u"," if u", " in txt else u"")] + two[1:]
+        lays = [([txt], z_) for z_ in (2.3, 2.0, 1.8, 1.6)] + [(two, z_) for z_ in (1.8, 1.6, 1.4)] + \
+            [([txt], 1.3)]                               # v2.41: two lines before the smallest single line
+        for lines, sz in lays:
+            w_ = max(mw(t_, sz) for t_ in lines)
+            hh = sz * 1.15 * (len(lines) - 1)            # the first line's baseline is y_, the others under it
+            for _, x_, y_ in pts:
+                bx = (x_ - w_ / 2 - 0.4, y_ - hh - 0.3 * sz - 0.4, x_ + w_ / 2 + 0.4, y_ + 0.8 * sz + 0.4)
+                if not AZ["box_clear"](bx) or bx[0] < M.box[0] + 1.5 or bx[2] > M.box[2] - 1.5 or \
+                        bx[1] < M.box[1] + 1.5 or bx[3] > M.box[3] - 1.5:
+                    continue
+                if any(not (bx[2] < o[0] or bx[0] > o[2] or bx[3] < o[1] or bx[1] > o[3]) for o in placed + lab.boxes):
+                    continue
+                hit = (x_, y_, sz, bx, lines)
+                break
+            if hit:
+                break
+        if not hit:
+            if not pts:
+                continue
+            _, x_, y_ = pts[0]
+            sz, lines = 1.4, two
+            w_ = max(mw(t_, sz) for t_ in lines)
+            x_ = min(M.box[2] - w_ / 2 - 1.5, max(M.box[0] + w_ / 2 + 1.5, x_))
+            hit = (x_, y_, sz, (x_ - w_ / 2, y_ - sz * 1.15 * (len(lines) - 1) - 0.3 * sz, x_ + w_ / 2, y_ + 0.8 * sz),
+                   lines)
+            log.append(u"FLAG: area name %s has no room wholly inside its colour (placed at its nearest point)" % txt)
+        x_, y_, sz, bx, lines = hit
+        r_ = 0.09                                        # v2.39: a hairline halo, no leaders
+        for j_, t_ in enumerate(lines):
+            yj = y_ - j_ * sz * 1.15
+            items += [T_(t_, x_ + r_ * dx, yj + r_ * dy, sz, "FFFFFF", "area_names_halo", True, "C")
+                      for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))]
+            items.append(T_(t_, x_, yj, sz, "000000", "area_names", True, "C"))
+        placed.append(bx)
+        lab.boxes.append(bx)
+        log.append(u"area name %s: %.1f mm bold black, %d line(s)" % (txt, sz, len(lines)))
     # v2.29: the neighbourhood fabric names dropped (Aras 13:44 "too busy"; the areas carry the reading)
     items += lab.items
     items.append(P_([[(M.box[0], M.box[1]), (M.box[2], M.box[1]), (M.box[2], M.box[3]), (M.box[0], M.box[3])]], None,
@@ -1509,7 +1681,7 @@ def main():
                                                  (xx + s__ / 2, yy + s__ / 2), (xx - s__ / 2, yy + s__ / 2)]],
                                                f_, "FFFFFF", 0.25, "legend")])
     box_ = lambda xx, yy: [(xx - 4.5, yy - 1.8), (xx + 4.5, yy - 1.8), (xx + 4.5, yy + 1.8), (xx - 4.5, yy + 1.8)]
-    rows = []
+    rows, story_of = [], {}
     for a_ in AZ["order"]:                               # v2.28: one row per area: its blob with a building on it
         if not any(b == a_ for b in area_of.values()):
             continue
@@ -1522,10 +1694,15 @@ def main():
                                                           (xx + 1.3, yy + 0.6)]], c_, ns["mixh"](c_, "000000", 0.35), 0.04,
                                                         "legend")])(c__, ns["mixh"](c__, "000000", AREA_DARK)),
                      AZ["areas"][a_]["name"]))
+        st_ = AREA_STORY.get(AZ["areas"][a_]["name"])     # v2.36: what sets the area apart (Aras 14:21)
+        if st_:
+            story_of[AZ["areas"][a_]["name"]] = st_[0]
+            log.append(u"area story %s: \"%s\" (from: %s; spine_run25 area profile, PageSpine v2.32)" % (
+                AZ["areas"][a_]["name"], st_[0], st_[1]))
+        else:
+            log.append(u"area story %s: no line (name not in AREA_STORY)" % AZ["areas"][a_]["name"])
     rows.append((lambda xx, yy: [L_([(xx - 4.5, yy), (xx + 4.5, yy)], "3F86B8", 0.7, "legend")], u"the Selinos stream: the spine"))
-    rows += [(lambda xx, yy: [L_([(xx - 4.5, yy), (xx + 4.5, yy)], MAH_C, 0.3, "legend", (1.4, 0.8))],
-              u"neighbourhood (mahalle) boundary"),
-             (lambda xx, yy: [P_([circle(xx, yy, 1.5, 20)], "FFFFFF", PLACE_C, 0.35, "legend")],
+    rows += [(lambda xx, yy: [P_([circle(xx, yy, 1.5, 20)], "FFFFFF", PLACE_C, 0.35, "legend")],
               u"the project's places (numbered)"),
              (sq(K["hub"]["walk"]), u"walking hub"), (sq(K["hub"]["transit"]), u"main transit hub"),
              (sq(K["hub"]["gateway"]), u"gateway out of town"),
@@ -1553,7 +1730,15 @@ def main():
         lns = wrap(txt, ls, colw - 16.0, tw)
         if len(lns) > 1:
             log.append(u"FLAG: legend row too long for its column: %s" % txt)
-        items.append(T_(lns[0], xx + 12.0, yy - ls * 0.38, ls, INK, "legend"))
+        if txt in story_of:                              # v2.36: the name above, its line under it, smaller and lighter
+            items.append(T_(lns[0], xx + 12.0, yy + 0.25, ls, INK, "legend"))
+            ss = ls * 0.82
+            sl_ = wrap(story_of[txt], ss, colw - 16.0, tw)
+            if len(sl_) > 1:
+                log.append(u"FLAG: area line too long for its column: %s" % story_of[txt])
+            items.append(T_(sl_[0], xx + 12.0, yy - ss * 1.15, ss, ns["mixh"](INK, "FFFFFF", 0.35), "legend"))
+        else:
+            items.append(T_(lns[0], xx + 12.0, yy - ls * 0.38, ls, INK, "legend"))
     ylb = yl - nrow * rh
 
     # ---- the six nodes: a 3 x 2 grid of cards, each with its axonometric (v2.17)
