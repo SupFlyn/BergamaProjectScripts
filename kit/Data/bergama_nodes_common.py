@@ -17,7 +17,7 @@ Reads the newest scripts/bergama_basemap_v*, bergama_p02_what_is_there_v*, berga
 """
 import os, re, glob, json, math, time
 
-NC_VERSION = "v13.4"   # v13.4: building proposal section + elevation = Archicad's own views <N>-BX / <N>-BE (AcBuild v1.14 DWGs, Aras 15 Nov 17:24 UTC), this script's drawing until they are published; v13.3: v13.3: node plans = master.svg exactly as drawn, cut to the working area on white paper, MapBase outside (Aras 15 Nov 17:06-17:07 UTC, pages_common v3.34); v13.2: v13.2: node plan route / bus / loop / path lines thinned by pc_stroke_k (Aras 15 Nov 15:57 UTC, line weights scale with the drawing); v13.1: v13.1: V1 eye / look (survey m), node frame and box written to cached/bergama_perspectives/views_<node>.json for the Perspectives script (Rhino); its <node>_V1.png placed in the perspective box when it exists (Aras 15 Nov 15:20 UTC "please do that for all the placeholders"); v13 (Aras 15 Nov 15:22 UTC "i dont want to see any placeholder in the presentation"): the building proposal is drawn (plan, section, elevation from the PROGRAM rooms, DESIGN), the program brief carries a season-of-use line; v12.8: v12.8: heritage, hub and V1 marks centred by pages_common pc_text_c (Aras 15 Nov 14:56 UTC "center the numbers in the boundries"); v12.7: PROGRAM BRIEF filled from NODE_IDEAS.md (text, no box; Aras 15 Nov 14:47 UTC "fill the placeholders"); v12.6 (Aras 15 Nov 14:45 UTC "we gonna use masterplan svg as the base of the maps"): the node plans show his masterplan drawing whole (his ev-yol / builts2 no longer hidden); MapBase stays only where his sheet is see-through; v12.5: the river in the node plans is a flat fill, no hatch (Aras 15 Nov 14:38 UTC); v12.4: every context from MapBase (Aras 13:41): node plan crops hide his ev-yol / builts2 and are see-through over MapBase (opaque crop refused, vector fallback; legend sampler skips see-through pixels); why-here houses, streets, parks, bridges from MapBase (houses raised by survey floors x 3.0 m, sacred 5.0 m, else flat); v12.3: no white box behind plan labels (Aras 15 Nov 13:44 UTC "dont have a opaque background for texts in any single of the drawings"): a letter-shaped white halo instead (pages_common v3.27 pc_halo); v12.2: svg_crop bg=False (transparent, for MapBase under; node plans unchanged); v12.1: why-here blocks in the language of his liked examples (white context, one heavy cut line, his masterplan move laid on the ground in depth, his canopy triangles folded on Y columns, his trees and people as his cutouts, one movement arrow; Aras 12:10 "compare with the examples"); v12: why-here diagrams drawn from the node's A cut in the Sections cache (true ground, bed, all water levels, masterplan move, buildings and bridges in depth; Aras 10:36 "this diagram is just so wrong"); v11.6: N4 canopy: every other bay a glazed room up to the louvres, planters in the open bay (Aras 10:02); v11.5: N4 raised gathering drawn as the designed canopy (folded triangle skin, louvres, Y columns; Sections v1.28 language); v11.4: svg_crop takes css (slide 4 sub-system colours), node plans unchanged; v11.3: MapBase under the plans in the A05 base map look (white houses with shadows, one road outline; MapBase v1.8 mb_a05_style; Aras 15 Nov 07:59 "you need to update other scripts so i can see the change in the basemap aswell"); v11.2: legend colours read from the crop itself, diagram town as gabled rows, moves as tint + accent edge, no arrows from the air, own figures, diagram right under its title, placeholders one system; v11: each node plan is a straight crop of master.svg (rendered by Edge / Chrome on his PC, cached), marks on top; v10: v10: why-here diagrams as section-axo blocks (depth, shaded planes, extruded town, accent move with shadow); MapBase always under the plan, his existing roads/buildings left out; v9.9: v9.9: a heritage stop on a cut line stays in the cropped section (N4-A Red Hall); v9.8: v9.8: Ulu Cami silhouette as built (hall, three domes, minaret on a stone base); v9.7: v9.7: Red Hall drawn as the roofless arched brick hall; diagram levels start at the riser they meet; v9.6: v9.6: program brief under the land-use bar when it fits, perspective the full right half; v9.5: v9.5: diagram levels run to the banks, N5 town band lower and label over its move; cuts packed from the top, why-here block follows, perspective room grows; V1 clear of stops, names and its arrows; v9.4: v9.4: at least 30 % (or 90 m) of a cut in view, so flat cuts get taller; v9.3: v9.3: section fit by the drawing without its sky, at least 55 % (or 150 m) of the cut in view, sky cut to the room; v9.2: v9.2 (fresh review of run 4): sections fill their rooms (cropped round the stream, own scale bar), no intro line, short key words, V1 in ink, land use = 5 classes + other with names on one row, program brief under the story, diagram arrows start at their cause, slots as voids, FLAG count includes carried FLAGs; v9.1: v9.1: diagrams to DIAGRAM_STYLE v2 (Niarchos measured: low ground, names under it, small accent); v9: v9: why-here diagrams redrawn on the shared diagram kit (pc_dg_kit, DIAGRAM_STYLE.md; Aras 21:30 UTC); v8.4: v8.4: scale + north above the plan (off his drawing), intro wording; v8.3: v8.3: B cut subtitle "along the bank", N3 diagram label clear of the dots; v8.2: v8.2: 4-corner picture rectangles of the masterplan left out (no solid green blocks), the river filled as water; v8.1: v8.1: masterplan sheet / texture frames (> 0.1 km2) left out, legend columns balanced, intro without the old levels text; v8: plan = his masterplan drawing; why-here story + one concept diagram per node; water bars and meets line gone; v7.5: v7.5: section_lines v2 (B along the bank: looks at the stream, no water bars); v7.4: v7.4: cut marks = two end arrows, no line between (pages_common v3.14); v7.3: v7.3: scale + north ignore the node frame line; v7.2: v7.2: the proposal from his masterplan SVG (MasterplanBase cache); v7.1: v7.1: R01 cut arrows (pc_cut_mark), no city-square ring, land-use columns >= 45 mm; v7: v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
+NC_VERSION = "v13.5"   # v13.5: building proposal FLOOR PLANS = Archicad's own story plans <N>-P<floor> (AcBuild v1.17 DWGs, Aras 15 Nov 17:24 UTC "any drawing that has building in it you should use the drawing that comes out of archicad"), registered by their two squares, room names kept on top; this script's plan until they are published; v13.4: building proposal section + elevation = Archicad's own views <N>-BX / <N>-BE (AcBuild v1.14 DWGs, Aras 15 Nov 17:24 UTC), this script's drawing until they are published; v13.3: v13.3: node plans = master.svg exactly as drawn, cut to the working area on white paper, MapBase outside (Aras 15 Nov 17:06-17:07 UTC, pages_common v3.34); v13.2: v13.2: node plan route / bus / loop / path lines thinned by pc_stroke_k (Aras 15 Nov 15:57 UTC, line weights scale with the drawing); v13.1: v13.1: V1 eye / look (survey m), node frame and box written to cached/bergama_perspectives/views_<node>.json for the Perspectives script (Rhino); its <node>_V1.png placed in the perspective box when it exists (Aras 15 Nov 15:20 UTC "please do that for all the placeholders"); v13 (Aras 15 Nov 15:22 UTC "i dont want to see any placeholder in the presentation"): the building proposal is drawn (plan, section, elevation from the PROGRAM rooms, DESIGN), the program brief carries a season-of-use line; v12.8: v12.8: heritage, hub and V1 marks centred by pages_common pc_text_c (Aras 15 Nov 14:56 UTC "center the numbers in the boundries"); v12.7: PROGRAM BRIEF filled from NODE_IDEAS.md (text, no box; Aras 15 Nov 14:47 UTC "fill the placeholders"); v12.6 (Aras 15 Nov 14:45 UTC "we gonna use masterplan svg as the base of the maps"): the node plans show his masterplan drawing whole (his ev-yol / builts2 no longer hidden); MapBase stays only where his sheet is see-through; v12.5: the river in the node plans is a flat fill, no hatch (Aras 15 Nov 14:38 UTC); v12.4: every context from MapBase (Aras 13:41): node plan crops hide his ev-yol / builts2 and are see-through over MapBase (opaque crop refused, vector fallback; legend sampler skips see-through pixels); why-here houses, streets, parks, bridges from MapBase (houses raised by survey floors x 3.0 m, sacred 5.0 m, else flat); v12.3: no white box behind plan labels (Aras 15 Nov 13:44 UTC "dont have a opaque background for texts in any single of the drawings"): a letter-shaped white halo instead (pages_common v3.27 pc_halo); v12.2: svg_crop bg=False (transparent, for MapBase under; node plans unchanged); v12.1: why-here blocks in the language of his liked examples (white context, one heavy cut line, his masterplan move laid on the ground in depth, his canopy triangles folded on Y columns, his trees and people as his cutouts, one movement arrow; Aras 12:10 "compare with the examples"); v12: why-here diagrams drawn from the node's A cut in the Sections cache (true ground, bed, all water levels, masterplan move, buildings and bridges in depth; Aras 10:36 "this diagram is just so wrong"); v11.6: N4 canopy: every other bay a glazed room up to the louvres, planters in the open bay (Aras 10:02); v11.5: N4 raised gathering drawn as the designed canopy (folded triangle skin, louvres, Y columns; Sections v1.28 language); v11.4: svg_crop takes css (slide 4 sub-system colours), node plans unchanged; v11.3: MapBase under the plans in the A05 base map look (white houses with shadows, one road outline; MapBase v1.8 mb_a05_style; Aras 15 Nov 07:59 "you need to update other scripts so i can see the change in the basemap aswell"); v11.2: legend colours read from the crop itself, diagram town as gabled rows, moves as tint + accent edge, no arrows from the air, own figures, diagram right under its title, placeholders one system; v11: each node plan is a straight crop of master.svg (rendered by Edge / Chrome on his PC, cached), marks on top; v10: v10: why-here diagrams as section-axo blocks (depth, shaded planes, extruded town, accent move with shadow); MapBase always under the plan, his existing roads/buildings left out; v9.9: v9.9: a heritage stop on a cut line stays in the cropped section (N4-A Red Hall); v9.8: v9.8: Ulu Cami silhouette as built (hall, three domes, minaret on a stone base); v9.7: v9.7: Red Hall drawn as the roofless arched brick hall; diagram levels start at the riser they meet; v9.6: v9.6: program brief under the land-use bar when it fits, perspective the full right half; v9.5: v9.5: diagram levels run to the banks, N5 town band lower and label over its move; cuts packed from the top, why-here block follows, perspective room grows; V1 clear of stops, names and its arrows; v9.4: v9.4: at least 30 % (or 90 m) of a cut in view, so flat cuts get taller; v9.3: v9.3: section fit by the drawing without its sky, at least 55 % (or 150 m) of the cut in view, sky cut to the room; v9.2: v9.2 (fresh review of run 4): sections fill their rooms (cropped round the stream, own scale bar), no intro line, short key words, V1 in ink, land use = 5 classes + other with names on one row, program brief under the story, diagram arrows start at their cause, slots as voids, FLAG count includes carried FLAGs; v9.1: v9.1: diagrams to DIAGRAM_STYLE v2 (Niarchos measured: low ground, names under it, small accent); v9: v9: why-here diagrams redrawn on the shared diagram kit (pc_dg_kit, DIAGRAM_STYLE.md; Aras 21:30 UTC); v8.4: v8.4: scale + north above the plan (off his drawing), intro wording; v8.3: v8.3: B cut subtitle "along the bank", N3 diagram label clear of the dots; v8.2: v8.2: 4-corner picture rectangles of the masterplan left out (no solid green blocks), the river filled as water; v8.1: v8.1: masterplan sheet / texture frames (> 0.1 km2) left out, legend columns balanced, intro without the old levels text; v8: plan = his masterplan drawing; why-here story + one concept diagram per node; water bars and meets line gone; v7.5: v7.5: section_lines v2 (B along the bank: looks at the stream, no water bars); v7.4: v7.4: cut marks = two end arrows, no line between (pages_common v3.14); v7.3: v7.3: scale + north ignore the node frame line; v7.2: v7.2: the proposal from his masterplan SVG (MasterplanBase cache); v7.1: v7.1: R01 cut arrows (pc_cut_mark), no city-square ring, land-use columns >= 45 mm; v7: v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
 ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 PAGE_W, PAGE_H = 420.0, 297.0
 NODE_MARGIN_M = 25.0                       # m of town round the node frame on the plan
@@ -325,6 +325,94 @@ def ac_draw(items, B, V, rec, sx, sy, s, box, layer):
                         items.append(L_(run, col, max(0.05, min(0.35, (lw or 0.1) * 0.5)), layer))
 
 
+def ac_plan(name, log):
+    """v13.5: Archicad's DWG of a node building floor plan as [(kind, rings [(t m along the building, s m across)],
+    colour, lw)] in the building's own frame (s mirrored when u, w are left-handed, so the plan is never mirrored),
+    registered by the 1.0 m and 0.5 m squares AcBuild puts off two opposite corners; (None, None) when not there"""
+    try:
+        with open(AC_JSON, encoding="utf-8") as f:
+            AC = json.load(f)
+    except Exception:
+        return None, None
+    rec = next((v for v in (AC.get("building_views") or []) if v.get("name") == name and v.get("kind") == "plan"), None)
+    dwgs = sorted(glob.glob(os.path.join(AC.get("dwg_dir") or u"", "**", "*.dwg"), recursive=True))
+    dwg = next((p for p in dwgs if re.search(r"(^|[^A-Za-z0-9])%s([^A-Za-z0-9]|$)" % re.escape(name),
+                                             os.path.basename(p))), None)
+    if not rec or not dwg or not rec.get("u") or not rec.get("w"):
+        log.append(u"%s: no Archicad plan published yet (AcBuild v1.17 + the Organizer step): drawn by this script" % name)
+        return None, None
+    if "read_dwg" not in _AC_LIB:
+        p_ = _newest("bergama_sections_ac_v*.py")
+        _AC_LIB.update(_exec(p_, "bergama_sections_ac_lib")[0])
+    G = _AC_LIB["read_dwg"](dwg, log)
+    u, w, L, D = rec["u"], rec["w"], rec["L"], rec["D"]
+    off, (a1, a2) = rec["reg"]["off"], rec["reg"]["a"]
+    h = 1.0 if u[0] * w[1] - u[1] * w[0] > 0 else -1.0
+    A_l = complex(-L / 2 - off, h * (-D / 2 - off))
+    B_l = complex(L / 2 + off, h * (D / 2 + off))
+    sq = []                                               # closed 4-point rings with equal sides and right angles
+    for _l, _k, rings, _c, _w in G:
+        for r in rings:
+            q = [complex(*p) for p in r]
+            if len(q) >= 5 and abs(q[0] - q[-1]) < 1e-9:
+                q = q[:-1]
+            if len(q) != 4:
+                continue
+            sd = [abs(q[(i + 1) % 4] - q[i]) for i in range(4)]
+            m = sum(sd) / 4.0
+            if m <= 0 or max(abs(x - m) for x in sd) > 0.03 * m or abs(abs(q[2] - q[0]) - m * 2 ** 0.5) > 0.03 * m:
+                continue
+            sq.append((sum(q) / 4.0, m))
+    best = None
+    for ca, ma in sq:
+        for cb, mb in sq:
+            if abs(ma / mb - a1 / a2) > 0.1 * a1 / a2 or abs(cb - ca) <= 0:
+                continue
+            e = abs(abs(cb - ca) / ma * a1 - abs(B_l - A_l)) / abs(B_l - A_l)
+            if e < 0.02 and (best is None or e < best[0]):
+                best = (e, ca, cb, ma)
+    if best is None:
+        log.append(u"FLAG %s: Archicad plan without its registration squares (%s): drawn by this script" % (
+            name, os.path.basename(dwg)))
+        return None, None
+    e, ca, cb, ma = best
+    k = (B_l - A_l) / (cb - ca)
+    f = lambda x, y: (lambda z: (z.real, z.imag))(A_l + (complex(x, y) - ca) * k)
+    out, n_in = [], 0
+    for _l, kind, rings, col, lw in G:
+        TS = [[f(*p) for p in r] for r in rings]
+        P = [q for r in TS for q in r]
+        if not P or min(q[0] for q in P) > L / 2 + 1.0 or max(q[0] for q in P) < -L / 2 - 1.0 or \
+                min(q[1] for q in P) > D / 2 + 1.0 or max(q[1] for q in P) < -D / 2 - 1.0:
+            continue                                      # outside the building (context, the squares)
+        n_in += 1
+        out.append((kind, TS, col, lw))
+    if n_in < 3:
+        log.append(u"FLAG %s: Archicad plan shows nothing of the building (%d pieces; its story may not cut it): "
+                   u"drawn by this script" % (name, n_in))
+        return None, None
+    log.append(u"%s: Archicad plan %s, %d pieces, %.5f m per DWG unit (squares fit %.1f %%)" % (
+        name, os.path.basename(dwg), n_in, abs(k), e * 100))
+    return out, rec
+
+
+def ac_plan_draw(items, B, V, L, D, px, py, s, layer):
+    """v13.5: an Archicad plan (ac_plan) on the page: t -> px + (t + L/2) s, s -> py + (s + D/2) s, cut to the
+    building box + 0.6 mm; DWG plot weights halved (0.05-0.35 mm)"""
+    T = lambda q: (px + (q[0] + L / 2.0) * s, py + (q[1] + D / 2.0) * s)
+    bx = (px - 0.6, py - 0.6, px + L * s + 0.6, py + D * s + 0.6)
+    for kind, SZ, col, lw in V:
+        if kind == "fill":
+            rr = [R for R in (B["clip_ring"]([T(q) for q in R], bx) for R in SZ) if len(R) >= 3]
+            if rr:
+                items.append(R_(rr, col, None, 0.0, layer))
+        else:
+            for R in SZ:
+                for run in B["clip_line"]([T(q) for q in R], bx):
+                    if len(run) >= 2:
+                        items.append(L_(run, col, max(0.05, min(0.35, (lw or 0.1) * 0.5)), layer))
+
+
 def proposal(node, items, B, x0, y0, x1, y1, log, layer="building_proposal"):
     """v13: the node's building proposal (DESIGN): plan (rooms by area along the length, floors as strips), section
     across the depth, long elevation (stone plinth, glazed every other bay, folded roof), one scale bar; fitted to the
@@ -368,7 +456,10 @@ def proposal(node, items, B, x0, y0, x1, y1, log, layer="building_proposal"):
     items.append(T_(u"SECTION", sx, sy + Hs * s + 0.8, nm, thin, True, "L", layer))
     items.append(T_(u"ELEVATION", ex, ey + Hs * s + 0.8, nm, thin, True, "L", layer))
     # ---- plan
-    if canopy:
+    V_p0 = ac_plan(u"%s-P0" % node, log)[0] if canopy else None      # v13.5: Archicad's plan
+    if V_p0:
+        ac_plan_draw(items, B, V_p0, L, D, px, py, s, layer)
+    elif canopy:
         R0 = box(px, py, px + L * s, py + D * s)
         items.append(R_([R0], None, ink, 0.4, layer))
         for i in range(nb):                               # folded triangle facets on Y columns
@@ -381,12 +472,17 @@ def proposal(node, items, B, x0, y0, x1, y1, log, layer="building_proposal"):
     for k, f in enumerate(F):
         yb = py + (nf - 1 - k) * (D + gap_m) * s
         xx = px
-        items.append(R_([box(px, yb, px + sum(a for _n, a in f) / D * s, yb + D * s)], None, ink, 0.45, layer))
+        V_p = ac_plan(u"%s-P%d" % (node, k), log)[0]    # v13.5: Archicad's plan of this floor
+        if V_p:
+            ac_plan_draw(items, B, V_p, L, D, px, yb, s, layer)
+        else:
+            items.append(R_([box(px, yb, px + sum(a for _n, a in f) / D * s, yb + D * s)], None, ink, 0.45, layer))
         if nf > 1:
             items.append(T_(u"GROUND" if k == 0 else u"UPPER", px, yb + D * s + 0.6, 1.4, thin, True, "L", layer))
         for n_, a_ in f:
             w = a_ / D * s
-            items.append(L_([(xx + w, yb), (xx + w, yb + D * s)], ink, 0.2, layer))
+            if not V_p:
+                items.append(L_([(xx + w, yb), (xx + w, yb + D * s)], ink, 0.2, layer))
             ts = min(1.5, D * s * 0.3)
             for lab_ in (n_, u"%d" % a_):
                 if B["text_w"](lab_, ts, False) <= w - 0.6 and ts >= 0.9:
