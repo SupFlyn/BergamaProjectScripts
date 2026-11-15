@@ -220,6 +220,7 @@ CAN_PLANTER_M = 2.4                               # planter length (design inten
 CAN_BAY_M = 12.0                                  # bay between Y columns along the canopy (design intent, ours)
 CAN_EAVE_F = 0.6                                  # outline edge at valley + 0.6 x rise: folds to knife edges (ours)
 CAN_GLASS_W, CAN_GLASS_STEP = 1.4, 1.5            # glazing panes, mullion step (design intent, v1.28.2 1.5 m)
+CANOPY_REC = []                                   # per canopy: outline + heights, written to acbuild.json (SectionsAC colours)
 
 
 def _dp(P, tol):
@@ -364,6 +365,9 @@ def build_canopies(ac, miss, log, rects, inside, tin, ox, oy, z0, xy, q500_at, w
         val = [max(floor0(a_[4]) + CAN_CLEAR_M, (q5 + CAN_Q500_M) if q5 is not None else -1e9) + CAN_LOUVRE_M + CAN_T
                for a_ in ax]                                   # valley top of the skin at each axis point
         zax = [val[k] + (CAN_RISE_M if ax[k][3] else 0.0) for k in range(len(ax))]
+        CANOPY_REC.append(dict(ring=[[round(p[0], 2), round(p[1], 2)] for p in H], ground=round(min(gs), 3),
+                               floor=round(min(floor0(a_[4]) for a_ in ax), 3),
+                               under=round(min(val) - CAN_T - CAN_LOUVRE_M, 3), top=round(max(zax), 3)))
 
         def z_at_t(t):                                         # valley line interpolated along the axis
             if t <= ax[0][0]:
@@ -934,7 +938,8 @@ def main():
                        cuts=[dict(name=nm, A=list(A), B=list(B), L=round(Ln, 3), back=backs.get(nm))
                              for nm, A, B, Ln, u, n in rects],
                        sections=secs, views=views, view_folder=old.get("view_folder"), published=published,
-                       dwg_dir=DWG_DIR, layers=list(LAYERS), elements=made), f, ensure_ascii=False, indent=1)
+                       dwg_dir=DWG_DIR, layers=list(LAYERS), canopies=CANOPY_REC, elements=made), f,
+                  ensure_ascii=False, indent=1)
     log.append(u"%s  %s" % (pj, time.strftime("%H:%M:%S")))
     flags = [l for l in log if l.startswith(u"FLAG") or u"FLAG" in l]
     return u"%s\n%s %s, %d elements, %d section(s), %d FLAG line(s), %.1f s" % (
