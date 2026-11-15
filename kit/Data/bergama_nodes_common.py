@@ -11,13 +11,13 @@ job done twice (Aras 14 Nov 12:38 UTC): Basemap -> MapBase -> Sections -> the no
             same node) and V1; everything cut to the plan frame (FLAG on ink outside)
   SECTIONS  N#-A, N#-B from cached/bergama_sections/cuts.json (Sections v1.6.4+), the first cached scale that fits
   DIAGRAMS  land use of the node frame (Page02's land_use on MapBase data), water over the bed by season (cached levels)
-  PLACEHOLDERS V1 perspective, building proposal (program brief filled since v12.7) (NO DRAWING rule: Aras makes them)
+  V1 perspective box (filled by the Perspectives script); program brief since v12.7, building proposal drawn since v13 (NO DRAWING rule: Aras makes them)
 Reads the newest scripts/bergama_basemap_v*, bergama_p02_what_is_there_v*, bergama_sections_v*, bergama_mapbase_v*
 (code only), Data/bergama_pages_common.py, section_lines.json, bergama_access_heritage.json and the caches above.
 """
 import os, re, glob, json, math, time
 
-NC_VERSION = "v12.8"   # v12.8: heritage, hub and V1 marks centred by pages_common pc_text_c (Aras 15 Nov 14:56 UTC "center the numbers in the boundries"); v12.7: PROGRAM BRIEF filled from NODE_IDEAS.md (text, no box; Aras 15 Nov 14:47 UTC "fill the placeholders"); v12.6 (Aras 15 Nov 14:45 UTC "we gonna use masterplan svg as the base of the maps"): the node plans show his masterplan drawing whole (his ev-yol / builts2 no longer hidden); MapBase stays only where his sheet is see-through; v12.5: the river in the node plans is a flat fill, no hatch (Aras 15 Nov 14:38 UTC); v12.4: every context from MapBase (Aras 13:41): node plan crops hide his ev-yol / builts2 and are see-through over MapBase (opaque crop refused, vector fallback; legend sampler skips see-through pixels); why-here houses, streets, parks, bridges from MapBase (houses raised by survey floors x 3.0 m, sacred 5.0 m, else flat); v12.3: no white box behind plan labels (Aras 15 Nov 13:44 UTC "dont have a opaque background for texts in any single of the drawings"): a letter-shaped white halo instead (pages_common v3.27 pc_halo); v12.2: svg_crop bg=False (transparent, for MapBase under; node plans unchanged); v12.1: why-here blocks in the language of his liked examples (white context, one heavy cut line, his masterplan move laid on the ground in depth, his canopy triangles folded on Y columns, his trees and people as his cutouts, one movement arrow; Aras 12:10 "compare with the examples"); v12: why-here diagrams drawn from the node's A cut in the Sections cache (true ground, bed, all water levels, masterplan move, buildings and bridges in depth; Aras 10:36 "this diagram is just so wrong"); v11.6: N4 canopy: every other bay a glazed room up to the louvres, planters in the open bay (Aras 10:02); v11.5: N4 raised gathering drawn as the designed canopy (folded triangle skin, louvres, Y columns; Sections v1.28 language); v11.4: svg_crop takes css (slide 4 sub-system colours), node plans unchanged; v11.3: MapBase under the plans in the A05 base map look (white houses with shadows, one road outline; MapBase v1.8 mb_a05_style; Aras 15 Nov 07:59 "you need to update other scripts so i can see the change in the basemap aswell"); v11.2: legend colours read from the crop itself, diagram town as gabled rows, moves as tint + accent edge, no arrows from the air, own figures, diagram right under its title, placeholders one system; v11: each node plan is a straight crop of master.svg (rendered by Edge / Chrome on his PC, cached), marks on top; v10: v10: why-here diagrams as section-axo blocks (depth, shaded planes, extruded town, accent move with shadow); MapBase always under the plan, his existing roads/buildings left out; v9.9: v9.9: a heritage stop on a cut line stays in the cropped section (N4-A Red Hall); v9.8: v9.8: Ulu Cami silhouette as built (hall, three domes, minaret on a stone base); v9.7: v9.7: Red Hall drawn as the roofless arched brick hall; diagram levels start at the riser they meet; v9.6: v9.6: program brief under the land-use bar when it fits, perspective the full right half; v9.5: v9.5: diagram levels run to the banks, N5 town band lower and label over its move; cuts packed from the top, why-here block follows, perspective room grows; V1 clear of stops, names and its arrows; v9.4: v9.4: at least 30 % (or 90 m) of a cut in view, so flat cuts get taller; v9.3: v9.3: section fit by the drawing without its sky, at least 55 % (or 150 m) of the cut in view, sky cut to the room; v9.2: v9.2 (fresh review of run 4): sections fill their rooms (cropped round the stream, own scale bar), no intro line, short key words, V1 in ink, land use = 5 classes + other with names on one row, program brief under the story, diagram arrows start at their cause, slots as voids, FLAG count includes carried FLAGs; v9.1: v9.1: diagrams to DIAGRAM_STYLE v2 (Niarchos measured: low ground, names under it, small accent); v9: v9: why-here diagrams redrawn on the shared diagram kit (pc_dg_kit, DIAGRAM_STYLE.md; Aras 21:30 UTC); v8.4: v8.4: scale + north above the plan (off his drawing), intro wording; v8.3: v8.3: B cut subtitle "along the bank", N3 diagram label clear of the dots; v8.2: v8.2: 4-corner picture rectangles of the masterplan left out (no solid green blocks), the river filled as water; v8.1: v8.1: masterplan sheet / texture frames (> 0.1 km2) left out, legend columns balanced, intro without the old levels text; v8: plan = his masterplan drawing; why-here story + one concept diagram per node; water bars and meets line gone; v7.5: v7.5: section_lines v2 (B along the bank: looks at the stream, no water bars); v7.4: v7.4: cut marks = two end arrows, no line between (pages_common v3.14); v7.3: v7.3: scale + north ignore the node frame line; v7.2: v7.2: the proposal from his masterplan SVG (MasterplanBase cache); v7.1: v7.1: R01 cut arrows (pc_cut_mark), no city-square ring, land-use columns >= 45 mm; v7: v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
+NC_VERSION = "v13.1"   # v13.1: V1 eye / look (survey m), node frame and box written to cached/bergama_perspectives/views_<node>.json for the Perspectives script (Rhino); its <node>_V1.png placed in the perspective box when it exists (Aras 15 Nov 15:20 UTC "please do that for all the placeholders"); v13 (Aras 15 Nov 15:22 UTC "i dont want to see any placeholder in the presentation"): the building proposal is drawn (plan, section, elevation from the PROGRAM rooms, DESIGN), the program brief carries a season-of-use line; v12.8: v12.8: heritage, hub and V1 marks centred by pages_common pc_text_c (Aras 15 Nov 14:56 UTC "center the numbers in the boundries"); v12.7: PROGRAM BRIEF filled from NODE_IDEAS.md (text, no box; Aras 15 Nov 14:47 UTC "fill the placeholders"); v12.6 (Aras 15 Nov 14:45 UTC "we gonna use masterplan svg as the base of the maps"): the node plans show his masterplan drawing whole (his ev-yol / builts2 no longer hidden); MapBase stays only where his sheet is see-through; v12.5: the river in the node plans is a flat fill, no hatch (Aras 15 Nov 14:38 UTC); v12.4: every context from MapBase (Aras 13:41): node plan crops hide his ev-yol / builts2 and are see-through over MapBase (opaque crop refused, vector fallback; legend sampler skips see-through pixels); why-here houses, streets, parks, bridges from MapBase (houses raised by survey floors x 3.0 m, sacred 5.0 m, else flat); v12.3: no white box behind plan labels (Aras 15 Nov 13:44 UTC "dont have a opaque background for texts in any single of the drawings"): a letter-shaped white halo instead (pages_common v3.27 pc_halo); v12.2: svg_crop bg=False (transparent, for MapBase under; node plans unchanged); v12.1: why-here blocks in the language of his liked examples (white context, one heavy cut line, his masterplan move laid on the ground in depth, his canopy triangles folded on Y columns, his trees and people as his cutouts, one movement arrow; Aras 12:10 "compare with the examples"); v12: why-here diagrams drawn from the node's A cut in the Sections cache (true ground, bed, all water levels, masterplan move, buildings and bridges in depth; Aras 10:36 "this diagram is just so wrong"); v11.6: N4 canopy: every other bay a glazed room up to the louvres, planters in the open bay (Aras 10:02); v11.5: N4 raised gathering drawn as the designed canopy (folded triangle skin, louvres, Y columns; Sections v1.28 language); v11.4: svg_crop takes css (slide 4 sub-system colours), node plans unchanged; v11.3: MapBase under the plans in the A05 base map look (white houses with shadows, one road outline; MapBase v1.8 mb_a05_style; Aras 15 Nov 07:59 "you need to update other scripts so i can see the change in the basemap aswell"); v11.2: legend colours read from the crop itself, diagram town as gabled rows, moves as tint + accent edge, no arrows from the air, own figures, diagram right under its title, placeholders one system; v11: each node plan is a straight crop of master.svg (rendered by Edge / Chrome on his PC, cached), marks on top; v10: v10: why-here diagrams as section-axo blocks (depth, shaded planes, extruded town, accent move with shadow); MapBase always under the plan, his existing roads/buildings left out; v9.9: v9.9: a heritage stop on a cut line stays in the cropped section (N4-A Red Hall); v9.8: v9.8: Ulu Cami silhouette as built (hall, three domes, minaret on a stone base); v9.7: v9.7: Red Hall drawn as the roofless arched brick hall; diagram levels start at the riser they meet; v9.6: v9.6: program brief under the land-use bar when it fits, perspective the full right half; v9.5: v9.5: diagram levels run to the banks, N5 town band lower and label over its move; cuts packed from the top, why-here block follows, perspective room grows; V1 clear of stops, names and its arrows; v9.4: v9.4: at least 30 % (or 90 m) of a cut in view, so flat cuts get taller; v9.3: v9.3: section fit by the drawing without its sky, at least 55 % (or 150 m) of the cut in view, sky cut to the room; v9.2: v9.2 (fresh review of run 4): sections fill their rooms (cropped round the stream, own scale bar), no intro line, short key words, V1 in ink, land use = 5 classes + other with names on one row, program brief under the story, diagram arrows start at their cause, slots as voids, FLAG count includes carried FLAGs; v9.1: v9.1: diagrams to DIAGRAM_STYLE v2 (Niarchos measured: low ground, names under it, small accent); v9: v9: why-here diagrams redrawn on the shared diagram kit (pc_dg_kit, DIAGRAM_STYLE.md; Aras 21:30 UTC); v8.4: v8.4: scale + north above the plan (off his drawing), intro wording; v8.3: v8.3: B cut subtitle "along the bank", N3 diagram label clear of the dots; v8.2: v8.2: 4-corner picture rectangles of the masterplan left out (no solid green blocks), the river filled as water; v8.1: v8.1: masterplan sheet / texture frames (> 0.1 km2) left out, legend columns balanced, intro without the old levels text; v8: plan = his masterplan drawing; why-here story + one concept diagram per node; water bars and meets line gone; v7.5: v7.5: section_lines v2 (B along the bank: looks at the stream, no water bars); v7.4: v7.4: cut marks = two end arrows, no line between (pages_common v3.14); v7.3: v7.3: scale + north ignore the node frame line; v7.2: v7.2: the proposal from his masterplan SVG (MasterplanBase cache); v7.1: v7.1: R01 cut arrows (pc_cut_mark), no city-square ring, land-use columns >= 45 mm; v7: v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
 ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 PAGE_W, PAGE_H = 420.0, 297.0
 NODE_MARGIN_M = 25.0                       # m of town round the node frame on the plan
@@ -198,6 +198,164 @@ PROGRAM = {
            u"400 + trial plots (cotton, maize, tomato).",
            u"For: industry workers, DEÜ Bergama MYO students, anyone interested."),
 }
+
+
+# v13 (Aras 15 Nov 15:22 UTC "i dont want to see any placeholder in the presentation"): the season of use per node
+# (DESIGN intent from the four-seasons idea: terraces flood one level at a time, every season lives on the levels the
+# water leaves dry) and a building proposal per node (plan, section, elevation) drawn from the PROGRAM rooms
+SEASONS = {
+    "N1": u"Seasons: the house sits on the dry top and works all year; in summer and autumn the workshops and the "
+          u"children's room open onto the dry terraces; in winter and spring the lower terraces flood and life moves "
+          u"inside.",
+    "N2": u"Seasons: the walk point stays dry all year; in summer and autumn people sit on the lowest terraces at the "
+          u"water; in winter and spring the high water covers the lower steps, the ramp and the lookout stay open.",
+    "N3": u"Seasons: the hall works all year; in summer the viewing steps reach the low water at the tunnel mouth; in "
+          u"winter the high water is read from the top steps and the flow marker.",
+    "N4": u"Seasons: the raised platform stays above the flood all year; in summer and autumn people gather at the "
+          u"tunnel exit on the dry bed edge; in winter and spring the bank-level route closes at high water.",
+    "N5": u"Seasons: the pavilion works all year; in summer and autumn the courts on the dry terraces are in use; in "
+          u"winter and spring the lower courts flood and sport moves to the top terrace and inside.",
+    "N6": u"Seasons: labs, hall and greenhouse work all year; the trial plots run from spring to autumn; winter is "
+          u"the indoor course season.",
+}
+# rooms (m2) from PROGRAM / NODE_IDEAS.md; depth, storey, plinth, roof fold and bay = DESIGN (storey 3.5 civic,
+# 4.5 hall / industry as the project's storey heights, 12 Nov; fold rise 1.8 m = the canopies, Sections v1.26; stone
+# plinth as the canopy design, Aras 15 Nov 10:02; glazed every other bay, as the canopy rooms)
+BUILD = {
+    "N1": dict(name=u"Neighbourhood house", depth=12.0, storey=3.5, floors=[[
+        (u"Hall", 200), (u"Kitchen", 80), (u"Workshop", 40), (u"Workshop", 40), (u"Workshop", 40),
+        (u"Children", 60), (u"Library", 40)]]),
+    "N2": dict(name=u"Heritage walk point, lookout on the roof", depth=10.0, storey=3.5, floors=[[
+        (u"Exhibition", 250), (u"Info", 40), (u"Café", 80)]]),
+    "N3": dict(name=u"Craft and produce hall", depth=16.0, storey=4.5, floors=[[
+        (u"Market", 600), (u"Workshop", 60), (u"Workshop", 60), (u"Workshop", 60), (u"Arrival + WC", 60)]]),
+    "N4": dict(name=u"Raised canopy platform, no rooms", depth=8.0, storey=2.3, bays=6, floors=[]),
+    "N5": dict(name=u"Day-care and sports pavilion", depth=10.0, storey=3.5, floors=[[
+        (u"Day-care", 150), (u"Changing + WC", 100), (u"Store", 30)]]),
+    "N6": dict(name=u"Water-enrichment centre", depth=14.0, storey=4.5, floors=[[
+        (u"Lab", 80), (u"Lab", 80), (u"Pilot line", 150), (u"Canteen", 200), (u"Showers", 80), (u"Training", 120),
+        (u"Greenhouse", 400)], [(u"Display hall", 250), (u"Classroom", 60), (u"Classroom", 60), (u"Course room", 80)]]),
+}
+BP_PLINTH_M, BP_RISE_M, BP_BAY_M = 0.6, 1.8, 6.0
+
+
+def proposal(node, items, B, x0, y0, x1, y1, log, layer="building_proposal"):
+    """v13: the node's building proposal (DESIGN): plan (rooms by area along the length, floors as strips), section
+    across the depth, long elevation (stone plinth, glazed every other bay, folded roof), one scale bar; fitted to the
+    box (side by side, or plan above section + elevation)"""
+    bd = BUILD.get(node)
+    if not bd:
+        log.append(u"FLAG no building proposal for %s" % node)
+        return
+    D, hs, F = bd["depth"], bd["storey"], bd["floors"]
+    canopy = not F
+    L = bd.get("bays", 0) * BP_BAY_M if canopy else max(sum(a for _n, a in f) for f in F) / D
+    nb = max(1, int(round(L / BP_BAY_M)))
+    nf = max(1, len(F))
+    gap_m = 4.0
+    Dp = D * nf + gap_m * (nf - 1)                        # plan height: floor strips with a gap
+    Hs = BP_PLINTH_M + nf * hs + BP_RISE_M                # section / elevation height
+    tot = sum(a for f in F for _n, a in f)
+    W_, H_ = x1 - x0, y1 - y0
+    top = 3.4 + 2.6                                       # title + drawing names
+    bot = 4.0                                             # scale bar
+    sA = min((W_ - 8.0) / (2.0 * L + D), (H_ - top - bot) / max(Dp, Hs))           # side by side
+    sB = min((W_ - 4.0) / max(L, L + D), (H_ - top - bot - 2.6 - 2.0) / (Dp + Hs))  # plan above, section + elevation
+    s, row = (sA, True) if sA >= sB else (sB, False)
+    if s <= 0.05:
+        log.append(u"FLAG building proposal of %s has no room (%.0f x %.0f mm)" % (node, W_, H_))
+        return
+    ink, thin = INK, GREY
+    items.append(T_(u"BUILDING PROPOSAL · %s%s" % (bd["name"].upper(), u"" if canopy else u" · %s m2" % format(int(tot), ",d")),
+                    x0, y1 - 2.8, 2.4, ink, True, "L", layer))
+    yt = y1 - 3.4 - 2.6                                   # top of the drawings
+    if row:
+        px, py = x0, yt - Dp * s
+        sx, ex = x0 + L * s + 4.0, x0 + L * s + 4.0 + D * s + 4.0
+        sy = ey = yt - Hs * s
+    else:
+        px, py = x0, yt - Dp * s
+        sx, ex = x0, x0 + D * s + 4.0
+        sy = ey = py - 2.6 - 2.0 - Hs * s
+    nm = 1.7
+    items.append(T_(u"PLAN", px, (py + Dp * s) + 0.8, nm, thin, True, "L", layer))
+    items.append(T_(u"SECTION", sx, sy + Hs * s + 0.8, nm, thin, True, "L", layer))
+    items.append(T_(u"ELEVATION", ex, ey + Hs * s + 0.8, nm, thin, True, "L", layer))
+    # ---- plan
+    if canopy:
+        R0 = box(px, py, px + L * s, py + D * s)
+        items.append(R_([R0], None, ink, 0.4, layer))
+        for i in range(nb):                               # folded triangle facets on Y columns
+            xa, xb = px + i * BP_BAY_M * s, px + (i + 1) * BP_BAY_M * s
+            xm = (xa + xb) / 2.0
+            items.append(L_([(xa, py), (xm, py + D * s), (xb, py)], thin, 0.15, layer))
+            items.append(L_([(xa, py + D * s), (xm, py)], thin, 0.15, layer))
+            items.append(L_([(xm, py), (xb, py + D * s)], thin, 0.15, layer))
+            items.append(R_([ring(xm, py + D * s / 2.0, 0.35, 12)], ink, None, 0.0, layer))
+    for k, f in enumerate(F):
+        yb = py + (nf - 1 - k) * (D + gap_m) * s
+        xx = px
+        items.append(R_([box(px, yb, px + sum(a for _n, a in f) / D * s, yb + D * s)], None, ink, 0.45, layer))
+        if nf > 1:
+            items.append(T_(u"GROUND" if k == 0 else u"UPPER", px, yb + D * s + 0.6, 1.4, thin, True, "L", layer))
+        for n_, a_ in f:
+            w = a_ / D * s
+            items.append(L_([(xx + w, yb), (xx + w, yb + D * s)], ink, 0.2, layer))
+            ts = min(1.5, D * s * 0.3)
+            for lab_ in (n_, u"%d" % a_):
+                if B["text_w"](lab_, ts, False) <= w - 0.6 and ts >= 0.9:
+                    items.append(T_(lab_, xx + w / 2.0, yb + D * s / 2.0 - ts * 0.36, ts, ink, False, "C", layer))
+                    break
+            xx += w
+    # ---- section across the depth (cut: poché slabs and walls)
+    g0 = sy + BP_PLINTH_M * s
+    items.append(L_([(sx - 2.0, sy), (sx + D * s + 2.0, sy)], ink, 0.35, layer))
+    items.append(R_([box(sx, sy, sx + D * s, g0)], "8E8F8A", None, 0.0, layer))       # stone plinth
+    if canopy:
+        cy_ = g0 + hs * s
+        for xc in (sx + D * s * 0.5,):                   # one Y column in the cut
+            items.append(L_([(xc, g0), (xc, g0 + hs * s * 0.6)], ink, 0.4, layer))
+            items.append(L_([(xc, g0 + hs * s * 0.6), (sx + D * s * 0.15, cy_)], ink, 0.4, layer))
+            items.append(L_([(xc, g0 + hs * s * 0.6), (sx + D * s * 0.85, cy_)], ink, 0.4, layer))
+        items.append(L_([(sx, cy_), (sx + D * s / 2.0, cy_ + BP_RISE_M * s), (sx + D * s, cy_)], ink, 0.5, layer))
+    else:
+        for k in range(nf + 1):
+            yk = g0 + k * hs * s
+            items.append(R_([box(sx, yk - 0.25, sx + D * s, yk + 0.25)], ink, None, 0.0, layer))
+        yr = g0 + nf * hs * s
+        items.append(L_([(sx, yr), (sx + D * s / 2.0, yr + BP_RISE_M * s), (sx + D * s, yr)], ink, 0.5, layer))
+        for xw in (sx, sx + D * s - 0.5):
+            items.append(R_([box(xw, g0, xw + 0.5, yr)], ink, None, 0.0, layer))
+    # ---- long elevation
+    g1 = ey + BP_PLINTH_M * s
+    items.append(L_([(ex - 2.0, ey), (ex + L * s + 2.0, ey)], ink, 0.35, layer))
+    items.append(R_([box(ex, ey, ex + L * s, g1)], "8E8F8A", None, 0.0, layer))
+    he = (hs if canopy else nf * hs) * s
+    bw = L * s / nb
+    for i in range(nb):
+        xa = ex + i * bw
+        if canopy:
+            items.append(L_([(xa + bw / 2.0, g1), (xa + bw / 2.0, g1 + he * 0.6)], ink, 0.3, layer))
+            items.append(L_([(xa + bw * 0.15, g1 + he), (xa + bw / 2.0, g1 + he * 0.6), (xa + bw * 0.85, g1 + he)], ink, 0.3, layer))
+        else:
+            items.append(R_([box(xa, g1, xa + bw, g1 + he)], None, ink, 0.3, layer))
+            if i % 2 == 0:                                # glazed bay: mullions every ~1.5 m, transom per storey
+                m = max(2, int(round(BP_BAY_M / 1.5)))
+                for j in range(1, m):
+                    items.append(L_([(xa + bw * j / m, g1), (xa + bw * j / m, g1 + he)], thin, 0.12, layer))
+                for k in range(1, nf):
+                    items.append(L_([(xa, g1 + k * hs * s), (xa + bw, g1 + k * hs * s)], thin, 0.2, layer))
+        items.append(L_([(xa, g1 + he), (xa + bw / 2.0, g1 + he + BP_RISE_M * s), (xa + bw, g1 + he)], ink, 0.45, layer))
+    # ---- one scale bar (10 m, or 5 m when small)
+    bm = 10.0 if 10.0 * s >= 6.0 else 20.0 if 20.0 * s >= 6.0 else 50.0
+    yb_ = y0 + 1.2
+    items.append(R_([box(x0, yb_, x0 + bm * s / 2.0, yb_ + 0.8)], ink, ink, 0.2, layer))
+    items.append(R_([box(x0 + bm * s / 2.0, yb_, x0 + bm * s, yb_ + 0.8)], None, ink, 0.2, layer))
+    items.append(T_(u"0", x0, yb_ + 1.3, 1.3, thin, False, "C", layer))
+    items.append(T_(u"%d m" % int(bm), x0 + bm * s, yb_ + 1.3, 1.3, thin, False, "C", layer))
+    log.append(u"building proposal %s (DESIGN): %.1f x %.1f m, %d floor(s) of %.1f m, %d bays, %s m2, at 1:%d (%s)" % (
+        node, L, D, nf, hs, nb, int(tot), int(round(1000.0 / s)), u"side by side" if row else u"plan above"))
+
 
 
 # ================================================================ v12: why-here diagrams from the real cut (Aras 15 Nov
@@ -1913,6 +2071,7 @@ def node_page(cfg, log):
     # ---- V1, the viewpoint of the perspective (brief: viewpoints marked on each node plan; place assumed): from the
     # city square, else from the bank end of the drawn part of section A, looking to the stream bed of the nearest cut
     vp = None
+    view1 = None                                          # v13.1: for the Perspectives script
     if done:
         if sq:
             c0 = ((sq[0]["xy"][0] + sq[1][1][0]) / 2.0, (sq[0]["xy"][1] + sq[1][1][1]) / 2.0)
@@ -1944,6 +2103,7 @@ def node_page(cfg, log):
                             "viewpoints"))
         items.append(R_([ring(qa[0], qa[1], 2.0, 24)], INK, "FFFFFF", 0.3, "viewpoints"))   # v9.2: accent = our move only
         items.append(G["pc_text_c"](u"V1", qa[0], qa[1], 2.2, "FFFFFF", "viewpoints"))   # v12.8: centred mark
+        view1 = dict(eye=list(vp[0]), look=list(vp[1]), node=node, frame=[list(c) for c in nd["corners"]])
         log.append(u"V1 viewpoint (assumed): %s, looking to the bed of %s" % (
             u"the city square" if sq else u"the bank end of %s" % Cn.name, Cn.name))
     # v6.5 (run 5: stop and loop labels read poorly over buildings and the spine): a light backing behind plan labels; v12.3: a letter-shaped halo, no box
@@ -2077,6 +2237,8 @@ def node_page(cfg, log):
     holder_ = holder
 
     def holder(x0, y0, x1, y1, title, sub, layer):         # v12.7: the program brief as text, smaller if it must
+        if layer == "building_proposal":                  # v13: the proposal drawing, no placeholder
+            return proposal(node, items, B, x0, y0, x1, y1, log)
         if sub is not None:
             return holder_(x0, y0, x1, y1, title, sub, layer)
         pg = PROGRAM.get(node)
@@ -2085,7 +2247,7 @@ def node_page(cfg, log):
             return
         for sz in (2.2, 2.0, 1.8, 1.6):
             st_ = sz * 1.35
-            rows = [wrap(B, p_, sz, x1 - x0) for p_ in pg]
+            rows = [wrap(B, p_, sz, x1 - x0) for p_ in tuple(pg) + ((SEASONS[node],) if node in SEASONS else ())]
             need = 3.6 + sum(len(r_) for r_ in rows) * st_ + 1.0 * (len(rows) - 1)
             if need <= y1 - y0:
                 break
@@ -2099,9 +2261,25 @@ def node_page(cfg, log):
                 yy_ -= st_
             yy_ -= 1.0
         log.append(u"program brief %s at %.1f mm text (NODE_IDEAS.md 15 Nov; areas proposed, totals summed)" % (node, sz))
-    BP = (u"BUILDING PROPOSAL", u"placeholder: plan, section, elevation (if the node has one)", "placeholder_building")
-    holder(310.0, 12.0, 406.0, ys_, u"V1 · PERSPECTIVE · %s" % node,
-           u"placeholder: Aras's render (Archicad, Unreal 5) from V1 on the plan", "placeholder_perspective")
+    BP = (u"BUILDING PROPOSAL", u"", "building_proposal")   # v13: drawn by proposal()
+    pdir = os.path.join(ROOT, "cached", "bergama_perspectives")   # v13.1: the Perspectives script's views and images
+    if view1:
+        try:
+            os.makedirs(pdir, exist_ok=True)
+            view1["box_mm"] = [406.0 - 310.0, ys_ - 4.5 - 12.0]
+            with open(os.path.join(pdir, "views_%s.json" % node.lower()), "w", encoding="utf-8") as f:
+                json.dump(dict(page=node.lower(), version=NC_VERSION, views={"V1": view1}), f, ensure_ascii=False)
+        except Exception as ex:
+            log.append(u"FLAG views_%s.json not written (%s)" % (node.lower(), ex))
+    pp = os.path.join(pdir, u"%s_V1.png" % node.lower())
+    if view1 and os.path.isfile(pp):
+        items.append(("image", 310.0, 12.0, 406.0 - 310.0, ys_ - 4.5 - 12.0, pp, None, False, None, "perspective_V1"))
+        items.append(T_(u"V1 · PERSPECTIVE · %s" % node, 310.0, ys_ - 2.8, 2.6, INK, True, "L", "perspective_V1"))
+        log.append(u"V1 perspective: %s (%s)" % (pp, time.strftime("%d %b %H:%M", time.localtime(os.path.getmtime(pp)))))
+    else:
+        holder(310.0, 12.0, 406.0, ys_, u"V1 · PERSPECTIVE · %s" % node,
+               u"placeholder: Aras's render (Archicad, Unreal 5) from V1 on the plan", "placeholder_perspective")
+        log.append(u"FLAG V1 perspective: no %s yet (press Perspectives, then this node): placeholder" % pp)
     left = [BP]
     if yl - 12.0 >= 16.0:
         holder(14.0, 12.0, 200.0, yl, *PB)
