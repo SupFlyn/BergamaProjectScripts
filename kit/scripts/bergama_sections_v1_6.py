@@ -45,10 +45,14 @@ Writes ~/Downloads/Bergama/output/bergama_sections/Sections.pdf          ONE pag
 import os, re, time, json, math, bisect, glob, random
 
 # ---- SETTINGS ----
-VERSION = "v1.18"   # v1.18 (Aras 15 Nov 04:58 UTC "All defaults are fine"): proposals outlined in the accent C07A2E, S4 drawn from the B19 masterplan (parts cached for the seasons page), N4-A moved 22.6 m onto the Red Hall (section_lines.json); v1.17.4 v1.17.4: S4 bed and strip from the engine's own low point (they came from the cut drawn before it); v1.17.3 v1.17.3 (error review of v1.17.2): no plan wall inside the channel, seat walls start on the ground, decks 0.25 m clear, near-coincident dashed levels merged, existing ground a fine light dashed hairline; v1.17.2 v1.17.2 (fresh review of v1.17): canopy trunks on the ground and branches meeting the shell, overlapping canopies / pavilions thinned (nearer first), deck balustrade as rail and posts (the glass box read as a tank); v1.17.1 v1.17.1: the cut line drawn whole (an end trim had dropped most of it since v1.6.13); v1.17 v1.17 (two independent reviews of v1.16): the cut line on top of the ground skin (it lay hidden), butt ends; clouds under the frame top and off the ground; land-use band 2.8 mm, words 1.7 mm, street lighter; scale bar in the title line (cells give the drawing ~6 mm more height); v1.16.1 v1.16.1: land-use band words one size on every cut (they ran 1.6-3.3 mm); v1.16 v1.16 (600 dpi read of the v1.15.2 PDF): one-line titles and a tighter band / scale bar (drawings larger), bridges at bank level (N2-A on the bed), seat walls where the ground is flat, water ripples only inside water, thinner water surface; v1.15.2: v1.15.2: sheet fix (KeyError on the smallest scale, v1.15.1 crashed before the PDF and the cache); v1.15.1 v1.15.1: dashed water levels 0.1 mm, water surface line and wall outlines thin at small scales (600 dpi read of the v1.14 PDF); v1.15 v1.15 (Aras 21:33 "do a proper check"): each cut on the A3 sheet at its own largest scale, fitted to its cell (the sheet was about 60 % empty), titles one size, cut line heavier (0.4-0.6 mm); v1.14 v1.14 (Aras 21:31 "please remove these kind of showings"): no floating text labels with dashed leader lines over the cuts (Road, Canopy, Building n floors, ...); cut houses drawn like the background houses, light (Aras 21:32); v1.13 (Aras 21:26 "drawings flows out fix that"): every fill cut at the cut frame, clouds / cutouts / circles crossing it left out; v1.12 (recheck of v1.11 output): footbridges only on cuts that cross the stream; canopy edge thin at small scales; v1.11: masterplan read right (no 2.1 km2 texture frame as "green", open lines only for walls, kopruler = bridges), plan trees 12-20 m apart, drawing lines cut at the frame; v1.10: channel walls only to the bank ground + a 0.9 m parapet (Aras 16:23); masterplan spans merged per kind, a progress file logs/bergama_sections_progress.txt (v1.9 ran > 17 min); v1.9 (Aras 14 Nov 16:12-16:13): section_lines.json v2: per node A square to the stream and B along the bank crossing it, both from frame edge to frame edge (drawn whole), looking different ways; v1.8 (Aras 14 Nov 15:38-15:41): the sections are the masterplan in 3D: every piece of his plan the cut crosses (MasterplanBase cache of B19_setB_layers259.svg) drawn as a designed form (stepped terraces as the finished ground, promenade and cycle paving, retaining walls, boulders, water decks, lens footbridges, saddle-shell canopies on steel trees, sedum-roof pavilions; canopies and pavilions behind the cut in elevation), heights design intent; v1.7 (Aras 14 Nov 15:25-15:35): all 12 cuts on ONE A3 landscape sheet, no 1:x printed; planting drawn at 1:75 and scaled to the page (true proportions), no soil root hairs; cut houses as plain silhouettes; houses behind more detailed (plinth, tiles, chimney, sills, glazing bars, shutters, balconies, door hood) and up to 200 m behind
+VERSION = "v1.18.1"   # v1.18.1: Kızıl Avlu main hall from the masterplan outline, walls 19 m (Wikipedia "Red Basilica": "Its walls still survive up to a height of 19 metres"), drawn as a roofless brick mass; the S4 log line says only the low point is the engine's; v1.18 (Aras 15 Nov 04:58 UTC "All defaults are fine"): proposals outlined in the accent C07A2E, S4 drawn from the B19 masterplan (parts cached for the seasons page), N4-A moved 22.6 m onto the Red Hall (section_lines.json); v1.17.4 v1.17.4: S4 bed and strip from the engine's own low point (they came from the cut drawn before it); v1.17.3 v1.17.3 (error review of v1.17.2): no plan wall inside the channel, seat walls start on the ground, decks 0.25 m clear, near-coincident dashed levels merged, existing ground a fine light dashed hairline; v1.17.2 v1.17.2 (fresh review of v1.17): canopy trunks on the ground and branches meeting the shell, overlapping canopies / pavilions thinned (nearer first), deck balustrade as rail and posts (the glass box read as a tank); v1.17.1 v1.17.1: the cut line drawn whole (an end trim had dropped most of it since v1.6.13); v1.17 v1.17 (two independent reviews of v1.16): the cut line on top of the ground skin (it lay hidden), butt ends; clouds under the frame top and off the ground; land-use band 2.8 mm, words 1.7 mm, street lighter; scale bar in the title line (cells give the drawing ~6 mm more height); v1.16.1 v1.16.1: land-use band words one size on every cut (they ran 1.6-3.3 mm); v1.16 v1.16 (600 dpi read of the v1.15.2 PDF): one-line titles and a tighter band / scale bar (drawings larger), bridges at bank level (N2-A on the bed), seat walls where the ground is flat, water ripples only inside water, thinner water surface; v1.15.2: v1.15.2: sheet fix (KeyError on the smallest scale, v1.15.1 crashed before the PDF and the cache); v1.15.1 v1.15.1: dashed water levels 0.1 mm, water surface line and wall outlines thin at small scales (600 dpi read of the v1.14 PDF); v1.15 v1.15 (Aras 21:33 "do a proper check"): each cut on the A3 sheet at its own largest scale, fitted to its cell (the sheet was about 60 % empty), titles one size, cut line heavier (0.4-0.6 mm); v1.14 v1.14 (Aras 21:31 "please remove these kind of showings"): no floating text labels with dashed leader lines over the cuts (Road, Canopy, Building n floors, ...); cut houses drawn like the background houses, light (Aras 21:32); v1.13 (Aras 21:26 "drawings flows out fix that"): every fill cut at the cut frame, clouds / cutouts / circles crossing it left out; v1.12 (recheck of v1.11 output): footbridges only on cuts that cross the stream; canopy edge thin at small scales; v1.11: masterplan read right (no 2.1 km2 texture frame as "green", open lines only for walls, kopruler = bridges), plan trees 12-20 m apart, drawing lines cut at the frame; v1.10: channel walls only to the bank ground + a 0.9 m parapet (Aras 16:23); masterplan spans merged per kind, a progress file logs/bergama_sections_progress.txt (v1.9 ran > 17 min); v1.9 (Aras 14 Nov 16:12-16:13): section_lines.json v2: per node A square to the stream and B along the bank crossing it, both from frame edge to frame edge (drawn whole), looking different ways; v1.8 (Aras 14 Nov 15:38-15:41): the sections are the masterplan in 3D: every piece of his plan the cut crosses (MasterplanBase cache of B19_setB_layers259.svg) drawn as a designed form (stepped terraces as the finished ground, promenade and cycle paving, retaining walls, boulders, water decks, lens footbridges, saddle-shell canopies on steel trees, sedum-roof pavilions; canopies and pavilions behind the cut in elevation), heights design intent; v1.7 (Aras 14 Nov 15:25-15:35): all 12 cuts on ONE A3 landscape sheet, no 1:x printed; planting drawn at 1:75 and scaled to the page (true proportions), no soil root hairs; cut houses as plain silhouettes; houses behind more detailed (plinth, tiles, chimney, sills, glazing bars, shutters, balconies, door hood) and up to 200 m behind
 CUT_HOUSE_DIST_M = 60.0   # v1.14: cut houses toned like a house 60 m behind (light, quiet; drawing value, ours)
 LEVEL_LW = 0.1   # v1.15: dashed water levels as hairlines (mm)
 ACCENT = "C07A2E"   # v1.18: the project accent = our intervention (DIAGRAM_STYLE), Aras 15 Nov 04:58 UTC
+RED_HALL_KEY = u"Kizil_Avlu_outline"   # v1.18.1: MasterplanBase layer holding the Kızıl Avlu main hall outline
+RED_HALL_MIN_M2 = 1000.0   # only the hall rings (about 1250-1300 m2); the round towers (about 146 m2) have no sourced height
+RED_HALL_H_M = 19.0        # Wikipedia "Red Basilica": "Its walls still survive up to a height of 19 metres (62 ft)"
+RED_HALL_FILL, RED_HALL_EDGE = "D9B8A6", "A9877A"   # brick, toned light like the houses
 S4_FROM_B19 = True   # v1.18 (Aras 15 Nov 04:58 UTC): S4 drawn from his masterplan like the 12 cuts, not the 27 Oct engine design
 CALLOUTS = False   # v1.14: leader-line labels over the cuts left out (Aras 21:31 UTC)
 GH_LABEL = "Sections"
@@ -661,7 +665,7 @@ def build_cut(C, CL, cum, E, log, BM=None):
     i_th = min(rng_ or range(len(Z)), key=lambda i: Z[i])
     C.s_th, C.z_th = w0 + i_th * DS, Z[i_th]
     if C.is_s4:                                     # the engine's surveyed low point and strip, so S4 stays 1:1
-        lg.append(u"S4 bed low point: re-cut s %.2f %+.2f, engine s %.2f %+.2f (engine kept)" % (
+        lg.append(u"S4 bed low point: re-cut s %.2f %+.2f, engine s %.2f %+.2f (only this low point is the engine's; the rest is drawn from the B19 masterplan)" % (
             C.s_th, C.z_th, E["_THALWEG0"][0], E["_THALWEG0"][1]))
         # v1.17.4 (seasons thread: S4's strip / bed came from N6-B): draw_cut overwrites E["THALWEG"] per cut, so
         # the engine's own S4 low point is kept apart at load
@@ -980,7 +984,7 @@ class Sec(object):
         for t in C.bld:
             if t[4]:
                 d["callouts"].append(((t[0] + t[1]) / 2, self.ex((t[0] + t[1]) / 2) + t[3],
-                                      u"Building, %d floor%s" % (t[6], u"" if t[6] == 1 else u"s") if t[6] else u"Building"))
+                                      u"Building, %d floor%s" % (t[6], u"" if t[6] == 1 else u"s") if t[6] and t[6] > 0 else u"Building"))
 
 
 class _Bank(object):
@@ -1483,6 +1487,11 @@ def house(pg, S, a, b, base, h, fl, dist):
     """one house behind the cut at its real place (s a-b), base and height: wall, roof with eaves (hipped; flat with a
     parapet from FLAT_ROOF_FLOORS floors), a window row per floor, a door, toned toward the sky with distance"""
     t = H_FADE * min(1.0, dist / BACK_M)
+    if fl == -1:                                        # v1.18.1: the Kızıl Avlu hall, roofless brick walls
+        pg.poly([[S.P(a, base - 1.0), S.P(b, base - 1.0), S.P(b, base + h), S.P(a, base + h)]],
+                fill=_mix(RED_HALL_FILL, SKY_LOW, t), stroke=_mix(RED_HALL_EDGE, SKY_LOW, t),
+                lw=0.12 if dist < 40 else 0.08, layer="houses behind")
+        return
     wall, roof, edge = _mix(H_WALL, SKY_LOW, t), _mix(H_ROOF, SKY_LOW, t), _mix(H_EDGE, SKY_LOW, t)
     glass, shade = _mix(H_GLASS, SKY_LOW, t), _mix(H_SHADE, SKY_LOW, t)
     K = S.K
@@ -1735,7 +1744,7 @@ def band(E, pg, S, y, h=9.0):
     C = S.C
     items = [(min(sa, sb), max(sa, sb), mat, lab) for sa, sb, z, mat, lab in S.flats]
     items += [(a, b, "road", u"Road") for a, b in C.roads]        # "road": the engine's plain grey swatch
-    items += [(t[0], t[1], "concrete", u"Building") for t in C.bld if t[4]]
+    items += [(t[0], t[1], "concrete", u"Kızıl Avlu" if t[6] == -1 else u"Building") for t in C.bld if t[4]]
     if C.is_s4 and not S4_FROM_B19:                 # the engine's own band of both banks
         for b_ in S.banks:
             ra, rb = b_.d["regrade"]
@@ -2278,6 +2287,38 @@ def mp_load(log):
     return out
 
 
+def red_hall_load(log):
+    """v1.18.1: the Kızıl Avlu main hall outline(s) from the MasterplanBase cache as basemap buildings with fl = -1
+    (drawn as the roofless Roman hall), height RED_HALL_H_M; overlapping rings kept once (the largest)"""
+    try:
+        with open(MP_CACHE, encoding="utf-8") as f:
+            J = json.load(f)
+    except (IOError, OSError, ValueError):
+        return []
+    rings = []
+    for key, pieces in J.get("layers", {}).items():
+        if RED_HALL_KEY not in key:
+            continue
+        for p in pieces:
+            r = [tuple(q) for q in p[4]]
+            if p[0] != "r" or len(r) < 3:
+                continue
+            ar = abs(sum(r[i][0] * r[i - 1][1] - r[i - 1][0] * r[i][1] for i in range(len(r)))) / 2.0
+            if ar >= RED_HALL_MIN_M2:
+                rings.append((ar, r))
+    out, cs = [], []
+    for ar, r in sorted(rings, key=lambda t: -t[0]):
+        cx, cy = sum(q[0] for q in r) / len(r), sum(q[1] for q in r) / len(r)
+        if any(math.hypot(cx - a, cy - b) < 15.0 for a, b in cs):
+            continue
+        cs.append((cx, cy))
+        xs, ys = [q[0] for q in r], [q[1] for q in r]
+        out.append((min(xs), min(ys), max(xs), max(ys), r, RED_HALL_H_M, -1))
+    log.append(u"Kızıl Avlu: %d hall outline(s) from the masterplan, walls %.0f m (Wikipedia, Red Basilica); "
+               u"round towers left out (no sourced height)" % (len(out), RED_HALL_H_M))
+    return out
+
+
 def mp_for(C, MP):
     """C.mp = [(kind, s0, s1, distance behind, cut?)]: the plan pieces the line cuts (even-odd spans of closed rings,
     crossing points of open lines) and canopies / pavilions up to MP_BEHIND_M behind it"""
@@ -2675,6 +2716,8 @@ def main():
         cuts.append(C)
     BM = load_basemap(log)
     MP = mp_load(log)                                   # v1.8: the masterplan (MasterplanBase cache)
+    if BM:                                              # v1.18.1: the Kızıl Avlu hall (the basemap has no outline)
+        BM["buildings"] = list(BM["buildings"]) + red_hall_load(log)
     # the survey is read ONCE for all lines (build once, Aras 29 Oct): the box holds every line's corridor
     pad = max(CORRIDOR_STEPS[-1], SLOPE_HALF + 20.0) + HYD_HALF
     xs = [p[0] for C in cuts for p in (C.A, C.B)]
