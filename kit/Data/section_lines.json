@@ -1,5 +1,5 @@
 {
- "what": "v5 (15 Nov 2026 15:2x UTC): N3 west end to u 705 so it reaches into the working area. v4 (15 Nov 2026, Aras 08:46 UTC 'yes' to moving N5 and N6 so the master.svg buildings sit inside them): N5 = strip u 1400-1795, N6 = u 1795-2115 (same v as v3); N5-A / N6-A cross the stream square to it through the building frames' middles (u 1699 / 2022), N5-B / N6-B run along the bank 12 / 30 m off the centreline at the frame ends (never crossing it), all edge to edge. nodes_v3/lines_v3 = before. v3 (15 Nov 2026, Aras approved the defaults 04:58 UTC: node frames apart and inside his masterplan drawing): every frame kept inside the masterplan drawing's frame (site_alan strip, 2,845 x 529 m, from the MasterplanBase cache matrix + svg_box); N1 cut to the strip's width; N5 and N6 slid across the strip (same size) to its far edge; N3 slid 51 m upstream and N4 starts where N3 ends and stops where N5 starts (no overlap); each A/B line re-run from frame edge to frame edge on the same line. nodes_v2/lines_v2 = before. Panel Review II section lines N1-A ... N6-B and node frames N1-N6 in survey coordinates (m). v2 (Aras 14 Nov 16:12-16:13 UTC: 'two section lines dont look at the same way ... if they are cross sections it is even better ... Section should cross all of the zone area at least'; 'shift this one aswell it is out of our working area'): A = square to the stream at the old A's stream point, from node frame edge to frame edge, looking downstream; B = parallel to the local stream direction (crossing A at right angles), 25-45 m off the stream on the frame-centre side where it stays out of the water inside the frame, frame edge to frame edge, looking at the stream. Both stay inside their node frame. lines_v1 = the 11 Nov lines (all looked the same way, some ran past the frame).",
+ "what": "v6 (15 Nov 2026 22:2x UTC, Aras 22:10 'move the node 6 to the building that is across the river' + 22:15 screenshot 'n6 will be here' = his faceted-roof 'desings' building, u 1943-2099, v 301-381): N6 = strip u 1861-2181 (same 320 x 465 m) centred on that building; N6-A square to the stream through its middle, N6-B along its bank 30 m off the centreline, frame end to frame end. nodes_v5/lines_v5 = before. v5 (15 Nov 2026 15:2x UTC): N3 west end to u 705 so it reaches into the working area. v4 (15 Nov 2026, Aras 08:46 UTC 'yes' to moving N5 and N6 so the master.svg buildings sit inside them): N5 = strip u 1400-1795, N6 = u 1795-2115 (same v as v3); N5-A / N6-A cross the stream square to it through the building frames' middles (u 1699 / 2022), N5-B / N6-B run along the bank 12 / 30 m off the centreline at the frame ends (never crossing it), all edge to edge. nodes_v3/lines_v3 = before. v3 (15 Nov 2026, Aras approved the defaults 04:58 UTC: node frames apart and inside his masterplan drawing): every frame kept inside the masterplan drawing's frame (site_alan strip, 2,845 x 529 m, from the MasterplanBase cache matrix + svg_box); N1 cut to the strip's width; N5 and N6 slid across the strip (same size) to its far edge; N3 slid 51 m upstream and N4 starts where N3 ends and stops where N5 starts (no overlap); each A/B line re-run from frame edge to frame edge on the same line. nodes_v2/lines_v2 = before. Panel Review II section lines N1-A ... N6-B and node frames N1-N6 in survey coordinates (m). v2 (Aras 14 Nov 16:12-16:13 UTC: 'two section lines dont look at the same way ... if they are cross sections it is even better ... Section should cross all of the zone area at least'; 'shift this one aswell it is out of our working area'): A = square to the stream at the old A's stream point, from node frame edge to frame edge, looking downstream; B = parallel to the local stream direction (crossing A at right angles), 25-45 m off the stream on the frame-centre side where it stays out of the water inside the frame, frame edge to frame edge, looking at the stream. Both stay inside their node frame. lines_v1 = the 11 Nov lines (all looked the same way, some ran past the frame).",
  "source": "nodes_sections_v2.json (section lines layer v3, 11 Nov 2026, units of B19_setB_layers2.1), placed by its plan frame (277.504, 5742.594, 7514.18 x 1397.44 units = site_alan 2,844.97 x 529.09 m, 2.641215 units per m)",
  "lines": {
   "N1-A": [
@@ -104,22 +104,22 @@
   ],
   "N6-A": [
    [
-    30991.55,
-    31357.87
+    31012.37,
+    31333.14
    ],
    [
-    30739.75,
-    30934.96
+    30780.36,
+    30886.73
    ]
   ],
   "N6-B": [
    [
-    30630.77,
-    31240.34
+    30731.71,
+    31239.05
    ],
    [
-    30919.48,
-    31065.1
+    31014.63,
+    31058.93
    ]
   ]
  },
@@ -233,20 +233,20 @@
    "name": "Industrial Area",
    "corners": [
     [
-     30899.81,
-     31466.85
+     30942.31,
+     31416.36
     ],
     [
-     31105.9,
-     31222.05
+     31148.41,
+     31171.56
     ],
     [
-     30750.19,
-     30922.57
+     30792.69,
+     30872.08
     ],
     [
-     30544.09,
-     31167.36
+     30586.6,
+     31116.87
     ]
    ]
   }
@@ -628,7 +628,8 @@
   "15 Nov 2026 05:0x UTC: N4-A (moved onto the Kizil Avlu point) clipped edge to edge to the v3 N4 frame (shift ~1.6 m along itself)",
   "15 Nov 2026 05:3x UTC (run 12 FLAG: N4-B crossed the stream 77 deg off square): N4-B starts at u 1098 along the strip again (its v2 end), so it runs along the bank and no longer crosses the stream",
   "15 Nov 2026 08:5x UTC (Aras 08:46 'yes'): N5 u 1132-1531 -> 1400-1795, N6 u 2026-2343 -> 1795-2115 (master.svg bina_cerceve buildings at u 1605-1793 and 1939-2105, measured by the building-ideas thread +/-10 m); N5-A, N5-B, N6-A, N6-B redrawn; strip = basemap Frame of site_alan (FRAME_COPY), u from the west",
-  "15 Nov 2026 15:2x UTC (Aras 15:14 'all the nodes are indeed in our working area', 15:14 'if your notes clashes update it to be carried to the inside of the area'): N3 Bazaar u 758-937 -> 705-937 (west end as library/node_ideas_2026-11-15/NODE_IDEAS.md, u 705); the v4 N3 frame lay wholly in the gap of the working area (Basemap calisma, u 735-981 along the strip, the covered stretch); now it overlaps the west working-area ring by 30 m at the upstream tunnel mouth. Lines unchanged (N3-A, N3-B stay inside). nodes_v4 = before"
+  "15 Nov 2026 15:2x UTC (Aras 15:14 'all the nodes are indeed in our working area', 15:14 'if your notes clashes update it to be carried to the inside of the area'): N3 Bazaar u 758-937 -> 705-937 (west end as library/node_ideas_2026-11-15/NODE_IDEAS.md, u 705); the v4 N3 frame lay wholly in the gap of the working area (Basemap calisma, u 735-981 along the strip, the covered stretch); now it overlaps the west working-area ring by 30 m at the upstream tunnel mouth. Lines unchanged (N3-A, N3-B stay inside). nodes_v4 = before",
+  "15 Nov 2026 22:2x UTC (Aras 22:10 + 22:15 screenshot): N6 u 1795-2115 -> 1861-2181, centred on his faceted-roof 'desings' building (u 1943-2099, v 301-381); N6-A, N6-B redrawn"
  ],
  "nodes_v3": {
   "N1": {
@@ -1007,5 +1008,155 @@
     ]
    ]
   }
+ },
+ "nodes_v5": {
+  "N1": {
+   "name": "Neighbourhoods (Upper + Lower)",
+   "corners": [
+    [
+     29814.57,
+     32855.36
+    ],
+    [
+     30075.55,
+     32545.38
+    ],
+    [
+     29670.8,
+     32204.62
+    ],
+    [
+     29409.82,
+     32514.6
+    ]
+   ]
+  },
+  "N2": {
+   "name": "Cultural Heritage",
+   "corners": [
+    [
+     29945.88,
+     32450.18
+    ],
+    [
+     30123.31,
+     32239.43
+    ],
+    [
+     29899.17,
+     32050.72
+    ],
+    [
+     29721.73,
+     32261.47
+    ]
+   ]
+  },
+  "N3": {
+   "name": "Bazaar",
+   "corners": [
+    [
+     30100.07,
+     32218.41
+    ],
+    [
+     30249.79,
+     32040.58
+    ],
+    [
+     30052.49,
+     31874.47
+    ],
+    [
+     29902.77,
+     32052.3
+    ]
+   ]
+  },
+  "N4": {
+   "name": "Archaeological Site",
+   "corners": [
+    [
+     30285.64,
+     32070.77
+    ],
+    [
+     30410.96,
+     31921.92
+    ],
+    [
+     30172.39,
+     31721.06
+    ],
+    [
+     30047.07,
+     31869.91
+    ]
+   ]
+  },
+  "N5": {
+   "name": "Settled Housing",
+   "corners": [
+    [
+     30582.6,
+     31716.14
+    ],
+    [
+     30837.0,
+     31413.97
+    ],
+    [
+     30544.09,
+     31167.36
+    ],
+    [
+     30289.69,
+     31469.53
+    ]
+   ]
+  },
+  "N6": {
+   "name": "Industrial Area",
+   "corners": [
+    [
+     30899.81,
+     31466.85
+    ],
+    [
+     31105.9,
+     31222.05
+    ],
+    [
+     30750.19,
+     30922.57
+    ],
+    [
+     30544.09,
+     31167.36
+    ]
+   ]
+  }
+ },
+ "lines_v5": {
+  "N6-A": [
+   [
+    30991.55,
+    31357.87
+   ],
+   [
+    30739.75,
+    30934.96
+   ]
+  ],
+  "N6-B": [
+   [
+    30630.77,
+    31240.34
+   ],
+   [
+    30919.48,
+    31065.1
+   ]
+  ]
  }
 }
