@@ -26,7 +26,7 @@ Grasshopper: a Button on any input runs it.
 """
 import os, re, json, math, time
 
-VERSION = "v1.11"   # v1.11 = Aras 15 Nov 15:53 UTC "dont make this logarithmic keep it linear": river in and need out on ONE linear scale (thousand m3), value on every bar; v1.10 = Aras 15 Nov 15:52 UTC "get rid of city feeding ... we give back to fields and orchads and thats it": no city blocks, no surplus pipe, step 7 = back to the river; v1.9 = Aras 15 Nov 15:41-15:47 UTC "we need more diagramatic drawings", "left side needs numbers", "how much water we can catch", planting panel "get rid of that ... explain our water cycle more in detail", "show out strip flows 4 seasons", "we give back to the strip": STORAGE = the month comparison with every value printed (thousand m3) and a value axis, the catch line (river take + site catch) and the stores hung under one ground line, length = volume; WATER CYCLE = one cut river > intake > ground store > strip > cleaning planting > E > fields > back to the river, numbered steps with their volumes; OUR STRIP = cut S4 four times (winter-autumn), stream depth, intake and the store giving back to the strip each season; planting panel dropped; v1.8 = Aras 15 Nov 15:16-15:19 UTC "take these perspectives either from archicad or rhino": V1 / V2 eye and look points (survey m), the E building rings and the V box sizes written to cached/bergama_perspectives/views_slide04.json for the Perspectives script (Rhino); its slide04_V1.png / slide04_V2.png placed in the V boxes when they exist, else the placeholder; no UNVERIFIED tags on the page (Aras 15:22 UTC "i dont want to see any placeholder"): DESIGN RANGE / DESIGN ESTIMATE / OUR PROPOSAL, the borehole note in the log; v1.7 = marker letters centred by pages_common pc_text_c (Aras 15 Nov 14:56 UTC "center the numbers in the boundries", standing); v1.6 = v1.6 = run 4 review: N1-N6 brackets and names just above the plan frame (unreadable over the base map); v1.5 = v1.5 = Aras 15 Nov 13:50 UTC "letters are not centered in the boxes": marker letters centred on their glyph box (measured width, cap height 0.72 x size); v1.4 = v1.4 = Aras 15 Nov 13:44 UTC "dont have a opaque background for texts in any single of the drawings": no box behind any text (placeholder label band gone, E ring and farm-feed boxes outline only); v1.3 = v1.3 = Aras 15 Nov 13:41-13:42 UTC "Every 3D, 2D or whatever the drawing is should use the basemap": the existing town is MapBase (A05 look) under his drawing, his own existing roads/buildings (ev-yol, builts2) hidden, the crops transparent; v1.2 = v1.2 = own review vs the liked set (WHY_WE_LIKED.md: the stream is the darkest shape on a white sheet, A05; everything named on the drawing, bracket naming): water a deep blue-grey ribbon, N1-N6 named by hairline brackets along the plan top; v1.1 = v1.1 = run 1 review: his tree drawings ("assets", 80k paths) coloured as green + trees; D picked by terrace + water-step + pier-edge pieces (run 1 found 1 terrace piece); the farm extent holds the site, so no edge arrow (log line, no FLAG)
+VERSION = "v1.11"   # v1.11 = Aras 15 Nov 15:53 UTC "dont make this logarithmic keep it linear": river in and need out on ONE linear scale (thousand m3), value on every bar; 15:54 "these numbers are so big make them smaller": storage words shorter and smaller, volumes as 8.64 MILLION / 26.7K (exact in the log); v1.10 = Aras 15 Nov 15:52 UTC "get rid of city feeding ... we give back to fields and orchads and thats it": no city blocks, no surplus pipe, step 7 = back to the river; v1.9 = Aras 15 Nov 15:41-15:47 UTC "we need more diagramatic drawings", "left side needs numbers", "how much water we can catch", planting panel "get rid of that ... explain our water cycle more in detail", "show out strip flows 4 seasons", "we give back to the strip": STORAGE = the month comparison with every value printed (thousand m3) and a value axis, the catch line (river take + site catch) and the stores hung under one ground line, length = volume; WATER CYCLE = one cut river > intake > ground store > strip > cleaning planting > E > fields > back to the river, numbered steps with their volumes; OUR STRIP = cut S4 four times (winter-autumn), stream depth, intake and the store giving back to the strip each season; planting panel dropped; v1.8 = Aras 15 Nov 15:16-15:19 UTC "take these perspectives either from archicad or rhino": V1 / V2 eye and look points (survey m), the E building rings and the V box sizes written to cached/bergama_perspectives/views_slide04.json for the Perspectives script (Rhino); its slide04_V1.png / slide04_V2.png placed in the V boxes when they exist, else the placeholder; no UNVERIFIED tags on the page (Aras 15:22 UTC "i dont want to see any placeholder"): DESIGN RANGE / DESIGN ESTIMATE / OUR PROPOSAL, the borehole note in the log; v1.7 = marker letters centred by pages_common pc_text_c (Aras 15 Nov 14:56 UTC "center the numbers in the boundries", standing); v1.6 = v1.6 = run 4 review: N1-N6 brackets and names just above the plan frame (unreadable over the base map); v1.5 = v1.5 = Aras 15 Nov 13:50 UTC "letters are not centered in the boxes": marker letters centred on their glyph box (measured width, cap height 0.72 x size); v1.4 = v1.4 = Aras 15 Nov 13:44 UTC "dont have a opaque background for texts in any single of the drawings": no box behind any text (placeholder label band gone, E ring and farm-feed boxes outline only); v1.3 = v1.3 = Aras 15 Nov 13:41-13:42 UTC "Every 3D, 2D or whatever the drawing is should use the basemap": the existing town is MapBase (A05 look) under his drawing, his own existing roads/buildings (ev-yol, builts2) hidden, the crops transparent; v1.2 = v1.2 = own review vs the liked set (WHY_WE_LIKED.md: the stream is the darkest shape on a white sheet, A05; everything named on the drawing, bracket naming): water a deep blue-grey ribbon, N1-N6 named by hairline brackets along the plan top; v1.1 = v1.1 = run 1 review: his tree drawings ("assets", 80k paths) coloured as green + trees; D picked by terrace + water-step + pier-edge pieces (run 1 found 1 terrace piece); the farm extent holds the site, so no edge arrow (log line, no FLAG)
 SLIDE = 4
 GH_LABEL = "Slide04"
 OUT_FOLDER = "bergama_slide04_systems"
@@ -165,6 +165,17 @@ def inside(p, R):
             c = not c
         j = i
     return c
+
+
+def short(v):
+    """v1.11: a volume for the page, short: 8.64 MILLION, 26.7K, 363K (the exact value goes to the log)"""
+    if v >= 1e6:
+        return u"%.2f MILLION" % (v / 1e6)
+    if v >= 1e5:
+        return u"%dK" % int(round(v / 1e3))
+    if v >= 1e3:
+        return (u"%.1f" % (v / 1e3)).rstrip(u"0").rstrip(u".") + u"K"
+    return fmt(v)
 
 
 def fmt(v):
@@ -453,17 +464,16 @@ def main():
                     "storage"))
     # the volumes: one ground line, each store hangs under it, length = volume (one scale)
     yv = ax - nh - 8.4
-    yv = para(u"WE CAN CATCH %s m3 A YEAR FROM THE RIVER (%s) + %s m3 SITE CATCH (ROOFS, WALKS): THE WATER IS THERE, "
-              u"THE STORE IS THE LIMIT" % (fmt(catch_r), flow_on or u"", fmt(catch_s)), x0, yv, 1.6, col_w, INK, True,
-              "storage") - 0.6
+    yv = para(u"WE CAN CATCH %s m3 A YEAR FROM THE RIVER (%s) + %s m3 SITE CATCH: THE STORE IS THE LIMIT" % (
+        short(catch_r), flow_on or u"", short(catch_s)), x0, yv, 1.4, col_w, INK, True, "storage") - 0.6
     items.append(L_([(x0, yv), (x0 + col_w, yv)], INK, 0.7, "storage"))
     lo, hi = dz["central_range_m3"]
-    vb = [(STRIP_SEALED_M3, None, "A2B6B5", u"%s m3 · STRIP STORE TODAY, SEALED BED" % fmt(STRIP_SEALED_M3)),
-          (STRIP_UNSEALED_M3, None, "A2B6B5", u"%s m3 · STRIP STORE, UNSEALED BED" % fmt(STRIP_UNSEALED_M3)),
-          (hi, lo, hexmix(ACC, "FFFFFF", 0.35), u"%s-%s m3 · GROUND STORE, DESIGN ESTIMATE" % (fmt(lo), fmt(hi))),
-          (need_y, None, None, u"%s m3 A YEAR · NEED: STRIP %s + FIELDS %s" % (
-              fmt(need_y), fmt(WB["strip_m3_per_year"]), fmt(fd)))]
-    lw_max = max(tw(b[3], 1.5, True) for b in vb) + 2.0
+    vb = [(STRIP_SEALED_M3, None, "A2B6B5", u"%s m3 · STRIP STORE TODAY" % short(STRIP_SEALED_M3)),
+          (STRIP_UNSEALED_M3, None, "A2B6B5", u"%s m3 · STRIP STORE, UNSEALED BED" % short(STRIP_UNSEALED_M3)),
+          (hi, lo, hexmix(ACC, "FFFFFF", 0.35), u"%s-%s m3 · GROUND STORE (DESIGN ESTIMATE)" % (
+              short(lo).rstrip(u"K"), short(hi))),
+          (need_y, None, None, u"%s m3 A YEAR · NEED: STRIP + FIELDS" % short(need_y))]
+    lw_max = max(tw(b[3], 1.3, True) for b in vb) + 2.0
     vmax = float(max(b[0] for b in vb))
     sc = (col_w - lw_max) / vmax
     yb = yv - 0.5
@@ -475,11 +485,10 @@ def main():
             items.append(R_([box(x0, yb - 2.0, x0 + L, yb)], None, ACC, 0.25, "storage"))
         if v0 is not None:
             items.append(L_([(x0 + sc * v0, yb - 2.0), (x0 + sc * v0, yb)], "FFFFFF", 0.3, "storage"))
-        items.append(T_(nm, x0 + L + 1.5, yb - 1.6, 1.5, INK, True, "L", "storage"))
+        items.append(T_(nm, x0 + L + 1.5, yb - 1.5, 1.3, INK, True, "L", "storage"))
         yb -= 3.0
-    yb = para(u"DESIGN ESTIMATE: THE GROUND STORE IS SIZED WHERE RECHARGE STOPS BEING CHEAPER THAN RECYCLED WATER; IT "
-              u"MEETS %s %% OF THE NEED IN A 1-IN-5 DRY YEAR" % dz.get("covered_pct_1in5_dry", u""), x0, yb - 1.4,
-              1.4, col_w, GREY, True, "storage")
+    yb = para(u"DESIGN ESTIMATE: SIZED BY COST AGAINST RECYCLED WATER; MEETS %s %% OF THE NEED IN A 1-IN-5 DRY YEAR"
+              % dz.get("covered_pct_1in5_dry", u""), x0, yb - 1.2, 1.25, col_w, GREY, True, "storage")
     if yb < row1[0] - 0.5:
         log.append(u"FLAG storage panel runs %.1f mm below its row" % (row1[0] - yb))
     log.append(u"storage: river months %s, dry %s; catch %s m3/yr = sum of river_month_m3 (water balance: river water "
@@ -531,14 +540,14 @@ def main():
         ctext(u"%d" % n_, q[0], q[1], 1.7, INK, "cycle")
     fmon = span_name([v > 0 for v in WB["farm_demand_month_m3"][mix]["mean"]])
     smon = span_name([v > 0 for v in WB["strip_month_m3"]])
-    steps_ = [u"1 INTAKE %s · WE CAN TAKE %s m3 A YEAR" % (flow_on or u"", fmt(catch_r)),
-              u"2 GROUND STORE · %s m3 (DESIGN ESTIMATE)" % fmt(dz["storage_m3"]),
-              u"3 STRIP %s · %s m3 A YEAR GIVEN BACK FROM THE STORE" % (smon or u"", fmt(WB["strip_m3_per_year"])),
+    steps_ = [u"1 INTAKE %s · WE CAN TAKE %s m3 A YEAR" % (flow_on or u"", short(catch_r)),
+              u"2 GROUND STORE · %s m3 (DESIGN ESTIMATE)" % short(dz["storage_m3"]),
+              u"3 STRIP %s · %s m3 A YEAR GIVEN BACK FROM THE STORE" % (smon or u"", short(WB["strip_m3_per_year"])),
               u"4 CLEANING + SCENTING PLANTING ALONG THE STRIP",
               u"5 E · WATER ENRICHMENT + EDUCATION (OUR PROPOSAL): ENRICHES THE IRRIGATION LINE ONLY",
               u"6 FIELDS %s · %s ha CROPLAND + %s ha ORCHARD · %s m3 A YEAR" % (
-                  fmon or u"", lands["cropland_ha"], lands["orchard_ha"], fmt(fd)),
-              u"7 BACK TO THE RIVER · %s m3 A YEAR OF STORED WATER OLDER THAN 365 DAYS" % fmt(back_m3)
+                  fmon or u"", lands["cropland_ha"], lands["orchard_ha"], short(fd)),
+              u"7 BACK TO THE RIVER · %s m3 A YEAR OF STORED WATER OLDER THAN 365 DAYS" % short(back_m3)
               if back_m3 else u"7 BACK TO THE RIVER · STORED WATER OLDER THAN 365 DAYS"]
     hw = (col_w - 4.0) / 2.0
     ya = yb_ = sb - 3.0
@@ -630,8 +639,8 @@ def main():
             items.append(T_(u"%s · %s" % (nm, mon), tx, ty, 1.9, INK, True, "L", "seasons"))
             ln = [(u"STREAM %.2f m DEEP" % dep, GREY)]
             if inn > 0:
-                ln.append((u"%s m3 TAKEN TO THE STORE" % fmt(inn), WATER_LN))
-            ln.append((u"STRIP: %s m3 FROM THE STORE" % fmt(rel), ACC) if rel > 0 else
+                ln.append((u"%s m3 TAKEN TO THE STORE" % short(inn), WATER_LN))
+            ln.append((u"STRIP: %s m3 FROM THE STORE" % short(rel), ACC) if rel > 0 else
                       (u"STRIP UNDER THE STREAM", GREY))
             for s, c_ in ln:
                 ty -= 2.4
