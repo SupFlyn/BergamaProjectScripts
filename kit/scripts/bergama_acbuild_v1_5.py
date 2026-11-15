@@ -37,7 +37,7 @@ Works when: the log's first line is "TAPIR OK <version>" and Archicad's Navigato
 """
 import os, re, json, math, time, glob
 
-VERSION = "v1.5"   # v1.5 (15 Nov run 7: houses beyond the 200 m depth drawn as floating outlines): no marked distant area (only the 200 m behind each cut is drawn); publishing may take 30 min (the set grew)   # v1.4 v1.4 (15 Nov: Sections v1.18 moved the N4 lines): the Archicad origin is kept from the first run; a section whose line moved is deleted and made again on the new line (its view too), with a FLAG to refresh the publisher set   # v1.3 (run 4: houses 200 m behind stood in the sky, the hill under them was not drawn): per cut the ground behind (highest survey ground 10-200 m behind, every 2 m) written to acbuild.json for SectionsAC   # v1.2 (SectionsAC run 3: the DWGs held only the roofs = the one element type without a BG layer, so the BG layers are not shown in the views): every element on the tool default layers; registration blocks at -50 m (found by geometry); no terrain mesh (our ground is drawn instead)   # v1.1 (14 Nov run 1): mesh without layerIndex (Tapir schema), hipped roofs as one-level polyroofs, footprints cleaned (slab failures)
+VERSION = "v1.5"   # + Kızıl Avlu: the main hall outline(s) from the MasterplanBase cache (Sections library red_hall_load), roofless walls 19 m (Wikipedia, Red Basilica: "Its walls still survive up to a height of 19 metres"), no windows, no roof; v1.5 (15 Nov run 7: houses beyond the 200 m depth drawn as floating outlines): no marked distant area (only the 200 m behind each cut is drawn); publishing may take 30 min (the set grew)   # v1.4 v1.4 (15 Nov: Sections v1.18 moved the N4 lines): the Archicad origin is kept from the first run; a section whose line moved is deleted and made again on the new line (its view too), with a FLAG to refresh the publisher set   # v1.3 (run 4: houses 200 m behind stood in the sky, the hill under them was not drawn): per cut the ground behind (highest survey ground 10-200 m behind, every 2 m) written to acbuild.json for SectionsAC   # v1.2 (SectionsAC run 3: the DWGs held only the roofs = the one element type without a BG layer, so the BG layers are not shown in the views): every element on the tool default layers; registration blocks at -50 m (found by geometry); no terrain mesh (our ground is drawn instead)   # v1.1 (14 Nov run 1): mesh without layerIndex (Tapir schema), hipped roofs as one-level polyroofs, footprints cleaned (slab failures)
 GH_LABEL = "AcBuild"
 OUT_FOLDER = "bergama_archicad"
 LOG_NAME = "bergama_acbuild_log.txt"
@@ -303,6 +303,17 @@ def main():
                   and any(0 <= so(q, r[1], r[4], r[5])[0] <= r[3] for q in ring)]
         bld.append(dict(ring=ring, fab=b[1], fl=fl, h=fl * storey(b[1], x[1] if len(x) > 1 else u""), z=zb,
                         cut=bool(cut_by), views=[r for r in rects if any(inside(q, r) for q in ring)]))
+    for x0_, y0_, x1_, y1_, ring, h_, _f in (L_["red_hall_load"](log) if "red_hall_load" in L_ else []):
+        ring = clean([tuple(q) for q in ring])
+        if len(ring) < 3 or not any(inside(q, r) for q in ring for r in rects):
+            continue
+        if area(ring) < 0:
+            ring = ring[::-1]
+        cx, cy = sum(q[0] for q in ring) / len(ring), sum(q[1] for q in ring) / len(ring)
+        zb = tin.z(cx - ox, cy - oy)
+        bld.append(dict(ring=ring, fab=u"Kızıl Avlu", fl=-1, h=h_, z=zb if zb is not None else zmin_all,
+                        cut=False, views=[r for r in rects if any(inside(q, r) for q in ring)]))
+        log.append(u"Kızıl Avlu hall: %d points, walls %.0f m, base z %.1f m" % (len(ring), h_, bld[-1]["z"]))
     log.append(u"buildings in the cut rectangles: %d (%d cut by a line); %d without a floor count left out" % (
         len(bld), sum(1 for b in bld if b["cut"]), skipped))
 
@@ -386,7 +397,7 @@ def main():
                               height=round(b["h"] + PLINTH + top_extra, 3), thickness=WALL_T,
                               referenceLineLocation="Outside", **L("BG buildings")))
             on = ((c[1] - a[1]) / ln, -(c[0] - a[0]) / ln)        # outward normal (ring counter-clockwise)
-            faces = any(on[0] * -r[5][0] + on[1] * -r[5][1] > 0.2 for r in b["views"])
+            faces = b["fl"] > 0 and any(on[0] * -r[5][0] + on[1] * -r[5][1] > 0.2 for r in b["views"])
             wmeta.append((bi, ln, faces))
     wg = ac.create("CreateWalls", "wallsData", walls, u"walls") if "CreateWalls" not in miss else []
     made += [g for g in wg if g]
@@ -409,6 +420,8 @@ def main():
     # ---- roofs and slabs
     roofs, flats, slabs = [], [], []
     for b in bld:
+        if b["fl"] < 0:
+            continue                              # Kızıl Avlu: the roofless Roman hall
         poly = [xy(q) for q in b["ring"]]
         top = round(b["z"] + b["h"] - z0, 3)
         if b["fl"] >= FLAT_FLOORS:
