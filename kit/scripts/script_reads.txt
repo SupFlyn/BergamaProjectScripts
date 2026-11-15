@@ -229,3 +229,4 @@ bergama_page05_access: scripts/bergama_page_transit_v2_16.py  # hand, 14 Nov
 bergama_page05_access: scripts/bergama_page_transit_v2_17.py  # hand, 15 Nov
 bergama_page05_access: scripts/bergama_page_transit_v2_18.py  # hand, 15 Nov
 bergama_page01_free: Data/section_lines.json  # hand, 15 Nov
+bergama_page05_access: scripts/bergama_page_transit_v2_19.py  # hand, 15 Nov
