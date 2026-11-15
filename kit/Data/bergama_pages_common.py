@@ -25,7 +25,7 @@ Items are the Basemap writer's tuples (page mm, y up):
 """
 import os, re, json, math, time, glob
 
-PC_VERSION = "v3.31"  # v3.31 (Aras 15 Nov 14:56 UTC "center the numbers in the boundries", standing): pc_text_c centres a mark's letters by their true Helvetica widths (no 5 % bold estimate); pc_cut_mark names use it; v3.30: pc_photos takes PNGs (SVG mime by extension) and an optional 6th item True = placed UNDER the drawing (PDF overlay off; SVG first in the file), for Page01Axo v4's Rhino 3D capture; v3.29 (Aras 15 Nov 14:45 UTC): pc_write puts the working-area dashes (layer study_area) on top of every other item ("make our working area dashed line as the most foreground line"); pc_masterplan draws master.svg (MasterplanBase cache, vector) on a map, for maps that use his masterplan as their base; v3.28: pc_text_c, a mark letter centred on its glyph box (Helvetica cap height 0.718 em: baseline = centre - 0.359 x size; Aras 15 Nov 13:50 UTC "letters are not centered in the boxes"); the loop badge numbers use it; v3.27: no white box behind any name (Aras 15 Nov 13:44 UTC "dont have a opaque background for texts in any single of the drawings"): Labels.put halo = pc_halo, a thin white text-shaped outline (8 white copies 0.1-0.25 mm round the name), no box; v3.26: pc_mapbase logs the fill rings read / in view per layer (MapBase v1.8 mb_fill_log; Aras 07:46 "you might be skipping somewhere in the fills"); v3.25: pc_mapbase a05 bridges a warm dark grey 7A7468 at 0.18 mm (run 1: black 0.3 mm bridge lines were the heaviest ink on the pale base); v3.24: pc_mapbase a05 streets a pale warm grey F5F3EE (MapBaseCheck run 1: white streets on white houses read as one white mass in the old town; houses stay white), the street-edge lines cut to the network (MapBase v1.7); v3.23: pc_mapbase context make-up (Aras 15 Nov 06:03-06:05 "too many stray lines ... houses fills are overlapping ... Roads are not clear"; "thousand times better as house designs" = the 13 Nov A05 house look): houses white with a pale outline (MapBase v1.6 adds the crisp grey shadow to the lower left and drops wall / edge pieces under 3 m); streets white on a darker ground with darker edges; walls lighter; style key "a05": False keeps the old look; v3.22: pc_dg_kit to DIAGRAM_STYLE v2 (ground 3 x other weights, pale-accent terraces, arches silhouette);  v3.21: v3.21: pc_dg_kit dashes at item[6] (Basemap writer), dash_at=4 for the Sections writer;  v3.20: v3.20: pc_dg_kit, the diagram kit of library/diagram_style/DIAGRAM_STYLE.md (Aras 21:30 UTC "all the diagrams are awful"); v3.19: v3.18 undone (the writer keeps a line's clip at item[4]: those lines were really unclipped); v3.17: SiteMap ring + b (survey box), pc_site_den, pc_north_deg, pc_sheet cols + span (legend columns beside a site_alan strip); v3.16: pc_loop names=True (stop names on the map), every stop outside the frame gets an edge arrow, the stream walk in either loop order (loop numbered from Asklepion, Aras 16:26); v3.15: SiteMap / pc_site_map (the map frame = site_alan turned flat, Aras 16:17 UTC "KEEP EVERY DRAWING STRICTLY IN SITE_ALAN"), pc_loop edge arrows to stops outside it, pc_north_items; v3.14: pc_cut_mark = two end arrows, no line between (Aras 16:05 UTC); v3.13: v3.13: pc_mp_data (MasterplanBase: the masterplan SVG cached in survey m); v3.12: pc_cut_mark, the R01 cut symbol (two arrows, Aras 15:37 UTC); v3.11: pc_loop (the heritage loop, one code for the heritage and the transit map; Aras 15:31) and pc_station_name; v3.10: pc_a3_den / pc_a3 (a map page fitted and centred on A3 or a slide panel, Aras 15:25-15:27 UTC); v3.9: no sources in the drawings (Aras 15:23 UTC): pc_nosrc on MapBase legend rows, empty credit skipped; v3.8: a name with no free place goes where it overlaps least (run 7); v3.7: Labels.block_line / block_items (names keep off lines: run 6 review); v3.6: the outside Python runs hidden (no console window, Aras 14 Nov 12:57 UTC); v3.5: frame check skips items with any clip id; pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
+PC_VERSION = "v3.32"  # v3.32 (Aras 15 Nov 14:46 + his Archicad S-01 screenshot 15:02 UTC): pc_cut_mark in Archicad's section marker look (filled triangle on the cut at each end pointing the view, thin stub + dot + dash inward, name turned along the cut beyond the end, regular weight); v3.31 v3.31 (Aras 15 Nov 14:56 UTC "center the numbers in the boundries", standing): pc_text_c centres a mark's letters by their true Helvetica widths (no 5 % bold estimate); pc_cut_mark names use it; v3.30: pc_photos takes PNGs (SVG mime by extension) and an optional 6th item True = placed UNDER the drawing (PDF overlay off; SVG first in the file), for Page01Axo v4's Rhino 3D capture; v3.29 (Aras 15 Nov 14:45 UTC): pc_write puts the working-area dashes (layer study_area) on top of every other item ("make our working area dashed line as the most foreground line"); pc_masterplan draws master.svg (MasterplanBase cache, vector) on a map, for maps that use his masterplan as their base; v3.28: pc_text_c, a mark letter centred on its glyph box (Helvetica cap height 0.718 em: baseline = centre - 0.359 x size; Aras 15 Nov 13:50 UTC "letters are not centered in the boxes"); the loop badge numbers use it; v3.27: no white box behind any name (Aras 15 Nov 13:44 UTC "dont have a opaque background for texts in any single of the drawings"): Labels.put halo = pc_halo, a thin white text-shaped outline (8 white copies 0.1-0.25 mm round the name), no box; v3.26: pc_mapbase logs the fill rings read / in view per layer (MapBase v1.8 mb_fill_log; Aras 07:46 "you might be skipping somewhere in the fills"); v3.25: pc_mapbase a05 bridges a warm dark grey 7A7468 at 0.18 mm (run 1: black 0.3 mm bridge lines were the heaviest ink on the pale base); v3.24: pc_mapbase a05 streets a pale warm grey F5F3EE (MapBaseCheck run 1: white streets on white houses read as one white mass in the old town; houses stay white), the street-edge lines cut to the network (MapBase v1.7); v3.23: pc_mapbase context make-up (Aras 15 Nov 06:03-06:05 "too many stray lines ... houses fills are overlapping ... Roads are not clear"; "thousand times better as house designs" = the 13 Nov A05 house look): houses white with a pale outline (MapBase v1.6 adds the crisp grey shadow to the lower left and drops wall / edge pieces under 3 m); streets white on a darker ground with darker edges; walls lighter; style key "a05": False keeps the old look; v3.22: pc_dg_kit to DIAGRAM_STYLE v2 (ground 3 x other weights, pale-accent terraces, arches silhouette);  v3.21: v3.21: pc_dg_kit dashes at item[6] (Basemap writer), dash_at=4 for the Sections writer;  v3.20: v3.20: pc_dg_kit, the diagram kit of library/diagram_style/DIAGRAM_STYLE.md (Aras 21:30 UTC "all the diagrams are awful"); v3.19: v3.18 undone (the writer keeps a line's clip at item[4]: those lines were really unclipped); v3.17: SiteMap ring + b (survey box), pc_site_den, pc_north_deg, pc_sheet cols + span (legend columns beside a site_alan strip); v3.16: pc_loop names=True (stop names on the map), every stop outside the frame gets an edge arrow, the stream walk in either loop order (loop numbered from Asklepion, Aras 16:26); v3.15: SiteMap / pc_site_map (the map frame = site_alan turned flat, Aras 16:17 UTC "KEEP EVERY DRAWING STRICTLY IN SITE_ALAN"), pc_loop edge arrows to stops outside it, pc_north_items; v3.14: pc_cut_mark = two end arrows, no line between (Aras 16:05 UTC); v3.13: v3.13: pc_mp_data (MasterplanBase: the masterplan SVG cached in survey m); v3.12: pc_cut_mark, the R01 cut symbol (two arrows, Aras 15:37 UTC); v3.11: pc_loop (the heritage loop, one code for the heritage and the transit map; Aras 15:31) and pc_station_name; v3.10: pc_a3_den / pc_a3 (a map page fitted and centred on A3 or a slide panel, Aras 15:25-15:27 UTC); v3.9: no sources in the drawings (Aras 15:23 UTC): pc_nosrc on MapBase legend rows, empty credit skipped; v3.8: a name with no free place goes where it overlaps least (run 7); v3.7: Labels.block_line / block_items (names keep off lines: run 6 review); v3.6: the outside Python runs hidden (no console window, Aras 14 Nov 12:57 UTC); v3.5: frame check skips items with any clip id; pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
 PC_NOWIN = 0x08000000 if os.name == "nt" else 0   # v3.6: CREATE_NO_WINDOW for the review-PNG / photo subprocesses
 PC_DATA = os.path.join("Data", "bergama_access_heritage.json")
 PC_CENTRE = os.path.join("Data", "selinos_centreline.json")
@@ -760,31 +760,50 @@ def pc_loop(M, D, K, lab, log, names=False):
 
 
 def pc_cut_mark(a, b, look, name, col="C0392B", layer="section_lines", ts=2.5):
-    """v3.14 (Aras 14 Nov 16:05 UTC "dont have the solid line in between"; 15:37 "draw two distinct arrows"): a cut
-    shown by its two ends only, page mm: at each end a 5 mm stroke along the cut, a filled arrow on it pointing the way
-    the section looks (look: a page vector) and the name beyond the end (bold). No line between the ends. Items in the
-    Basemap format."""
+    """v3.32 (Aras 15 Nov 14:46 UTC "use the one that archicad uses for section line annotation" + his screenshot of
+    Archicad's S-01 marker, 15:02 UTC): a cut shown by its two ends only, page mm, in Archicad's marker look: at each
+    end a filled triangle whose base lies on the cut line, starting at the end and running inward, its tip pointing the
+    way the section looks (look: a page vector); a short thin stub of the cut line inward from the triangle, with one
+    dot and one short dash after it (Archicad's dash-dot cut line, broken off); the name in regular weight, turned to
+    read along the cut, just beyond the end. No line between the ends (Aras 14 Nov 16:05). Items in the Basemap
+    format (text angle in degrees)."""
     L = math.hypot(b[0] - a[0], b[1] - a[1])
     if L < 1e-6:
         return []
     ux, uy = (b[0] - a[0]) / L, (b[1] - a[1]) / L
     sg = 1.0 if (-uy * look[0] + ux * look[1]) >= 0.0 else -1.0
     fx, fy = -uy * sg, ux * sg                          # the side the section looks to
-    st = min(5.0, L / 3.0)
+    base = min(2.4, L / 4.0)                            # triangle base along the cut (screenshot: base = depth)
+    depth = base
     out = []
-    for p, s in ((a, -1.0), (b, 1.0)):
-        q = (p[0] - ux * s * st, p[1] - uy * s * st)       # the end stroke runs inward along the cut
-        out.append(("line", [tuple(p), q], col, 0.7, None, layer, 1))
-        m = ((p[0] + q[0]) / 2.0, (p[1] + q[1]) / 2.0)
-        tip = (m[0] + fx * 3.0, m[1] + fy * 3.0)
-        stem = (m[0] + fx * 0.6, m[1] + fy * 0.6)
-        out.append(("line", [m, stem], col, 0.35, None, layer, 1))
-        bl = (stem[0] + ux * 1.1, stem[1] + uy * 1.1)
-        br = (stem[0] - ux * 1.1, stem[1] - uy * 1.1)
-        out.append(("poly", [[bl, tip, br]], col, None, 0.0, None, layer, 1, None, None))
+    ang = math.degrees(math.atan2(uy, ux))              # text along the cut, kept readable (-90 < ang <= 90)
+    if ang > 90.0:
+        ang -= 180.0
+    elif ang <= -90.0:
+        ang += 180.0
+    ra = math.radians(ang)
+    rx, ry = math.cos(ra), math.sin(ra)                 # reading direction
+    tw = PC_STATE.get("lib", {}).get("text_w") if isinstance(PC_STATE.get("lib"), dict) else None
+    for p, s in ((a, 1.0), (b, -1.0)):                  # s: inward along the cut
+        ix, iy = ux * s, uy * s
+        p0 = tuple(p)
+        p1 = (p[0] + ix * base, p[1] + iy * base)
+        mid = (p[0] + ix * base / 2.0, p[1] + iy * base / 2.0)
+        tip = (mid[0] + fx * depth, mid[1] + fy * depth)
+        out.append(("poly", [[p0, p1, tip]], col, None, 0.0, None, layer, 1, None, None))
+        d0 = base
+        for d_a, d_b in ((0.0, 1.6), (2.2, 2.45), (3.05, 4.3)):   # stub, dot, short dash
+            q0 = (p[0] + ix * (d0 + d_a), p[1] + iy * (d0 + d_a))
+            q1 = (p[0] + ix * (d0 + d_b), p[1] + iy * (d0 + d_b))
+            out.append(("line", [q0, q1], col, 0.18, None, layer, 1))
         if name:
-            d = 0.8 + ts * 0.3 * len(name)
-            out.append(pc_text_c(name, p[0] + ux * s * d, p[1] + uy * s * d, ts, col, layer))   # v3.31: centred
+            w_ = tw(name, ts, False) if tw else 0.6 * ts * len(name)
+            gap = 1.0
+            c_ = (p[0] - ix * (gap + w_ / 2.0), p[1] - iy * (gap + w_ / 2.0))   # name centre, beyond the end
+            c_ = (c_[0] + fx * depth * 0.5, c_[1] + fy * depth * 0.5)          # over the triangle, as in Archicad
+            x0 = c_[0] - rx * w_ / 2.0 - (-ry) * ts * PC_CAP
+            y0 = c_[1] - ry * w_ / 2.0 - rx * ts * PC_CAP
+            out.append(("text", name, x0, y0, ts, col, False, "L", layer, ang, None))
     return out
 
 
