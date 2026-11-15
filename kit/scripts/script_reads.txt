@@ -102,6 +102,11 @@ bergama_sections: cached/bergama_basemap/basemap_layers.json  # hand, 12 Nov
 bergama_sections: cached/bergama_basemap/streets.json  # hand, 12 Nov
 bergama_sections: cached/basemap/basemap.json  # hand, 12 Nov (only when the Basemap cache is missing)
 bergama_sections: rhino  # hand, 12 Nov (not traced yet)
+bergama_12sectionsRhino: Data/bergama_12sectionsRhino_data.py  # hand, 16 Nov
+bergama_12sectionsRhino: Data/bergama_palette.py  # hand, 16 Nov
+bergama_12sectionsRhino: Data/cutouts/  # hand, 16 Nov
+bergama_12sectionsRhino: Data/section_lines.json  # hand, 16 Nov
+bergama_12sectionsRhino: cached/bergama_sections/  # hand, 16 Nov (Sections first)
 bergama_basemap: Data/bergama_style.json  # hand, 12 Nov
 bergama_basemap: Data/selinos_centreline.json  # hand, 12 Nov (the river surface)
 bergama_plan_base: Data/selinos_centreline.json  # hand, 12 Nov (the river surface, through the Basemap code)
