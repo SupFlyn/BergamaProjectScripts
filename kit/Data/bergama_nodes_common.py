@@ -17,7 +17,7 @@ Reads the newest scripts/bergama_basemap_v*, bergama_p02_what_is_there_v*, berga
 """
 import os, re, glob, json, math, time
 
-NC_VERSION = "v12"   # v12: why-here diagrams drawn from the node's A cut in the Sections cache (true ground, bed, all water levels, masterplan move, buildings and bridges in depth; Aras 10:36 "this diagram is just so wrong"); v11.6: N4 canopy: every other bay a glazed room up to the louvres, planters in the open bay (Aras 10:02); v11.5: N4 raised gathering drawn as the designed canopy (folded triangle skin, louvres, Y columns; Sections v1.28 language); v11.4: svg_crop takes css (slide 4 sub-system colours), node plans unchanged; v11.3: MapBase under the plans in the A05 base map look (white houses with shadows, one road outline; MapBase v1.8 mb_a05_style; Aras 15 Nov 07:59 "you need to update other scripts so i can see the change in the basemap aswell"); v11.2: legend colours read from the crop itself, diagram town as gabled rows, moves as tint + accent edge, no arrows from the air, own figures, diagram right under its title, placeholders one system; v11: each node plan is a straight crop of master.svg (rendered by Edge / Chrome on his PC, cached), marks on top; v10: v10: why-here diagrams as section-axo blocks (depth, shaded planes, extruded town, accent move with shadow); MapBase always under the plan, his existing roads/buildings left out; v9.9: v9.9: a heritage stop on a cut line stays in the cropped section (N4-A Red Hall); v9.8: v9.8: Ulu Cami silhouette as built (hall, three domes, minaret on a stone base); v9.7: v9.7: Red Hall drawn as the roofless arched brick hall; diagram levels start at the riser they meet; v9.6: v9.6: program brief under the land-use bar when it fits, perspective the full right half; v9.5: v9.5: diagram levels run to the banks, N5 town band lower and label over its move; cuts packed from the top, why-here block follows, perspective room grows; V1 clear of stops, names and its arrows; v9.4: v9.4: at least 30 % (or 90 m) of a cut in view, so flat cuts get taller; v9.3: v9.3: section fit by the drawing without its sky, at least 55 % (or 150 m) of the cut in view, sky cut to the room; v9.2: v9.2 (fresh review of run 4): sections fill their rooms (cropped round the stream, own scale bar), no intro line, short key words, V1 in ink, land use = 5 classes + other with names on one row, program brief under the story, diagram arrows start at their cause, slots as voids, FLAG count includes carried FLAGs; v9.1: v9.1: diagrams to DIAGRAM_STYLE v2 (Niarchos measured: low ground, names under it, small accent); v9: v9: why-here diagrams redrawn on the shared diagram kit (pc_dg_kit, DIAGRAM_STYLE.md; Aras 21:30 UTC); v8.4: v8.4: scale + north above the plan (off his drawing), intro wording; v8.3: v8.3: B cut subtitle "along the bank", N3 diagram label clear of the dots; v8.2: v8.2: 4-corner picture rectangles of the masterplan left out (no solid green blocks), the river filled as water; v8.1: v8.1: masterplan sheet / texture frames (> 0.1 km2) left out, legend columns balanced, intro without the old levels text; v8: plan = his masterplan drawing; why-here story + one concept diagram per node; water bars and meets line gone; v7.5: v7.5: section_lines v2 (B along the bank: looks at the stream, no water bars); v7.4: v7.4: cut marks = two end arrows, no line between (pages_common v3.14); v7.3: v7.3: scale + north ignore the node frame line; v7.2: v7.2: the proposal from his masterplan SVG (MasterplanBase cache); v7.1: v7.1: R01 cut arrows (pc_cut_mark), no city-square ring, land-use columns >= 45 mm; v7: v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
+NC_VERSION = "v12.1"   # v12.1: why-here blocks in the language of his liked examples (white context, one heavy cut line, his masterplan move laid on the ground in depth, his canopy triangles folded on Y columns, his trees and people as his cutouts, one movement arrow; Aras 12:10 "compare with the examples"); v12: why-here diagrams drawn from the node's A cut in the Sections cache (true ground, bed, all water levels, masterplan move, buildings and bridges in depth; Aras 10:36 "this diagram is just so wrong"); v11.6: N4 canopy: every other bay a glazed room up to the louvres, planters in the open bay (Aras 10:02); v11.5: N4 raised gathering drawn as the designed canopy (folded triangle skin, louvres, Y columns; Sections v1.28 language); v11.4: svg_crop takes css (slide 4 sub-system colours), node plans unchanged; v11.3: MapBase under the plans in the A05 base map look (white houses with shadows, one road outline; MapBase v1.8 mb_a05_style; Aras 15 Nov 07:59 "you need to update other scripts so i can see the change in the basemap aswell"); v11.2: legend colours read from the crop itself, diagram town as gabled rows, moves as tint + accent edge, no arrows from the air, own figures, diagram right under its title, placeholders one system; v11: each node plan is a straight crop of master.svg (rendered by Edge / Chrome on his PC, cached), marks on top; v10: v10: why-here diagrams as section-axo blocks (depth, shaded planes, extruded town, accent move with shadow); MapBase always under the plan, his existing roads/buildings left out; v9.9: v9.9: a heritage stop on a cut line stays in the cropped section (N4-A Red Hall); v9.8: v9.8: Ulu Cami silhouette as built (hall, three domes, minaret on a stone base); v9.7: v9.7: Red Hall drawn as the roofless arched brick hall; diagram levels start at the riser they meet; v9.6: v9.6: program brief under the land-use bar when it fits, perspective the full right half; v9.5: v9.5: diagram levels run to the banks, N5 town band lower and label over its move; cuts packed from the top, why-here block follows, perspective room grows; V1 clear of stops, names and its arrows; v9.4: v9.4: at least 30 % (or 90 m) of a cut in view, so flat cuts get taller; v9.3: v9.3: section fit by the drawing without its sky, at least 55 % (or 150 m) of the cut in view, sky cut to the room; v9.2: v9.2 (fresh review of run 4): sections fill their rooms (cropped round the stream, own scale bar), no intro line, short key words, V1 in ink, land use = 5 classes + other with names on one row, program brief under the story, diagram arrows start at their cause, slots as voids, FLAG count includes carried FLAGs; v9.1: v9.1: diagrams to DIAGRAM_STYLE v2 (Niarchos measured: low ground, names under it, small accent); v9: v9: why-here diagrams redrawn on the shared diagram kit (pc_dg_kit, DIAGRAM_STYLE.md; Aras 21:30 UTC); v8.4: v8.4: scale + north above the plan (off his drawing), intro wording; v8.3: v8.3: B cut subtitle "along the bank", N3 diagram label clear of the dots; v8.2: v8.2: 4-corner picture rectangles of the masterplan left out (no solid green blocks), the river filled as water; v8.1: v8.1: masterplan sheet / texture frames (> 0.1 km2) left out, legend columns balanced, intro without the old levels text; v8: plan = his masterplan drawing; why-here story + one concept diagram per node; water bars and meets line gone; v7.5: v7.5: section_lines v2 (B along the bank: looks at the stream, no water bars); v7.4: v7.4: cut marks = two end arrows, no line between (pages_common v3.14); v7.3: v7.3: scale + north ignore the node frame line; v7.2: v7.2: the proposal from his masterplan SVG (MasterplanBase cache); v7.1: v7.1: R01 cut arrows (pc_cut_mark), no city-square ring, land-use columns >= 45 mm; v7: v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
 ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 PAGE_W, PAGE_H = 420.0, 297.0
 NODE_MARGIN_M = 25.0                       # m of town round the node frame on the plan
@@ -175,7 +175,7 @@ DG_INK, DG_GREY, DG_WATER = "1E1E1E", "C9C6BF", "A2B6B5"
 # ================================================================ v12: why-here diagrams from the real cut (Aras 15 Nov
 # 10:36 UTC "this diagram is just so wrong and really conducted in a bad way please revise these diagrams for nodes")
 DG_HALF_M = 80.0          # the cut in view: this far either side of the stream's channel middle (m)
-DG_DEPTH_M = 38.0         # the block runs this far back along the view (m)
+DG_DEPTH_M = 50.0         # the block runs this far back along the view (m; v12.1: 50, his canopies lie 25-56 m off N2-A)
 DG_OX, DG_OY = 0.55, 0.32 # oblique: 1 m of depth -> (0.55, 0.32) m on the page drawing
 DG_BASE_M = 2.5           # poché under the lowest bed (m)
 DG_BLD_DEPTH_M = 10.0     # a house's depth when only its front is known (ASSUMED, as the Sections background)
@@ -201,11 +201,122 @@ def _dp(P, tol):
     return _dp(P[:i_ + 1], tol)[:-1] + _dp(P[i_:], tol)
 
 
+# v12.1 (Aras 15 Nov 12:10 UTC "review the drawings yourself and compare with the examples that i have sent you before"):
+# the block drawn like his liked examples (library/examples/liked_2026-11-12: white complete context, ONE heavy line,
+# the project the only colour): white planes with hairline folds, his masterplan move laid on the ground in depth,
+# his canopy triangles lifted and folded, his planted trees and people as his asset cutouts, one movement arrow
+DG_CUT_DIR = os.path.join(ROOT, "Data", "cutouts")
+DG_TREE_H_M = {"stone_pine": 20.0, "plane": 32.5, "ash": 17.5, "willow": 22.5, "olive": 7.5, "tamarisk": 4.0}  # = Sections v1.26 TREE_H_M (sourced there)
+DG_TREE_LAYERS = (("trees_plane", "plane"), ("trees_ash", "ash"), ("trees_stone_pine", "stone_pine"))  # rosemary: a shrub
+DG_MP_GREEN = ("master/kesin_yesil", "master/belki_yesil")
+DG_MP_HARD = ("begum_su_merdiven/outline-2", "bisiklet/yeni", "yuruyus/iskele_kenari", "yuruyus/circulation", "desings")
+DG_MP_HOUSES = "ev-yol/aras/existing_buildings"
+DG_MP_HERITAGE = ("heritage/heritage1",)
+DG_KIZIL_H_M = 19.0       # Kızıl Avlu walls (Sections v1.18.1: Wikipedia "Its walls still survive up to a height of 19 metres")
+DG_MP_LINES = ("teras_-_canopy/teras",)
+DG_MP_FRAMES = ("yuruyus/bina_cerceve", "yuruyus/bina_cerceve/outline")
+DG_MP_CANOPY = "teras_-_canopy/kanopi"
+DG_CANOPY_CLEAR_M, DG_CANOPY_FREE_M, DG_CANOPY_RISE_M = 2.30, 0.60, 1.80   # = Sections v1.26 (rise ASSUMED there)
+_DG_LIB = {}
+
+
+def _dp_ring(P, tol):
+    """Douglas-Peucker on a ring (its two halves split at the corner farthest from the first point)"""
+    P = [tuple(p) for p in P]
+    if len(P) > 1 and P[0] == P[-1]:
+        P = P[:-1]
+    if len(P) < 4:
+        return P
+    i_ = max(range(len(P)), key=lambda i: (P[i][0] - P[0][0]) ** 2 + (P[i][1] - P[0][1]) ** 2)
+    return _dp(P[:i_ + 1], tol)[:-1] + _dp(P[i_:] + [P[0]], tol)[:-1]
+
+
+def _dg_lerp(a, b, v, i):
+    t = (v - a[i]) / (b[i] - a[i])
+    return tuple(a[k] + (b[k] - a[k]) * t for k in range(len(a)))
+
+
+def _dg_clip(P, box):
+    """Sutherland-Hodgman of a ring [(x, d, ...)] to box (x0, x1, d0, d1); other coordinates interpolated"""
+    for i, v, ge in ((0, box[0], True), (0, box[1], False), (1, box[2], True), (1, box[3], False)):
+        if not P:
+            break
+        Q = []
+        for j in range(len(P)):
+            a, b = P[j - 1], P[j]
+            ia, ib = (a[i] >= v) if ge else (a[i] <= v), (b[i] >= v) if ge else (b[i] <= v)
+            if ib:
+                if not ia:
+                    Q.append(_dg_lerp(a, b, v, i))
+                Q.append(b)
+            elif ia:
+                Q.append(_dg_lerp(a, b, v, i))
+        P = Q
+    return P
+
+
+def _dg_seg(a, b, box):
+    """Liang-Barsky: the part of segment a-b inside box (x0, x1, d0, d1), or None"""
+    t0, t1 = 0.0, 1.0
+    for i, v, ge in ((0, box[0], True), (0, box[1], False), (1, box[2], True), (1, box[3], False)):
+        fa, fb = (a[i] - v, b[i] - v) if ge else (v - a[i], v - b[i])
+        if fa < 0 and fb < 0:
+            return None
+        if fa < 0:
+            t0 = max(t0, fa / (fa - fb))
+        elif fb < 0:
+            t1 = min(t1, fa / (fa - fb))
+    if t1 <= t0 + 1e-9:
+        return None
+    return (tuple(a[k] + (b[k] - a[k]) * t0 for k in range(2)), tuple(a[k] + (b[k] - a[k]) * t1 for k in range(2)))
+
+
+def _dg_cutout(items, key, cx, yb, h, n=0, depth=0, flip=False, layer="concept"):
+    """one asset-library cutout (Data/cutouts, as the Sections cutout()) standing at page (cx, yb), h mm tall;
+    False when the library or the file is missing"""
+    lib = _DG_LIB.get("lib")
+    if lib is None:
+        lib = {}
+        try:
+            with open(os.path.join(DG_CUT_DIR, "cutouts.json"), encoding="utf-8") as f:
+                js = json.load(f).get("cutouts", {})
+            for k_, v_ in js.items():
+                lib[k_] = [e for e in (v_ if isinstance(v_, list) else [v_])
+                           if os.path.isfile(os.path.join(DG_CUT_DIR, e.get("file", "")))]
+        except Exception:
+            lib = {}
+        _DG_LIB["lib"] = lib
+    es = lib.get(key) or []
+    if not es:
+        return False
+    e = es[n % len(es)]
+    f_ = (e.get("depth") or {}).get(str(depth)) if depth else None
+    p = os.path.join(DG_CUT_DIR, f_ if f_ and os.path.isfile(os.path.join(DG_CUT_DIR, f_)) else e["file"])
+    sz = _DG_LIB.get(p)
+    if sz is None:
+        with open(p, "rb") as f:
+            hd = f.read(24)
+        sz = _DG_LIB[p] = (int.from_bytes(hd[16:20], "big"), int.from_bytes(hd[20:24], "big"))
+    w = h * sz[0] / float(sz[1])
+    items.append(("image", cx - w / 2.0, yb, w, h, p, None, bool(flip), None, layer))
+    return True
+
+
+def _dg_aspect(key, n=0):
+    """width / height of a cutout (1.0 when unknown), to keep trees inside the box"""
+    probe = []
+    if not _dg_cutout(probe, key, 0.0, 0.0, 1.0, n):
+        return None
+    return probe[0][3]
+
+
 def concept_cut(node, items, x0, y0, W, H, G, C, D, MPC, log):
-    """the node's A cut across the stream as an open section-axo block: the surveyed ground and bed of the Sections
-    cache at true proportions, every computed water level, our move only where his masterplan crosses the cut, the
-    buildings on and behind the line at their heights and distances, the bridges in depth at their surveyed span.
-    Returns False (old diagram kept) when the cut has no profile."""
+    """the node's A cut across the stream as an open section-axo block in the language of his liked examples: the
+    surveyed ground and bed of the Sections cache at true proportions as white planes with hairline folds and one heavy
+    cut line, every computed water level, his masterplan move (terraces, water stairs, cycle path, green, building
+    frames) laid on the ground in depth, his canopy triangles lifted and folded on Y columns, his planted trees and
+    people as his asset cutouts, the buildings and bridges in depth in white, one movement arrow from the dry top down to
+    the water. Returns False (old diagram kept) when the cut has no profile."""
     J = C.J or {}
     V = [tuple(p) for p in (J.get("surface") or []) if p is not None and len(p) >= 2]
     if len(V) < 3 or not C.crosses:
@@ -215,6 +326,27 @@ def concept_cut(node, items, x0, y0, W, H, G, C, D, MPC, log):
     V.sort(key=lambda p: p[0])
     ch = J.get("channel") or [C.s_th, C.s_th]
     sm = (ch[0] + ch[1]) / 2.0 if ch[1] > ch[0] + 0.5 else C.s_th
+    LAY = (MPC or {}).get("layers") or {}
+    u = ((C.B[0] - C.A[0]) / C.L, (C.B[1] - C.A[1]) / C.L)
+    sd0 = lambda xy: ((xy[0] - C.A[0]) * u[0] + (xy[1] - C.A[1]) * u[1],
+                      -(xy[0] - C.A[0]) * u[1] + (xy[1] - C.A[1]) * u[0])
+    # the block looks from the side of the cut where more of his move lies (canopies count 3): both sides counted
+    # inside the block's reach; seen from the far side the cut is mirrored (a true view from there)
+    score = [0, 0]
+    for kk in (DG_MP_CANOPY,) + DG_MP_HARD + DG_MP_FRAMES + DG_MP_LINES:
+        for r_ in LAY.get(kk, []):
+            if len(r_[4]) < 2:
+                continue
+            q_ = [sd0(p) for p in r_[4]]
+            q_ = [p for p in q_ if abs(p[0] - sm) <= DG_HALF_M and abs(p[1]) <= DG_DEPTH_M]
+            for i_, ok_ in ((0, any(p[1] > 0.0 for p in q_)), (1, any(p[1] < 0.0 for p in q_))):
+                score[i_] += (3 if kk == DG_MP_CANOPY else 1) if ok_ else 0
+    flip = score[1] > score[0]
+    if flip:
+        V = sorted((C.L - s, z) for s, z in V)
+        ch = [C.L - ch[1], C.L - ch[0]]
+        sm = C.L - sm
+    sd = (lambda xy: (lambda q: (C.L - q[0], -q[1]))(sd0(xy))) if flip else sd0
     lo, hi = max(V[0][0], sm - DG_HALF_M), min(V[-1][0], sm + DG_HALF_M)
 
     def zs(s):
@@ -224,11 +356,16 @@ def concept_cut(node, items, x0, y0, W, H, G, C, D, MPC, log):
         return V[0][1] if s < V[0][0] else V[-1][1]
     prof = _dp([(lo, zs(lo))] + [p for p in V if lo < p[0] < hi] + [(hi, zs(hi))], 0.12)
     zbed = min(p[1] for p in prof)
-    zb0 = zbed - DG_BASE_M - 3.0                        # local y = z - zb0: 3 m of room under the poché for names
+    zb0 = zbed - DG_BASE_M - 3.0                        # local y = z - zb0: 3 m of room under the cut for names
     X = lambda s: s - lo
     Y = lambda z: z - zb0
     g = [(X(s), Y(z)) for s, z in prof]
-    gyl = lambda x: Y(zs(x + lo))
+
+    def gyl(x):                                         # the drawn (simplified) ground, so things sit on the planes
+        for a, b in zip(g, g[1:]):
+            if a[0] <= x <= b[0]:
+                return a[1] if b[0] - a[0] < 1e-9 else a[1] + (b[1] - a[1]) * (x - a[0]) / (b[0] - a[0])
+        return g[0][1] if x < g[0][0] else g[-1][1]
 
     # ---- levels (computed by Sections: Manning on the surveyed cut), merged when within 0.15 m
     lev = []
@@ -249,27 +386,14 @@ def concept_cut(node, items, x0, y0, W, H, G, C, D, MPC, log):
         return X(a), X(b)
 
     # ---- what stands on and behind the line
-    u = ((C.B[0] - C.A[0]) / C.L, (C.B[1] - C.A[1]) / C.L)
-    lk = (-u[1], u[0])
-    sd = lambda xy: ((xy[0] - C.A[0]) * u[0] + (xy[1] - C.A[1]) * u[1],
-                     (xy[0] - C.A[0]) * lk[0] + (xy[1] - C.A[1]) * lk[1])
-    parts = [(max(lo, a), min(hi, b), lab) for a, b, lab in (J.get("parts") or []) if b > lo and a < hi]
-    blds = []
-    for b_ in J.get("bld") or []:
-        a, b = max(lo, b_["s"][0]), min(hi, b_["s"][1])
-        if b - a < 1.0:
-            continue
-        if not b_["cut"] and float(b_.get("behind_m") or 0.0) > DG_DEPTH_M + 60.0:
-            continue
-        blds.append([max(lo, a), min(hi, b), float(b_["h"]), bool(b_["cut"]), float(b_.get("behind_m") or 0.0), None])
+    xd = lambda xy: (lambda q: (X(q[0]), q[1]))(sd(xy))
+    parts = [((C.L - b, C.L - a, lab) if flip else (a, b, lab)) for a, b, lab in (J.get("parts") or [])]
+    parts = [(max(lo, a), min(hi, b), lab) for a, b, lab in parts if b > lo and a < hi]
     her = []
     for h_ in list(D.get("heritage", [])) + list(D.get("heritage_dots", [])):
         s_, d_ = sd(h_["xy"])
         if lo <= s_ <= hi and -5.0 <= d_ <= 120.0:
             her.append((s_, d_, h_["name"]))
-            for bb in blds:                               # the building at that place is the heritage one
-                if bb[0] - 3.0 <= s_ <= bb[1] + 3.0 and abs(bb[4] - max(0.0, d_)) <= 25.0 and bb[5] is None:
-                    bb[5] = h_["name"]
     bridges = []
     names = D.get("hub_names", {})
     for code, xy in (D.get("hubs") or {}).items():
@@ -279,7 +403,7 @@ def concept_cut(node, items, x0, y0, W, H, G, C, D, MPC, log):
         if not (lo - 20.0 <= s_ <= hi + 20.0 and 0.0 <= d_ <= DG_DEPTH_M + 30.0):
             continue
         pts = []
-        for kk, recs in ((MPC or {}).get("layers") or {}).items():
+        for kk, recs in LAY.items():
             if u"kopruler" not in kk.split(u"/"):
                 continue
             for r_ in recs:
@@ -301,56 +425,195 @@ def concept_cut(node, items, x0, y0, W, H, G, C, D, MPC, log):
             log.append(u"diagram %s: bridge %s %.0f-%.0f m behind the cut, span s %.0f-%.0f (%s)" % (
                 node, names.get(code, code), da, db, sa, sb, src))
     Dm = max([DG_DEPTH_M] + [min(db, DG_DEPTH_M + 30.0) for da, db, sa, sb, c_, n_ in bridges])
+    BOX = (0.0, X(hi), 0.0, Dm)
+    blds = []                                           # only what stands inside the block (white, no far town)
+    for b_ in ([] if flip else (J.get("bld") or [])):
+        a, b = max(lo, b_["s"][0]), min(hi, b_["s"][1])
+        bh = float(b_.get("behind_m") or 0.0)
+        if b - a < 1.0 or (not b_["cut"] and bh > Dm):
+            continue
+        blds.append([a, b, float(b_["h"]), bool(b_["cut"]), bh, None])
+    for s_, d_, nm in her:                              # the building at a heritage place is the heritage one
+        for bb in blds:
+            if bb[0] - 3.0 <= s_ <= bb[1] + 3.0 and abs(bb[4] - max(0.0, d_)) <= 25.0 and bb[5] is None:
+                bb[5] = nm
 
-    # ---- page fit at true proportions
+    # ---- his house footprints inside the block (white context): raised to the cache height where a house of the
+    # Sections cache stands there (survey storeys), else laid flat (height unknown); Kızıl Avlu at its 19 m walls
+    houses, n_flat = [], 0
+    for kk, her_ in [(DG_MP_HOUSES, False)] + [(kk, True) for kk in DG_MP_HERITAGE]:
+        for r_ in LAY.get(kk, []):
+            if r_[0] != "r" or len(r_[4]) < 3 or (her_ and kk != u"kizil_avlu" and r_[1] != "E4877A"):
+                continue
+            P_ = _dg_clip([xd(p) for p in _dp_ring(r_[4], 0.2)], (0.0, X(hi), 0.0, Dm))
+            if len(P_) < 3:
+                continue
+            h = DG_KIZIL_H_M if kk == u"kizil_avlu" else None
+            xa_, xb_, dmin = min(p[0] for p in P_), max(p[0] for p in P_), min(p[1] for p in P_)
+            for bb in blds:
+                if h is None and min(xb_, X(bb[1])) - max(xa_, X(bb[0])) > 0.5 * max(xb_ - xa_, X(bb[1]) - X(bb[0])) and \
+                        abs((0.0 if bb[3] else bb[4]) - dmin) <= 6.0:
+                    h, bb[5] = bb[2], bb[5] or u"(footprint)"
+            houses.append((P_, h, her_ and kk == u"kizil_avlu" and u"roofless" or her_))
+            n_flat += h is None
+    blds = [bb for bb in blds if bb[5] != u"(footprint)"]
+
+    # ---- his canopy triangles (masterplan), lifted: valleys at max(ground + 2.30, Q500 + 0.60), ridges 1.80 higher,
+    # valley / ridge alternating along the cut; corners found by simplifying each drawn triangle
+    tris, vk = [], {}
+    for r_ in LAY.get(DG_MP_CANOPY, []):
+        if r_[0] != "r" or len(r_[4]) < 3:
+            continue
+        P_ = [xd(p) for p in r_[4]]
+        if max(p[0] for p in P_) < 0.0 or min(p[0] for p in P_) > X(hi) or max(p[1] for p in P_) < 0.0 or \
+                min(p[1] for p in P_) > Dm:
+            continue
+        cs = _dp_ring(r_[4], 0.6)
+        if len(cs) < 3:
+            continue
+        keys = []
+        for p in cs:
+            kq = (int(round(p[0] / 1.0)), int(round(p[1] / 1.0)))
+            vk.setdefault(kq, xd(p))
+            keys.append(kq)
+        tris.append(keys)
+    order = sorted(vk, key=lambda kq: vk[kq][0])
+    zfloor = (Y(q500) + DG_CANOPY_FREE_M) if q500 is not None else -1e9
+    VZ = {}
+    for i_, kq in enumerate(order):
+        x_, d_ = vk[kq]
+        valley = max(gyl(x_) + DG_CANOPY_CLEAR_M, zfloor)
+        VZ[kq] = (valley + (DG_CANOPY_RISE_M if i_ % 2 else 0.0), i_ % 2 == 0)
+    facets = []
+    for keys in tris:
+        P3 = _dg_clip([(vk[kq][0], vk[kq][1], VZ[kq][0]) for kq in keys], BOX)
+        if len(P3) >= 3:
+            facets.append(P3)
+    cols = [(vk[kq][0], vk[kq][1], VZ[kq][0]) for kq in order if VZ[kq][1] and
+            0.0 <= vk[kq][0] <= X(hi) and 0.0 <= vk[kq][1] <= Dm and any(kq in t for t in tris)]
+
+    # ---- his planted trees (PLANTING layer) inside the block, as his cutouts at the sourced heights (Sections v1.26)
+    trees = []
+    for lay_, sp in DG_TREE_LAYERS:
+        recs = [v_ for kk, v_ in LAY.items() if kk.split(u"/")[-1] == lay_]
+        for i_, r_ in enumerate([r_ for v_ in recs for r_ in v_ if len(r_[4]) >= 3]):
+            cx_ = sum(p[0] for p in r_[4]) / len(r_[4])
+            cy_ = sum(p[1] for p in r_[4]) / len(r_[4])
+            x_, d_ = xd((cx_, cy_))
+            if 1.0 <= x_ <= X(hi) - 1.0 and 0.0 <= d_ <= Dm:
+                asp = _dg_aspect(sp, i_)
+                if asp is None:
+                    continue
+                trees.append((x_, d_, DG_TREE_H_M[sp], sp, i_, asp))
+
+    # ---- page fit at true proportions (trees, canopies and buildings inside the box)
     top = max(p[1] for p in g)
     for bb in blds:
-        top = max(top, gyl(X((bb[0] + bb[1]) / 2.0)) + min(bb[2], 24.0) + (DG_OY * min(bb[4], Dm) if not bb[3] else 0.0))
+        xm = X((bb[0] + bb[1]) / 2.0)
+        top = max(top, gyl(xm) + min(bb[2], 24.0) + (DG_OY * min(bb[4], Dm) if not bb[3] else 0.0))
+    for x_, d_, h_, sp, i_, asp in trees:
+        top = max(top, gyl(x_) + h_ + DG_OY * d_)
+    for P3 in facets:
+        top = max([top] + [p[2] + DG_OY * p[1] for p in P3])
     if q500 is not None:
         top = max(top, Y(q500) + 4.5)
     lw_, lh_ = X(hi) + DG_OX * Dm, top + DG_OY * Dm + 1.0
     k = min(W / lw_, H / lh_)
-    K = G["pc_dg_kit"](items, x0 + (W - lw_ * k) / 2.0, y0, lw_ * k, lh_ * k, "concept", lw=lw_, lh=lh_, dash_at=4)
+    x0p = x0 + (W - lw_ * k) / 2.0
+    K = G["pc_dg_kit"](items, x0p, y0, lw_ * k, lh_ * k, "concept", lw=lw_, lh=lh_, dash_at=4)
+    PG = lambda p: (x0p + p[0] * k, y0 + p[1] * k)
     Cc, Wt = K["C"], K["W"]
     poly, line = K["poly"], K["line"]
     hair = Wt["hair"]
     INK_, M_FR, M_SIDE = Cc["ink"], Cc["move"], "9E5F1F"
-    T_FLAT, T_DOWN, T_UP, T_MOVE = "F4F1EB", "E9E4DA", "DED7CB", "F3E0C8"
-    X_FR, X_TOP, X_SIDE, X_LN = "FBFAF7", "EFECE6", "E3DFD7", "A39C92"
+    T_FLAT, T_DOWN, T_UP, T_EDGE = "FFFFFF", "F8F7F4", "F1EFEA", "CFCAC1"
+    W_FR, W_TOP, W_SIDE, W_LN = "FFFFFF", "FFFFFF", "F3F1ED", "8F887E"
     o = lambda p, d: (p[0] + DG_OX * d, p[1] + DG_OY * d)
     hard = [(X(a), X(b), lab) for a, b, lab in parts if lab in DG_HARD]
-    in_move = lambda xa, xb: any(a - 0.3 <= xa and xb <= b + 0.3 for a, b, l_ in hard)
+    wl = next((z_ for z_, n_ in lev if n_ == u"AUTUMN"), lev[0][0] if lev else None)
+    wa, wb = wet(wl) if wl is not None else (None, None)
 
-    # 1. the land behind the cut: one plane per profile segment, toned by its slope; our hard ground tinted
-    quads, TONE = [], {}
+    # 1. the land behind the cut: white planes, hairline folds; the bed under the water first, then the water plane,
+    # then the land above it (so the water lies in its bed), the faces turned to us last
+    segs = []
     for a, b in zip(g, g[1:]):
         dx, dy = b[0] - a[0], b[1] - a[1]
         if abs(dx) < 1e-9 and abs(dy) < 1e-9:
             continue
         vis = dx * DG_OY - dy * DG_OX > 1e-9
-        tone = T_MOVE if in_move(a[0], b[0]) and abs(dy) < 0.6 * abs(dx) + 1e-9 else \
-            (T_FLAT if abs(dy) < 0.08 * abs(dx) else (T_DOWN if dy < 0 else T_UP))
-        TONE[(a, b)] = tone
-        quads.append((vis, [a, b, o(b, Dm), o(a, Dm)], tone))
-    for vis, q, tone in sorted(quads, key=lambda t: t[0]):
-        poly(q, tone, tone, 0.05)
-    line([o(p, Dm) for p in g], X_LN, hair)
-
-    # 2. the water: the autumn (normal) level as one flat plane into the depth, every level a fine dashed line
-    wl = next((z_ for z_, n_ in lev if n_ == u"AUTUMN"), lev[0][0] if lev else None)
+        tone = T_FLAT if abs(dy) < 0.08 * abs(dx) else (T_DOWN if dy < 0 else T_UP)
+        low = wl is not None and max(a[1], b[1]) <= Y(wl) + 1e-6
+        segs.append((a, b, vis, tone, low))
+    for a, b, vis, tone, low in sorted([s_ for s_ in segs if s_[4]], key=lambda t: t[2]):
+        poly([a, b, o(b, Dm), o(a, Dm)], tone, T_EDGE, hair * 0.7)
     if wl is not None:
-        xa, xb = wet(wl)
-        poly([(xa, Y(wl)), (xb, Y(wl)), o((xb, Y(wl)), Dm), o((xa, Y(wl)), Dm)], "D3DEDD", "D3DEDD", 0.05)
-        under = [p for p in g if xa <= p[0] <= xb and p[1] <= Y(wl) + 1e-6]
-        for a, b in zip(g, g[1:]):                        # land above the water stays in front of the plane
-            if min(a[1], b[1]) > Y(wl) + 1e-6 and (b[0] - a[0]) * DG_OY - (b[1] - a[1]) * DG_OX > 1e-9 and \
-                    xa - 1.0 <= max(a[0], b[0]) and min(a[0], b[0]) <= xb + 1.0:
-                tone = TONE.get((a, b), T_FLAT)
-                poly([a, b, o(b, Dm), o(a, Dm)], tone, tone, 0.05)
+        poly([(wa, Y(wl)), (wb, Y(wl)), o((wb, Y(wl)), Dm), o((wa, Y(wl)), Dm)], "DCE7E7", "BFD0D0", hair * 0.7)
+    for a, b, vis, tone, low in sorted([s_ for s_ in segs if not s_[4]], key=lambda t: t[2]):
+        poly([a, b, o(b, Dm), o(a, Dm)], tone, T_EDGE, hair * 0.7)
+    line([o(p, Dm) for p in g], W_LN, hair)
 
-    # 3. bridges and buildings, far to near (painter's order), each standing on the extruded ground
-    things = [("bridge", da, x_) for x_ in bridges for da in (x_[0],)] + \
-             [("bld", (bb[4] if not bb[3] else 0.0), bb) for bb in blds]
+    # 2. his masterplan move laid on the ground in depth: each footprint cut to the dry faces turned to us and laid on
+    # them exactly (each face is a plane); green pale, the move in accent, our building frames dashed
+    dry = [(a, b) for a, b, vis, tone, low in segs if vis and not low and b[0] > a[0] + 1e-6]
+    on = lambda a, b, p: o((p[0], a[1] + (b[1] - a[1]) * (p[0] - a[0]) / (b[0] - a[0])), p[1])
+    n_fp = {}
+
+    def lay_ring(P_, fill, stroke, w):
+        for a, b in dry:
+            Q = _dg_clip(P_, (a[0], b[0], 0.0, Dm))
+            if len(Q) >= 3:
+                poly([on(a, b, q) for q in Q], fill, stroke, w)
+
+    def lay_line(P_, col, w, dash=None):
+        for a, b in dry:
+            for p, q in zip(P_, P_[1:]):
+                r = _dg_seg(p, q, (a[0], b[0], 0.0, Dm))
+                if r:
+                    line([on(a, b, r[0]), on(a, b, r[1])], col, w, dash)
+    near = lambda P_: not (max(p[0] for p in P_) < 0.0 or min(p[0] for p in P_) > X(hi) or
+                           max(p[1] for p in P_) < 0.0 or min(p[1] for p in P_) > Dm)
+    for kk, fill, stroke, w, ring in [(kk, "EEF1E6", "A3AD8A", hair * 0.8, True) for kk in DG_MP_GREEN] + \
+            [(kk, "F6E4CE", M_FR, hair * 1.2, True) for kk in DG_MP_HARD] + \
+            [(kk, None, M_FR, hair * 1.2, False) for kk in DG_MP_LINES] + \
+            [(kk, None, M_FR, hair * 1.6, None) for kk in DG_MP_FRAMES]:
+        for r_ in LAY.get(kk, []):
+            if len(r_[4]) < 2 or r_[0] not in ("r", "l"):
+                continue
+            if ring and (r_[0] != "r" or r_[1] is not None and kk in DG_MP_GREEN):
+                continue                                  # green: his outlined areas only (the filled bits are texture)
+            P_ = [xd(p) for p in (_dp_ring(r_[4], 0.25) if r_[0] == "r" else _dp(list(r_[4]), 0.25))]
+            if not near(P_):
+                continue
+            n_fp[kk] = n_fp.get(kk, 0) + 1
+            if ring:
+                lay_ring(P_, fill, stroke, w)
+            elif ring is None:
+                lay_line(P_ + [P_[0]], stroke, w, (1.2, 0.8))
+            else:
+                lay_line(P_, stroke, w)
+    for P_, h, her_ in houses:                         # flat house footprints: white with a hairline
+        if h is None:
+            lay_ring(P_, "F4E9E4" if her_ else "F2F0EB", Cc["her"] if her_ else W_LN, hair * (1.6 if her_ else 0.8))
+    if not LAY:                                         # no masterplan cache: our ground on the cut tinted instead
+        for a, b in dry:
+            if any(ha - 0.3 <= a[0] and b[0] <= hb + 0.3 for ha, hb, l_ in hard):
+                poly([a, b, o(b, Dm), o(a, Dm)], "F6E4CE", T_EDGE, hair * 0.7)
+
+    # 3. bridges, buildings, trees, canopy, people: far to near (painter's order), each on the extruded ground
+    things = [("bridge", x_[0], x_) for x_ in bridges] + \
+             [("bld", (bb[4] if not bb[3] else 0.0), bb) for bb in blds] + \
+             [("tree", t_[1], t_) for t_ in trees] + \
+             [("house", min(p[1] for p in h_[0]), h_) for h_ in houses if h_[1] is not None] + \
+             [("col", c_[1] + 0.01, c_) for c_ in cols] + \
+             [("facet", sum(p[1] for p in P3) / len(P3), P3) for P3 in facets]
+    big = max(hard, key=lambda t: t[1] - t[0]) if hard else None
+    if big:
+        for i_, (f_, dd) in enumerate(((0.3, 3.0), (0.55, 5.5), (0.8, 8.0))):
+            things.append(("person", dd, (big[0] + (big[1] - big[0]) * f_, dd, i_)))
+    if not facets:                                      # no canopy triangles in his plan here: the cut's canopy part
+        for a, b, lab in hard:
+            if lab == u"Canopy":
+                things.append(("canopy_part", 2.0, (a, b)))
     for kind, dist, it in sorted(things, key=lambda t: -t[1]):
         if kind == "bridge":
             da, db, sa, sb, code, name = it
@@ -358,8 +621,7 @@ def concept_cut(node, items, x0, y0, W, H, G, C, D, MPC, log):
             zdeck = max(gyl(xa), gyl(xb))
             n = DG_ARCHES.get(code, 0)
             d0, d1 = min(da, Dm), min(db, Dm)
-            # deck: top, front fascia; parapet hairline; piers only where the arch count is known
-            poly([o((xa, zdeck), d0), o((xb, zdeck), d0), o((xb, zdeck), d1), o((xa, zdeck), d1)], "EEEBE4", X_LN, hair)
+            poly([o((xa, zdeck), d0), o((xb, zdeck), d0), o((xb, zdeck), d1), o((xa, zdeck), d1)], W_TOP, W_LN, hair)
             fr = [(xa, zdeck), (xb, zdeck), (xb, zdeck - 1.0), (xa, zdeck - 1.0)]
             if n:
                 ybed = Y(zbed) + 0.3
@@ -373,34 +635,77 @@ def concept_cut(node, items, x0, y0, W, H, G, C, D, MPC, log):
                                                          spring + r_ * math.sin(math.radians(t_)))
                                                         for t_ in range(0, 181, 15)] + [(ca, spring), (ca, ybed)]
                 fr += [(xa, ybed)]
-            poly([o(p, d0) for p in fr], "F1EEE8", Cc["her"] if code in (u"K3", u"K4", u"K5") else X_LN, hair * 1.6)
-            line([o((xa, zdeck + 0.9), d0), o((xb, zdeck + 0.9), d0)], X_LN, hair)
-        else:
+            poly([o(p, d0) for p in fr], W_FR, Cc["her"] if code in (u"K3", u"K4", u"K5") else W_LN, hair * 1.6)
+            line([o((xa, zdeck + 0.9), d0), o((xb, zdeck + 0.9), d0)], W_LN, hair)
+        elif kind == "bld":
             a, b, h, cut, behind, hname = it
             xa, xb = X(a), X(b)
-            d0 = 0.0 if cut else min(behind, Dm)
-            if not cut and behind > Dm:
-                h = h * 0.9                                # the far town: one pale front at the block's end
+            d0 = 0.0 if cut else behind
             d1 = min(Dm, d0 + DG_BLD_DEPTH_M)
             yb = max(gyl(xa), gyl(xb))
-            fr_c, tp_c, sd_c, st_c = (X_FR, X_TOP, X_SIDE, X_LN) if hname is None else \
-                (("EBD5CB", "E2C6B9", "D6B6A7", Cc["her"]) if u"Kızıl" in hname else ("FBFAF7", "ECE8E1", "DCD6CC", Cc["her"]))
+            st_c, w_ = (W_LN, hair * 1.3) if hname is None else (Cc["her"], hair * 2.0)
+            if hname and u"Kızıl" in hname:            # the Red Hall stands roofless: back wall, side, open rim
+                poly([o((xa, yb), d1), o((xb, yb), d1), o((xb, yb + h), d1), o((xa, yb + h), d1)], "F4E9E4", st_c, hair)
+                poly([o((xb, yb), d0), o((xb, yb), d1), o((xb, yb + h), d1), o((xb, yb + h), d0)], "EFE1DA", st_c, hair)
+                poly([o((xa, yb), d0), o((xb, yb), d0), o((xb, yb + h), d0), o((xa, yb + h), d0)], "F8F0EC", st_c, w_)
+                line([o((xa, yb + h), d0), o((xa, yb + h), d1), o((xb, yb + h), d1)], st_c, hair)
+                continue
             if d1 > d0 + 0.5:
-                poly([o((xb, yb), d0), o((xb, yb), d1), o((xb, yb + h), d1), o((xb, yb + h), d0)], sd_c, st_c, hair)
-                poly([o((xa, yb + h), d0), o((xb, yb + h), d0), o((xb, yb + h), d1), o((xa, yb + h), d1)], tp_c, st_c, hair)
-            poly([o((xa, yb), d0), o((xb, yb), d0), o((xb, yb + h), d0), o((xa, yb + h), d0)], fr_c, st_c, hair * 1.3)
-
-    # 4. our move in depth: canopies (the Sections language), decks; people on the hard ground at 1.7 m
-    for a, b, lab in hard:
-        if lab == u"Canopy":
-            gmax = max(p[1] for p in g if a - 0.5 <= p[0] <= b + 0.5) if any(a - 0.5 <= p[0] <= b + 0.5 for p in g) \
-                else gyl(a)
-            valley = max(gmax + 2.3, (Y(q500) + 0.6) if q500 is not None else 0.0)   # DfT 2.30 m / Q500 + 0.60
-            ridge = valley + 1.8                                                         # ASSUMED (Sections v1.26)
+                poly([o((xb, yb), d0), o((xb, yb), d1), o((xb, yb + h), d1), o((xb, yb + h), d0)], W_SIDE, st_c, hair)
+                poly([o((xa, yb + h), d0), o((xb, yb + h), d0), o((xb, yb + h), d1), o((xa, yb + h), d1)], W_TOP, st_c,
+                     hair)
+            poly([o((xa, yb), d0), o((xb, yb), d0), o((xb, yb + h), d0), o((xa, yb + h), d0)], W_FR, st_c, w_)
+        elif kind == "house":
+            P_, h, her_ = it
+            roof = max(gyl(p[0]) for p in P_) + h
+            st_c, w_ = (Cc["her"], hair * 1.8) if her_ else (W_LN, hair)
+            walls = []
+            for p, q in zip(P_, P_[1:] + P_[:1]):
+                walls.append(((p[1] + q[1]) / 2.0, [o((p[0], gyl(p[0])), p[1]), o((q[0], gyl(q[0])), q[1]),
+                                                    o((q[0], roof), q[1]), o((p[0], roof), p[1])]))
+            for d_, q in sorted(walls, key=lambda t: -t[0]):
+                poly(q, "F4E9E4" if her_ == u"roofless" else W_SIDE, st_c, w_)
+            if her_ == u"roofless":                       # Kızıl Avlu stands roofless: its wall tops as an open rim
+                line([o((p[0], roof), p[1]) for p in P_ + P_[:1]], st_c, w_)
+            else:
+                poly([o((p[0], roof), p[1]) for p in P_], W_TOP, st_c, w_)
+        elif kind == "tree":
+            x_, d_, h_, sp, i_, asp = it
+            p = PG(o((x_, gyl(x_)), d_))
+            wl_ = h_ * asp / 2.0                         # half the crown in local m: kept inside the box
+            if x_ + DG_OX * d_ - wl_ >= 0.0 and x_ + DG_OX * d_ + wl_ <= lw_:
+                _dg_cutout(items, sp, p[0], p[1], h_ * k, i_, 1 if d_ >= 40.0 else 0, i_ % 2 == 1)
+        elif kind == "col":
+            x_, d_, z_ = it                              # a Y column under a valley
+            yg = gyl(x_)
+            line([o((x_, yg), d_), o((x_, z_ - 1.0), d_)], M_SIDE, Wt["move"] * 0.8)
+            line([o((x_ - 0.9, z_), d_), o((x_, z_ - 1.0), d_), o((x_ + 0.9, z_), d_)], M_SIDE, Wt["move"] * 0.8)
+        elif kind == "facet":
+            P3 = it
+            e1 = [P3[1][j] - P3[0][j] for j in range(3)]
+            e2 = [P3[2][j] - P3[0][j] for j in range(3)]
+            nx_, nz_ = e1[1] * e2[2] - e1[2] * e2[1], e1[0] * e2[1] - e1[1] * e2[0]
+            ny_ = e1[2] * e2[0] - e1[0] * e2[2]
+            if ny_ < 0:
+                nx_, nz_ = -nx_, -nz_
+            tone = "F7E8D7" if nx_ <= 0 else "EAD0B4"   # facets turned to the light (left) paler: the fold reads
+            poly([o((p[0], p[2]), p[1]) for p in P3], tone, M_FR, hair * 1.4)
+        elif kind == "person":
+            xp, dd, i_ = it
+            p = PG(o((xp, gyl(xp)), dd))
+            if not _dg_cutout(items, (u"person_stand", u"person_walk", u"person_stand")[i_], p[0], p[1], 1.75 * k, i_,
+                              0, i_ == 1):
+                q = o((xp, gyl(xp)), dd)
+                line([(q[0], q[1]), (q[0], q[1] + 1.75)], INK_, hair * 2.0)
+        elif kind == "canopy_part":
+            a, b = it
+            gmax = max([gyl(a), gyl(b)] + [p[1] for p in g if a <= p[0] <= b])
+            valley = max(gmax + DG_CANOPY_CLEAR_M, zfloor)
+            ridge = valley + DG_CANOPY_RISE_M
             d0, d1 = 2.0, min(Dm, 16.0)
             nb = max(2, int(round((b - a) / 6.0)))
             w_ = (b - a) / nb
-            for i in range(nb + 1):                       # Y columns under the valleys
+            for i in range(nb + 1):
                 xs = a + i * w_
                 for dd in (d0 + 1.0, d1 - 1.0):
                     line([o((xs, gyl(xs)), dd), o((xs, valley - 1.0), dd)], M_SIDE, Wt["move"] * 0.8)
@@ -410,39 +715,48 @@ def concept_cut(node, items, x0, y0, W, H, G, C, D, MPC, log):
                 xa_, xm_, xb_ = a + i * w_, a + (i + 0.5) * w_, a + (i + 1) * w_
                 for (pa, pb), tone in ((((xa_, valley), (xm_, ridge)), "F7E8D7"), (((xm_, ridge), (xb_, valley)), "EAD0B4")):
                     poly([o(pa, d0), o(pb, d0), o(pb, d1), o(pa, d1)], tone, M_FR, hair * 1.4)
-        elif lab == u"Pavilion":
+    for a, b, lab in hard:
+        if lab == u"Pavilion":
             yb = max(gyl(a), gyl(b))
-            poly([o((a, yb), 1.0), o((b, yb), 1.0), o((b, yb + 3.5), 1.0), o((a, yb + 3.5), 1.0)], "F2DCC4", M_FR, hair * 1.6)
-    if hard:
-        a, b, lab = max(hard, key=lambda t: t[1] - t[0])
-        for f_ in (0.3, 0.55, 0.8):
-            xp = a + (b - a) * f_
-            p = o((xp, gyl(xp)), 6.0)
-            line([(p[0] - 0.25, p[1]), (p[0], p[1] + 0.9), (p[0] + 0.25, p[1])], INK_, hair * 1.6)
-            poly([(p[0] - 0.22, p[1] + 0.85), (p[0] + 0.22, p[1] + 0.85), (p[0] + 0.18, p[1] + 1.45),
-                  (p[0] - 0.18, p[1] + 1.45)], INK_)
-            poly([(p[0] + 0.2 * math.cos(math.radians(t_)), p[1] + 1.65 + 0.2 * math.sin(math.radians(t_)))
-                  for t_ in range(0, 360, 40)], INK_)
+            poly([o((a, yb), 1.0), o((b, yb), 1.0), o((b, yb + 3.5), 1.0), o((a, yb + 3.5), 1.0)], "F6E4CE", M_FR, hair * 1.6)
 
-    # 5. the cut face: poché to a shallow base, the water in the cut, ONE gentle ground line, our part of it in accent
+    # 4. the cut face: white below ONE heavy ground line, the water in the cut, our part of the line in accent
     yb0 = Y(zbed - DG_BASE_M)
-    poly([(g[0][0], yb0)] + g + [(g[-1][0], yb0)], "E3DED4", None, 0.0)
+    poly([(g[0][0], yb0)] + g + [(g[-1][0], yb0)], "FFFFFF", None, 0.0)
     if wl is not None:
-        xa, xb = wet(wl)
-        under = [p for p in g if xa <= p[0] <= xb and p[1] <= Y(wl) + 1e-6]
-        poly([(xa, Y(wl))] + under + [(xb, Y(wl))], "B9CACA", None, 0.0)
-    line(g, INK_, 0.35)
+        under = [p for p in g if wa <= p[0] <= wb and p[1] <= Y(wl) + 1e-6]
+        poly([(wa, Y(wl))] + under + [(wb, Y(wl))], "C9D9D9", None, 0.0)
+    line(g, INK_, 0.45)
     for a, b, lab in parts:
         seg = [p for p in g if X(a) - 1e-6 <= p[0] <= X(b) + 1e-6]
         if len(seg) >= 2 and lab != u"Green":
-            line(seg, M_FR, 0.35)
-    # levels last: fine dashed lines bank to bank, names at the right end, kept apart
+            line(seg, M_FR, 0.45)
+
+    # 5. one movement arrow (dashed, accent): from the dry top of our largest move down to the water it opens
+    if big and wl is not None:
+        a, b = big[0], big[1]
+        xs_ = a if gyl(a) >= gyl(b) else b
+        xe_ = wa if abs(wa - xs_) < abs(wb - xs_) else wb
+        if abs(xe_ - xs_) > 4.0 and gyl(xs_) > Y(wl) + 0.8:
+            p0, p2 = (xs_, gyl(xs_) + 1.6), (xe_, Y(wl) + 0.5)
+            p1 = ((p0[0] + p2[0]) / 2.0, max(p0[1], p2[1]) + 2.5)
+            bz = [((1 - t) ** 2 * p0[0] + 2 * (1 - t) * t * p1[0] + t ** 2 * p2[0],
+                   (1 - t) ** 2 * p0[1] + 2 * (1 - t) * t * p1[1] + t ** 2 * p2[1]) for t in [i / 16.0 for i in range(17)]]
+            line(bz[:-1], M_FR, Wt["arrow"], (1.0, 0.6))
+            ux_, uy_ = bz[-1][0] - bz[-3][0], bz[-1][1] - bz[-3][1]
+            L_ = math.hypot(ux_, uy_) or 1.0
+            ux_, uy_ = ux_ / L_, uy_ / L_
+            hl = 1.4 / k                                  # the head 1.4 mm on the page
+            poly([bz[-1], (bz[-1][0] - ux_ * hl - uy_ * hl * 0.45, bz[-1][1] - uy_ * hl + ux_ * hl * 0.45),
+                  (bz[-1][0] - ux_ * hl + uy_ * hl * 0.45, bz[-1][1] - uy_ * hl - ux_ * hl * 0.45)], M_FR)
+
+    # levels last: fine dashed lines bank to bank, names at the ends of their depth tails, kept apart
     last_y = -1e9
     for z_, name in lev:
         xa, xb = wet(z_)
         line([(xa, Y(z_)), (xb, Y(z_))], Cc["water_ln"], hair * 1.5, (1.0, 0.7))
         line([(xb, Y(z_)), o((xb, Y(z_)), Dm * 0.35)], Cc["water_ln"], hair, (1.0, 0.7))
-        e_ = o((xb, Y(z_)), Dm * 0.35)                   # the name at the end of its depth tail, kept apart
+        e_ = o((xb, Y(z_)), Dm * 0.35)
         ty = max(e_[1] - 0.2, last_y + 1.9 / k)
         K["text"](name, e_[0] + 0.6, ty, 1.4, Cc["water_ln"], True, "L")
         last_y = ty
@@ -464,9 +778,13 @@ def concept_cut(node, items, x0, y0, W, H, G, C, D, MPC, log):
         used.append((a, b))
         K["bracket"](a, b, 2.2, nm, col)
     log.append(u"diagram %s: cut %s s %.0f-%.0f m at true proportions (1 mm = %.2f m), levels %s, move %s, "
-               u"%d buildings, %d heritage, %d bridges" % (
+               u"%d buildings, %d house footprints (%d flat: height unknown), %d heritage, %d bridges, %d canopy facets, %d trees, "
+               u"plan pieces %s, seen from %s" % (
                    node, C.name, lo, hi, 1.0 / k, u", ".join(n_ for z_, n_ in lev) or u"none",
-                   u", ".join(sorted(set(l_ for a_, b_, l_ in hard))) or u"none", len(blds), len(her), len(bridges)))
+                   u", ".join(sorted(set(l_ for a_, b_, l_ in hard))) or u"none", len(blds), len(houses), n_flat, len(her), len(bridges),
+                   len(facets), len(trees), u", ".join(u"%s %d" % (kk.split(u"/")[-1], v_) for kk, v_ in
+                                                      sorted(n_fp.items())) or u"none",
+                   u"the far side (mirrored: more of his move there)" if flip else u"the Sections side"))
     return True
 
 
