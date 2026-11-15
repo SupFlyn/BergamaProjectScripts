@@ -305,9 +305,9 @@ def pc_mapbase(M, K, log, layers=None, style=None):
         st["fab_com"] = dict((k_, "FFFFFF") for k_ in S["fab_com"])
         for k_ in ("monument", "sacred"):
             st["fab"][k_] = st["fab_com"][k_] = "F2E6DC"
-        st.update({"ground": "ECE9E1", "street": "FFFFFF", "street_edge": "9E9889", "edge_dark": 0.25,
+        st.update({"ground": "ECE9E1", "street": "FFFFFF", "street_edge": "9E9889", "edge_dark": 1.0, "ink": "D0D0D0",
                    "wall": "CDC8BC", "osm_wall": "CDC8BC"})
-        st["lw"] = dict(st["lw"], edge=0.12, wall=0.05, osm_wall=0.05)
+        st["lw"] = dict(st["lw"], edge=0.12, wall=0.05, osm_wall=0.05, hair=0.04)   # outline 0.08 mm = PlanBase building_plan
     st["a05"] = a05                                      # MapBase v1.6+ draws the shadows, drops the stray pieces
     st.update(dict((k_, v) for k_, v in (style or {}).items() if k_ != "a05"))
     items = []

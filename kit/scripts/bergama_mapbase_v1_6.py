@@ -61,7 +61,7 @@ Writes ~/Downloads/Bergama/cached/bergama_mapbase/mapbase.json (+ its OSM house 
 import os, time, json, math, re, glob
 
 # ---- SETTINGS ----
-VERSION = "v1.6"  # v1.6 (15 Nov, Aras 06:03-06:05 "too many stray lines ... houses fills are overlapping ... Roads are not clear", "thousand times better as house designs" (the 13 Nov A05 house look), "update the base map"): mb_draw gives every house a crisp grey shadow 1.2 m to the lower left (all shadows under all houses), drops wall and street-edge pieces under 3 m, draws street edges stronger and walls thinner; style key "a05": False = the v1.5 look; cache unchanged; v1.5 (overnight review; Aras dislikes purple): industrial / commercial zones a neutral warm grey (was lilac D8D3DF); v1.4  # v1.4 (14 Nov, standing rule "WATER: textured hatches, no wave strokes"): the water surface gets a fine diagonal hatch over its grain fill in every map (mb_draw); cache unchanged
+VERSION = "v1.6"  # v1.6 (15 Nov, Aras 06:03-06:05 "too many stray lines ... houses fills are overlapping ... Roads are not clear", "thousand times better as house designs" (the 13 Nov A05 house look), "update the base map"): mb_draw gives every house a crisp grey shadow 1.2 m to the lower left (all shadows under all houses), drops wall and street-edge pieces under 3 m, draws street edges stronger and walls thinner; style key "a05": False = the v1.5 look. CACHE CHANGED (press MapBase again): Aras 06:06 "remember the streets being a network idea": the Basemap's street network (build_streets + join_streets: every OSM street as a band, all joined into one surface, junctions meeting) is cached as polys "street_net" and painted in the street fill under the survey road surfaces, so the streets read as one connected network; its outline is not drawn (the survey road lines stay the edges, 13 Nov rule); v1.5 (overnight review; Aras dislikes purple): industrial / commercial zones a neutral warm grey (was lilac D8D3DF); v1.4  # v1.4 (14 Nov, standing rule "WATER: textured hatches, no wave strokes"): the water surface gets a fine diagonal hatch over its grain fill in every map (mb_draw); cache unchanged
 GH_LABEL = "MapBase"
 OUT_FOLDER = "bergama_mapbase"
 LOG_NAME = "bergama_mapbase_log.txt"
@@ -159,6 +159,7 @@ def load_lib(log):
     ns = {"__name__": "bergama_basemap_lib"}
     exec(compile(code[:code.index(LIB_END)], src_, "exec"), ns)
     for need in ("write_pdf", "write_svg", "localise", "osm_houses", "image_check", "town_streets", "build_river",
+                 "build_streets", "join_streets",
                  "clip_ring", "clip_line", "corner_block", "text_w", "to_survey"):
         if need not in ns:
             raise RuntimeError(u"%s has no %s: update the kit (Bergama.bat), then press again" % (src_, need))
@@ -564,6 +565,10 @@ def build():
             if j_ < len(fls):
                 fl_of[(round(P[0][0], 2), round(P[0][1], 2))] = fls[j_]
             j_ += 1
+    try:                                                  # v1.6: the street network (Aras 06:06 "streets being a network")
+        D["layers"].update(B["build_streets"](D, F, log))
+    except Exception as e:
+        log.append(u"FLAG street network: not built (%s: %s)" % (type(e).__name__, e))
     D["layers"].update(B["osm_houses"](D, F, log))        # houses behind the survey's open fronts (whole map)
     D["layers"].update(B["sat_houses"](D, F, log))
     L = B["localise"](D, F)
@@ -575,6 +580,11 @@ def build():
     except Exception as e:
         L["river"] = []
         log.append(u"FLAG river: not built (%s: %s): the stream is its survey lines only" % (type(e).__name__, e))
+    try:
+        B["join_streets"](L, F, log)                      # v1.6: all bands as one surface, junctions joined
+    except Exception as e:
+        L["street_net"] = []
+        log.append(u"FLAG street network: not joined (%s: %s)" % (type(e).__name__, e))
     O = read_osm(B, log)
     sv = lambda q: _to_survey(F, q)
     # ---- buildings (as Page02 v2.4)
@@ -759,6 +769,7 @@ def build():
          "bld_x": [[u["fl"] or _levels(u.get("tags") or {}), (u.get("tags") or {}).get("building") or u"",
                     (u.get("tags") or {}).get("amenity") or u""] for u in units],   # v1.2: floors (survey, else OSM levels; 0 = not recorded), OSM building, amenity
          "polys": {"streets": [rd(Q) for key in ("road_net", "town_net") for cl, Q, a, b in L.get(key, [])],
+                   "street_net": [rd(Q) for cl, Q, a, b in L.get("street_net", [])],
                    "river": [rd(Q) for cl, Q, a, b in L.get("river", [])],
                    "parks": [rd(Q) for cl, Q, a, b in L.get("parks", []) if cl and len(Q) >= 3]},
          "lines": dict([(key, lay(key)) for key in ("road_edges", "kerbs", "town_edges", "walls", "heritage_walls",
@@ -933,6 +944,7 @@ def mb_draw(C, items, T, k, lim, cid, style=None, layers=None):
             line(P, st["contour_index"] if ix else st["contour"], lw["contour_index"] if ix else lw["contour"],
                  "contours")
     if on("streets"):
+        poly(C["polys"].get("street_net", []), st["street"], "streets_network")   # v1.6: one connected network
         poly(C["polys"].get("streets", []), st["street"], "streets")
         for key in ("road_edges", "kerbs", "town_edges"):
             for cl, P in C["lines"].get(key, []):
@@ -999,7 +1011,7 @@ def mb_draw(C, items, T, k, lim, cid, style=None, layers=None):
     return cnt
 
 
-A05_SHADOW_M, A05_SHADOW_MIN, A05_SHADOW_C = 1.2, 0.22, "8C8C8C"   # m (A05: 1.2 m to the lower left); mm at least
+A05_SHADOW_M, A05_SHADOW_MIN, A05_SHADOW_C = 1.2, 0.22, "707070"   # PlanBase v11.1 (Masterplan_A0): 1.2 m to the lower left, style building_shadow 707070; mm at least
 A05_SHORT_M = 3.0                                    # m: a wall or street-edge piece shorter than this is not drawn
 
 
@@ -1015,9 +1027,16 @@ def mb_a05(items, k, cnt):
             if sum(math.hypot(b[0] - a[0], b[1] - a[1]) for a, b in zip(P, P[1:])) < A05_SHORT_M * k:
                 n_short += 1
                 continue
-        if it[0] == "poly" and str(it[6]).startswith("buildings_"):
-            sh.append(("poly", [[(q[0] - s_, q[1] - s_) for q in R] for R in it[1]], A05_SHADOW_C, None, 0.0, None,
-                       "building_shadows", 1, None, it[9]))
+        if it[0] == "poly" and str(it[6]).startswith("buildings_"):   # PlanBase look_items: the sides facing the
+            quads = []                                                # shadow extruded (a crisp vector shadow)
+            for R in it[1]:
+                a2 = sum(R[j - 1][0] * R[j][1] - R[j][0] * R[j - 1][1] for j in range(len(R)))
+                for j in range(len(R)):
+                    a, b = (R[j - 1], R[j]) if a2 >= 0 else (R[j], R[j - 1])
+                    if (b[1] - a[1]) * -s_ - (b[0] - a[0]) * -s_ > 1e-9:
+                        quads.append([a, b, (b[0] - s_, b[1] - s_), (a[0] - s_, a[1] - s_)])
+            if quads:
+                sh.append(("poly", quads, A05_SHADOW_C, None, 0.0, None, "building_shadows", 1, None, it[9]))
         if first is None and ((it[0] == "line" and it[5] == "buildings_outline") or
                               (it[0] == "poly" and str(it[6]).startswith("buildings_"))):
             first = len(out)
