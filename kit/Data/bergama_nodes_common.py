@@ -17,7 +17,7 @@ Reads the newest scripts/bergama_basemap_v*, bergama_p02_what_is_there_v*, berga
 """
 import os, re, glob, json, math, time
 
-NC_VERSION = "v10"   # v10: why-here diagrams as section-axo blocks (depth, shaded planes, extruded town, accent move with shadow); MapBase always under the plan, his existing roads/buildings left out; v9.9: v9.9: a heritage stop on a cut line stays in the cropped section (N4-A Red Hall); v9.8: v9.8: Ulu Cami silhouette as built (hall, three domes, minaret on a stone base); v9.7: v9.7: Red Hall drawn as the roofless arched brick hall; diagram levels start at the riser they meet; v9.6: v9.6: program brief under the land-use bar when it fits, perspective the full right half; v9.5: v9.5: diagram levels run to the banks, N5 town band lower and label over its move; cuts packed from the top, why-here block follows, perspective room grows; V1 clear of stops, names and its arrows; v9.4: v9.4: at least 30 % (or 90 m) of a cut in view, so flat cuts get taller; v9.3: v9.3: section fit by the drawing without its sky, at least 55 % (or 150 m) of the cut in view, sky cut to the room; v9.2: v9.2 (fresh review of run 4): sections fill their rooms (cropped round the stream, own scale bar), no intro line, short key words, V1 in ink, land use = 5 classes + other with names on one row, program brief under the story, diagram arrows start at their cause, slots as voids, FLAG count includes carried FLAGs; v9.1: v9.1: diagrams to DIAGRAM_STYLE v2 (Niarchos measured: low ground, names under it, small accent); v9: v9: why-here diagrams redrawn on the shared diagram kit (pc_dg_kit, DIAGRAM_STYLE.md; Aras 21:30 UTC); v8.4: v8.4: scale + north above the plan (off his drawing), intro wording; v8.3: v8.3: B cut subtitle "along the bank", N3 diagram label clear of the dots; v8.2: v8.2: 4-corner picture rectangles of the masterplan left out (no solid green blocks), the river filled as water; v8.1: v8.1: masterplan sheet / texture frames (> 0.1 km2) left out, legend columns balanced, intro without the old levels text; v8: plan = his masterplan drawing; why-here story + one concept diagram per node; water bars and meets line gone; v7.5: v7.5: section_lines v2 (B along the bank: looks at the stream, no water bars); v7.4: v7.4: cut marks = two end arrows, no line between (pages_common v3.14); v7.3: v7.3: scale + north ignore the node frame line; v7.2: v7.2: the proposal from his masterplan SVG (MasterplanBase cache); v7.1: v7.1: R01 cut arrows (pc_cut_mark), no city-square ring, land-use columns >= 45 mm; v7: v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
+NC_VERSION = "v11"   # v11: each node plan is a straight crop of master.svg (rendered by Edge / Chrome on his PC, cached), marks on top; v10: v10: why-here diagrams as section-axo blocks (depth, shaded planes, extruded town, accent move with shadow); MapBase always under the plan, his existing roads/buildings left out; v9.9: v9.9: a heritage stop on a cut line stays in the cropped section (N4-A Red Hall); v9.8: v9.8: Ulu Cami silhouette as built (hall, three domes, minaret on a stone base); v9.7: v9.7: Red Hall drawn as the roofless arched brick hall; diagram levels start at the riser they meet; v9.6: v9.6: program brief under the land-use bar when it fits, perspective the full right half; v9.5: v9.5: diagram levels run to the banks, N5 town band lower and label over its move; cuts packed from the top, why-here block follows, perspective room grows; V1 clear of stops, names and its arrows; v9.4: v9.4: at least 30 % (or 90 m) of a cut in view, so flat cuts get taller; v9.3: v9.3: section fit by the drawing without its sky, at least 55 % (or 150 m) of the cut in view, sky cut to the room; v9.2: v9.2 (fresh review of run 4): sections fill their rooms (cropped round the stream, own scale bar), no intro line, short key words, V1 in ink, land use = 5 classes + other with names on one row, program brief under the story, diagram arrows start at their cause, slots as voids, FLAG count includes carried FLAGs; v9.1: v9.1: diagrams to DIAGRAM_STYLE v2 (Niarchos measured: low ground, names under it, small accent); v9: v9: why-here diagrams redrawn on the shared diagram kit (pc_dg_kit, DIAGRAM_STYLE.md; Aras 21:30 UTC); v8.4: v8.4: scale + north above the plan (off his drawing), intro wording; v8.3: v8.3: B cut subtitle "along the bank", N3 diagram label clear of the dots; v8.2: v8.2: 4-corner picture rectangles of the masterplan left out (no solid green blocks), the river filled as water; v8.1: v8.1: masterplan sheet / texture frames (> 0.1 km2) left out, legend columns balanced, intro without the old levels text; v8: plan = his masterplan drawing; why-here story + one concept diagram per node; water bars and meets line gone; v7.5: v7.5: section_lines v2 (B along the bank: looks at the stream, no water bars); v7.4: v7.4: cut marks = two end arrows, no line between (pages_common v3.14); v7.3: v7.3: scale + north ignore the node frame line; v7.2: v7.2: the proposal from his masterplan SVG (MasterplanBase cache); v7.1: v7.1: R01 cut arrows (pc_cut_mark), no city-square ring, land-use columns >= 45 mm; v7: v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
 ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 PAGE_W, PAGE_H = 420.0, 297.0
 NODE_MARGIN_M = 25.0                       # m of town round the node frame on the plan
@@ -35,7 +35,8 @@ MP_WORDS = {"existing_buildings": (True, u"buildings"), "builts2": (True, u"buil
             "iskele_kenari": (False, u"pier edges"), "normal": (False, u"walks"), "kopruler": (False, u"bridges"),
             "path": (False, u"paths"), "desings": (False, u"designed places"), "istinaat": (False, u"retaining walls"),
             "yeni": (False, u"cycle path"), "kesin_yesil": (False, u"new green"), "belki_yesil": (False, u"green, possible"),
-            "su_bitkii": (False, u"water planting"), "yol_kenar": (False, u"street edges")}
+            "su_bitkii": (False, u"water planting"), "yol_kenar": (False, u"street edges"),
+            "PLANTING_v13_1": (False, u"trees (planting plan)"), "begum_su_merdiven": (False, u"water steps")}
 LBL_LAYERS = ("bus_stops", "heritage_loop", "city_square", "section_names")   # v6.5: plan labels kept apart
 SQUARE_C = "C07A2E"                        # the city-square ring (a contrast to the red loop and blue lines; ours)
 CUT_C = "2C2219"
@@ -628,6 +629,93 @@ def node_frame(B, corners):
     return B["Frame"]([back(u0, v0), back(u1, v0), back(u1, v1), back(u0, v1)])
 
 
+# ================================================================ v11: the plan IS a crop of his master.svg
+# Aras 15 Nov 06:19-06:24 UTC: "this is the latest masterplan ... use this masterplan for node slides", "nodes can take
+# their zoom-ins directly from the svg", "no need to draw it really". Each node plan is his drawing itself, cut to the
+# node frame and turned like the plan: the browser on his PC (Edge or Chrome, headless) renders master.svg wrapped in one
+# matrix that maps it straight onto the plan box, at 300 dpi. Cached per node (svg size + time, frame, size).
+CROP_SVG = os.path.join("Data", "assets", "plan", "master.svg")
+CROP_DIR = os.path.join("cached", "bergama_node_crops")
+CROP_DPI = 300.0
+BROWSERS = (r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+            r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+            r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+            r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe")
+
+
+def svg_crop(node, Wm, pgS, box, log):
+    """PNG of master.svg mapped onto the page box (x0, y0, x1, y1 mm) by pgS (survey m -> page mm); Wm = the
+    MasterplanBase matrix (svg units -> survey m). Returns the PNG path or None (FLAG logged)."""
+    import subprocess
+    src = os.path.join(ROOT, CROP_SVG)
+    if not os.path.exists(src):
+        log.append(u"FLAG node plan crop: %s is missing (copy master.svg there)" % src)
+        return None
+    x0, y0, x1, y1 = box
+    PW, PH = int(round((x1 - x0) / 25.4 * CROP_DPI)), int(round((y1 - y0) / 25.4 * CROP_DPI))
+    a, b, c, d, e, f = Wm
+
+    def px(sx, sy):                                       # svg unit -> survey -> page mm -> pixel (y down)
+        q = pgS((a * sx + c * sy + e, b * sx + d * sy + f))
+        return ((q[0] - x0) / (x1 - x0) * PW, (y1 - q[1]) / (y1 - y0) * PH)
+    o_, ex_, ey_ = px(0.0, 0.0), px(1000.0, 0.0), px(0.0, 1000.0)
+    M = ((ex_[0] - o_[0]) / 1000.0, (ex_[1] - o_[1]) / 1000.0, (ey_[0] - o_[0]) / 1000.0, (ey_[1] - o_[1]) / 1000.0,
+         o_[0], o_[1])
+    st = os.stat(src)
+    stamp = u"%d/%d/%s/%dx%d" % (st.st_size, int(st.st_mtime), u",".join(u"%.4f" % v for v in M), PW, PH)
+    out_dir = os.path.join(ROOT, CROP_DIR)
+    if not os.path.isdir(out_dir):
+        os.makedirs(out_dir)
+    png, js = os.path.join(out_dir, node + u".png"), os.path.join(out_dir, node + u".json")
+    try:
+        if os.path.exists(png) and json.load(open(js, encoding="utf-8")).get("stamp") == stamp:
+            log.append(u"plan = master.svg crop (cached): %s, %d x %d px" % (png, PW, PH))
+            return png
+    except Exception:
+        pass
+    br = next((p_ for p_ in BROWSERS if os.path.exists(p_)), None)
+    if br is None:
+        log.append(u"FLAG node plan crop: no Edge / Chrome found (%s)" % u"; ".join(BROWSERS))
+        return None
+    t0 = time.time()
+    with open(src, encoding="utf-8") as f_:
+        txt = f_.read()
+    i0 = txt.index("<svg")
+    i1 = txt.index(">", i0) + 1
+    j1 = txt.rindex("</svg>")
+    head = (u'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="%dpx" '
+            u'height="%dpx" viewBox="0 0 %d %d"><rect width="%d" height="%d" fill="#ffffff"/>'
+            u'<g transform="matrix(%.9f %.9f %.9f %.9f %.6f %.6f)">' % ((PW, PH, PW, PH, PW, PH) + M))
+    wrap = os.path.join(out_dir, node + u"_wrap.svg")
+    with open(wrap, "w", encoding="utf-8") as f_:
+        f_.write(txt[:i0])
+        f_.write(head)
+        f_.write(txt[i1:j1])
+        f_.write(u"</g></svg>")
+    del txt
+    if os.path.exists(png):
+        os.remove(png)
+    cmd = [br, "--headless=new", "--disable-gpu", "--hide-scrollbars", "--force-device-scale-factor=1",
+           "--default-background-color=FFFFFFFF", "--virtual-time-budget=120000", "--window-size=%d,%d" % (PW, PH),
+           "--screenshot=%s" % png, "file:///" + wrap.replace("\\", "/")]
+    try:
+        subprocess.run(cmd, timeout=280, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    except Exception as ex_:
+        log.append(u"FLAG node plan crop: the browser failed (%s: %s)" % (type(ex_).__name__, ex_))
+    try:
+        os.remove(wrap)
+    except Exception:
+        pass
+    if not os.path.exists(png) or os.path.getsize(png) < 1000:
+        log.append(u"FLAG node plan crop: no picture came out of %s" % br)
+        return None
+    with open(js, "w", encoding="utf-8") as f_:
+        json.dump({"stamp": stamp, "svg": CROP_SVG, "px": [PW, PH], "matrix_px": list(M)}, f_)
+    log.append(u"plan = master.svg crop: %s, %d x %d px, %.1f s (%s)" % (png, PW, PH, time.time() - t0,
+                                                                     os.path.basename(br)))
+    return png
+
+
 def load_mb(log):
     """v5: the library part of the newest MapBase script (mb_load, mb_draw, mb_legend): one base map for every map
     (Aras 14 Nov 12:17-12:18 UTC: "create one map from that (outlines and etc.) and every map should use that")"""
@@ -733,11 +821,17 @@ def node_page(cfg, log):
         # v10 (Aras 15 Nov 06:12 UTC "in the nodes it is so appearant how missing our basemap is"): the shared base
         # map (MapBase: joined streets, houses with shadows) is always under; his drawing adds everything but his own
         # copy of the existing roads and buildings (ev-yol, builts2), which were fragments
-        items += its_
+        crop_png = svg_crop(node, MPC["matrix"], lambda xy: (X0 + F.local(xy)[0] * k, Y0 + F.local(xy)[1] * k),
+                            (X0, Y0, X0 + F.w * k, Y0 + F.h * k), log)
+        if crop_png:                                      # v11: his drawing itself; nothing redrawn
+            items.append(("image", X0, Y0, F.w * k, F.h * k, crop_png, None, False, None, "masterplan_svg"))
+        else:
+            items += its_
         mb_in = True
-        mp_cnt = MPn["mp_draw"](MPC, items, lambda xy: (X0 + F.local(xy)[0] * k, Y0 + F.local(xy)[1] * k), k,
+        mp_cnt = MPn["mp_draw"](MPC, items if not crop_png else [], lambda xy: (X0 + F.local(xy)[0] * k, Y0 + F.local(xy)[1] * k), k,
                                 (X0, Y0, X0 + F.w * k, Y0 + F.h * k), None,
-                                layers=set(kk.split("/")[0] for kk in MPC["layers"]) - set(MP_EXISTING),
+                                layers=set(kk.split("/")[0] for kk in MPC["layers"]) - (set() if crop_png else
+                                                                                        set(MP_EXISTING)),
                                 style={"fill": {"su_outline": P["WATER_C"]}})   # v8.2: his river (a picture) as water
         seen = set()
         for kk in mp_cnt:
@@ -755,7 +849,8 @@ def node_page(cfg, log):
                                                     "line", col, nm[1]))
         log.append(u"plan = his masterplan: %s" % (u", ".join(u"%s %d" % kv for kv in sorted(mp_cnt.items())) or
                                                   u"nothing in this frame"))
-        ex_rows[:0] = [r_ for r_ in MB["mb_legend"](MC, mb_cnt) if r_[0] in ("box", "line")][:4]
+        if not crop_png:
+            ex_rows[:0] = [r_ for r_ in MB["mb_legend"](MC, mb_cnt) if r_[0] in ("box", "line")][:4]
     except Exception as ex_:
         if not mb_in:
             items += its_
