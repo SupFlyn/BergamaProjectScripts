@@ -203,7 +203,7 @@ bergama_page_seasons: Data/bergama_water_board_data.py  # hand, 14 Nov (v1.6: LE
 bergama_page_seasons: scripts/bergama_water_board_v20_3.py  # hand, 14 Nov (v1.6: RAIN, PLANT_BANDS, BAND_DAYS, BAND_COL literals only)
 bergama_slide01: Data/bergama_pages_common.py  # hand, 14 Nov
 bergama_slide01: scripts/bergama_p02_what_is_there_v2_11.py  # hand, 14 Nov
-bergama_slide01: scripts/bergama_page01_axo_v3_3.py  # hand, 14 Nov
+bergama_slide01: scripts/bergama_page01_axo_v3_4.py  # hand, 14 Nov
 bergama_slide01: scripts/bergama_page01_free_v1_17.py  # hand, 14 Nov
 bergama_slide01: scripts/bergama_page01_move_v1_19.py  # hand, 14 Nov
 bergama_page05_access: scripts/bergama_page_transit_v2_10.py  # hand, 14 Nov
@@ -224,6 +224,7 @@ bergama_masterplanbase: Data/bergama_pages_common.py  # hand, 14 Nov
 bergama_page01_axo: cached/booklet/selinus_board/items.json  # hand, 14 Nov (v2.0: the booklet p03 axonometric)
 bergama_page01_axo: Data/bergama_dem_glo30.json  # hand, 15 Nov (v2.5: the terrain under the redrawn streets and buildings)
 bergama_page01_axo: Data/cutouts/  # 15 Nov (v3.0: the asset tree cutouts, traced live)
+bergama_page01_axo: Data/bergama_b19_plan_data.py  # 15 Nov (v3.4: TREE_EMBED, Aras's painted tree symbols)
 bergama_page05_access: scripts/bergama_page_transit_v2_13.py  # hand, 14 Nov
 bergama_page05_access: scripts/bergama_page_transit_v2_14.py  # hand, 14 Nov
 bergama_page05_access: scripts/bergama_page_transit_v2_15.py  # hand, 14 Nov
