@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Bergama Group 6: PAGE SPINE v2.9 (14 Nov 2026; v2.9 = DIAGRAM_STYLE.md v2 refinements (ground low with ~70 % air, the cut 3 x the rest, a small accent, names on brackets under the ground, no numbers on the strip: counts as text under it); v2.8 = Aras 21:31 UTC "all the diagrams are awful": "What meets here" redrawn to library/diagram_style/DIAGRAM_STYLE.md v1 with pages_common pc_dg_kit (one cut across the stream, poché ground, context rhythm, drivers at the edges, one accent for the move, people on it, at most 4 labels, the claim as title); the card plans, tiles and hub glyph removed; v2.7 = Aras 21:21 UTC "recheck every drawing for not applied feedback": the Q500 level mark left in the hub glyph and its key removed (Aras: remove the water and level markers), card plans and their counts cut to site_alan (16:17 rule), masterplan rows say "proposed" not "masterplan" (no sources on drawings), card water textured (water rule); v2.6 = run 7 review: neighbourhood and street lines cut to their frames (a line's clip id sits at item[4]), smoother area edges (8 mask pixels a mm); v2.5 = run 6: a shorter legend row (it ran over its column); v2.4 = Aras 16:19 UTC "mark the areas properly mark the areas that are neighborhoods diversify neighborhoods according to their specialities" and 16:22 UTC on the what-meets-here diagrams "too basic ... more diagramatic more in a architectural design language way": node areas follow their blocks, not boxes; the neighbourhoods (OSM mahalle boundaries) drawn and named with their main fabric, the two neighbourhood nodes (N1, N5) coloured by it; each card's diagram is now the node's own plan (figure-ground, stream, masterplan, hub / loop stops / places at their points, bar, north) over a row of four tiles; the legend a band under the map; the frame from pages_common SiteMap; v2.3 = Aras 16:17 UTC "KEEP EVERY DRAWING STRICTLY IN SITE_ALAN" (the one exception: Plan 01, Page02): the map strip is now exactly site_alan, turned along its long side, nothing drawn outside it; v2.2 = Aras 15:3x UTC "please take these from the masterplan that i have given you anything that concerns masterplans that should use it": the proposal on the map (terraces, canopy, walks, bridges, retaining walls, cycle route, designs) now comes from the MasterplanBase cache (his B19_setB_layers259.svg), the hand-drawn spine line is gone; v2.1 = run 4 review: upper spoke names clear of their marks, the diagram taller and the cards down to the page margin (23 mm were empty)), Panel Review II slide 2: the six nodes along the streamside spine
+"""Bergama Group 6: PAGE SPINE v2.17 (15 Nov 2026; v2.17 = Aras 06:41 UTC "god these diagrams are awful": the six flat strips replaced by six axonometrics of each node's own ground, from the data (node frame as a slab with its cut face; streets, stream, buildings raised by their recorded floors, shop buildings with dark roofs; our move from the masterplan in the accent; the bus routes and the heritage loop as bold flows; pins for the hub, loop stops and places), in a 3 x 2 grid of cards with one key; v2.16 = Aras 06:43 UTC "dont leave white spots that are not painted and every painting needs to be a blob without any gaps in the middle": each node area is closed wider step by step (from 12 m up to 60 m) until it is one piece, then every hole inside it is filled; v2.15 = Aras 06:19 UTC master.svg is the masterplan (MasterplanBase v1.5): its walk layer yuruyus/circulation in the accent like the other walks; v2.14 = Aras 05:53 UTC "why is buildings etc. is not showing over there": 42 of the bridges' texture pieces in the masterplan cache are picture-area outlines larger than the whole map (each about 21,000 mm2) and drew an opaque grey sheet over the buildings and streets; any masterplan piece over a quarter of the map is now dropped (logged), and the bridges get their accent colour; v2.13 = Aras 15 Nov 04:58 UTC "All defaults are fine" (default: the proposed masterplan pieces get stronger colours): the proposal on the map and its legend rows in the accent family (C07A2E, the one colour for our move), the existing fabric stays grey; v2.12 = run 10 check: the N4 tunnel mouth drawn as a portal in the bank wall (it read as a rock), the shops arrow shorter and further right so it never crosses the raised point's stems; v2.11 = run 9 review: short arrows (12 mm) from each cause toward the hub, grey where no hub exists (the accent is only our move), the hub tile on the street ground clear of the figures, the Roman bridge drawn at N2 and the tunnel mouth at N4 (the ideas name them), map places nudged off the hub tiles with a hairline leader, legend rows for the stream and the node colours, N6 says what is missing, a wider gutter after the strip; v2.10 = run 8 review: the six nodes as rows across the page (the cards were 60-75 % empty, the strips 58 x 6 mm), each strip about 140 x 29 mm with the hub as its map tile on the ground and up to 3 arrows running to it, a dashed empty footprint where there is no hub, the bus road in grey, one dome for the heritage loop, the town one continuous band; the stream line on the map; neighbourhood names placed after the node tags and kept off them; v2.9 = DIAGRAM_STYLE.md v2 refinements (ground low with ~70 % air, the cut 3 x the rest, a small accent, names on brackets under the ground, no numbers on the strip: counts as text under it); v2.8 = Aras 21:31 UTC "all the diagrams are awful": "What meets here" redrawn to library/diagram_style/DIAGRAM_STYLE.md v1 with pages_common pc_dg_kit (one cut across the stream, poché ground, context rhythm, drivers at the edges, one accent for the move, people on it, at most 4 labels, the claim as title); the card plans, tiles and hub glyph removed; v2.7 = Aras 21:21 UTC "recheck every drawing for not applied feedback": the Q500 level mark left in the hub glyph and its key removed (Aras: remove the water and level markers), card plans and their counts cut to site_alan (16:17 rule), masterplan rows say "proposed" not "masterplan" (no sources on drawings), card water textured (water rule); v2.6 = run 7 review: neighbourhood and street lines cut to their frames (a line's clip id sits at item[4]), smoother area edges (8 mask pixels a mm); v2.5 = run 6: a shorter legend row (it ran over its column); v2.4 = Aras 16:19 UTC "mark the areas properly mark the areas that are neighborhoods diversify neighborhoods according to their specialities" and 16:22 UTC on the what-meets-here diagrams "too basic ... more diagramatic more in a architectural design language way": node areas follow their blocks, not boxes; the neighbourhoods (OSM mahalle boundaries) drawn and named with their main fabric, the two neighbourhood nodes (N1, N5) coloured by it; each card's diagram is now the node's own plan (figure-ground, stream, masterplan, hub / loop stops / places at their points, bar, north) over a row of four tiles; the legend a band under the map; the frame from pages_common SiteMap; v2.3 = Aras 16:17 UTC "KEEP EVERY DRAWING STRICTLY IN SITE_ALAN" (the one exception: Plan 01, Page02): the map strip is now exactly site_alan, turned along its long side, nothing drawn outside it; v2.2 = Aras 15:3x UTC "please take these from the masterplan that i have given you anything that concerns masterplans that should use it": the proposal on the map (terraces, canopy, walks, bridges, retaining walls, cycle route, designs) now comes from the MasterplanBase cache (his B19_setB_layers259.svg), the hand-drawn spine line is gone; v2.1 = run 4 review: upper spoke names clear of their marks, the diagram taller and the cards down to the page margin (23 mm were empty)), Panel Review II slide 2: the six nodes along the streamside spine
 (output/presentation/2.pdf; one script per page, Aras 14 Nov 10:46 UTC).
 
 v2 = Aras 15:25 UTC: "dont have this like that have nodes more like pointers and give some diagrams to explain and draw it
@@ -22,7 +22,7 @@ Grasshopper: a Button on any input runs it.
 """
 import os, re, time, math, zlib, json
 
-VERSION = "v2.9"
+VERSION = "v2.17"
 SLIDE = 2
 GH_LABEL = "PageSpine"
 OUT_FOLDER = "bergama_page_spine"
@@ -36,7 +36,10 @@ NAME = "Spine"
 PAGE_W, PAGE_H, MARGIN = 420.0, 297.0, 12.0      # A3 landscape (mm)
 SIDE_W = 95.0                                    # the column right of the map: title, north, scale (v2.4: legend under the map)
 DEN_STEP = 500                                   # the scale is rounded up to a 1:500 step
-CARD_GAP, CARD_PAD = 4.0, 2.4                    # mm
+AXO_H = 46.0                                     # v2.17: the axonometric's height in a card (mm)
+CARD_GAP = 6.0                                   # mm
+ROW_COLS = (44.0, 140.0, 80.0)                   # v2.10 node rows: name + claim | strip | what meets (mm); the rest = idea
+ROW_GAP = 4.0                                    # mm
 NODE_ALPHA = 0.32                                # the node areas' opacity
 EDGE_ALPHA = 0.9                                 # v2.4: their edge (one mask pixel, 0.25 mm)
 MASK_PPM = 8.0                                   # v2.4: mask pixels a mm (v2.6: 8, smoother edges)
@@ -53,6 +56,11 @@ MP_ROWS = [(u"terraces (proposed)", ("teras_-_canopy/teras",)), (u"canopy (propo
            (u"walks (proposed)", ("yuruyus",)), (u"bridges (proposed)", ("kopruler",)),
            (u"designs (proposed)", ("desings",)), (u"retaining walls (proposed)", ("istinaat",)),
            (u"cycle route (proposed)", ("bisiklet",))]   # the layer names as the nodes pages use them
+MP_STYLE = {   # v2.13: the proposal in the accent family (DIAGRAM_STYLE: C07A2E = our intervention); key words of the layers
+    "area": {"kopruler": "A8641F", "teras": "D9A46A", "kanopi": "F2DCC0"},
+    "fill": {"kopruler": "A8641F", "teras": "D9A46A", "kanopi": "F2DCC0", "iskele_kenari": "C07A2E", "normal": "C07A2E", "circulation": "C07A2E", "desings": "E6BE8E"},
+    "stroke": {"kanopi": "C07A2E", "desings": "A8641F", "istinaat": "7A3E0C", "kopruler": "8F4E14",
+               "normal": "C07A2E", "iskele_kenari": "C07A2E", "circulation": "C07A2E"}}
 IDEAS = {   # Aras's two marks (thread "Develop building function ideas", 14 Nov 15:13-15:16 UTC); the others still open
     "N2": u"stepped gathering terraces into the river by the Roman bridge · a split ramp down to the water",
     "N4": u"gathering where the stream leaves the Roman tunnels · a route on top · a raised gathering point"}
@@ -153,10 +161,18 @@ def soft_poly(R, colour, alpha, layer, clip, ppm=4.0):
 
 
 def mp_swatch(ns, C, prefixes):
-    """the colour a masterplan group is drawn in (its first piece): ("area", fill, stroke) / ("line", stroke, None)"""
+    """the colour a masterplan group is drawn in (its first piece): ("area", fill, stroke) / ("line", stroke, None);
+    v2.13: through MP_STYLE, as mp_draw draws it"""
+    word = lambda key, d_: next((v for w_, v in d_.items() if w_ in key.split("/")), None)
     for pre in prefixes:
         for key in ns["mp_keys"](C, pre):
             for kind, fill, stroke, w, P in C["layers"][key]:
+                if kind == "a":
+                    fill = word(key, MP_STYLE["area"]) or fill
+                fill = word(key, MP_STYLE["fill"]) or fill
+                stroke = word(key, MP_STYLE["stroke"]) or stroke
+                if kind == "a" and fill:
+                    return ("area", fill, None)
                 if kind == "a":
                     return ("area", next((v for wd, v in ns["AREA_FILL"].items() if wd in key.split("/")),
                                          ns["AREA_DEFAULT"]), None)
@@ -206,6 +222,47 @@ def dilate(g, W, H, r):
     return o
 
 
+def comps(g, W, H, keep=False):
+    """v2.16: the number of 4-connected pieces of g; keep=True: a grid of only the largest piece"""
+    lab = [0] * (W * H)
+    n, sizes = 0, [0]
+    for s0 in range(W * H):
+        if g[s0] and not lab[s0]:
+            n += 1
+            lab[s0], st, c = n, [s0], 0
+            while st:
+                i = st.pop()
+                c += 1
+                x, y = i % W, i // W
+                for j in ((i - 1) if x > 0 else -1, (i + 1) if x < W - 1 else -1, (i - W) if y > 0 else -1,
+                          (i + W) if y < H - 1 else -1):
+                    if j >= 0 and g[j] and not lab[j]:
+                        lab[j] = n
+                        st.append(j)
+            sizes.append(c)
+    if not keep:
+        return n
+    big = max(range(1, n + 1), key=lambda m: sizes[m]) if n else 0
+    return bytearray(1 if lab[i] == big and big else 0 for i in range(W * H))
+
+
+def fill_holes(g, W, H):
+    """v2.16: every empty pixel not reached from the grid's border becomes part of the area"""
+    out = bytearray(1 for _ in range(W * H))
+    st = [i for i in range(W * H) if (i % W in (0, W - 1) or i // W in (0, H - 1)) and not g[i]]
+    for i in st:
+        out[i] = 0
+    while st:
+        i = st.pop()
+        x, y = i % W, i // W
+        for j in ((i - 1) if x > 0 else -1, (i + 1) if x < W - 1 else -1, (i - W) if y > 0 else -1,
+                  (i + W) if y < H - 1 else -1):
+            if j >= 0 and out[j] and not g[j]:
+                out[j] = 0
+                st.append(j)
+    return out
+
+
 def erode(g, W, H, r):
     inv = bytearray(0 if v else 1 for v in g)
     return bytearray(0 if v else 1 for v in dilate(inv, W, H, r))
@@ -243,7 +300,8 @@ def node_mask(M, T, k, C, frame, log, nk):
             fill_ring(g, W, H, gx0, gy1, MASK_PPM, [T(p) for p in A[0]], 1)
             na += 1
     r1, r2 = max(1, int(round(CLOSE_M * k * MASK_PPM))), max(1, int(round(ERODE_M * k * MASK_PPM)))
-    g = erode(dilate(g, W, H, r1), W, H, r2)
+    g0 = g
+    g = erode(dilate(g0, W, H, r1), W, H, r2)
     rv, fm = bytearray(W * H), bytearray(W * H)
     for Rr in (C.get("polys") or {}).get("river", []):
         fill_ring(rv, W, H, gx0, gy1, MASK_PPM, [T(p) for p in Rr], 1)
@@ -251,6 +309,21 @@ def node_mask(M, T, k, C, frame, log, nk):
     for i in range(W * H):
         if rv[i] and fm[i]:
             g[i] = 1
+    cm = CLOSE_M                                         # v2.16: one blob: close wider until one piece (60 m at most)
+    while comps(g, W, H) > 1 and cm < 60.0:
+        cm += 8.0
+        r1 = max(1, int(round(cm * k * MASK_PPM)))
+        r2 = max(1, int(round((cm - (CLOSE_M - ERODE_M)) * k * MASK_PPM)))
+        g = erode(dilate(g0, W, H, r1), W, H, r2)
+        for i in range(W * H):
+            if rv[i] and fm[i]:
+                g[i] = 1
+    n_ = comps(g, W, H)
+    if n_ > 1:
+        log.append(u"%s area: still %d pieces after closing over 60 m; the largest kept" % (nk, n_))
+        g = comps(g, W, H, keep=True)
+    g = fill_holes(g, W, H)
+    log.append(u"%s area: one piece, closed over %.0f m, holes filled" % (nk, cm))
     log.append(u"%s area: %d buildings + %d ground areas in its frame, closed over %.0f m, back %.0f m, + the stream "
                u"in the frame; %.0f %% of the frame's own surface" % (nk, nb, na, CLOSE_M, ERODE_M,
                                                                      100.0 * sum(1 for i in range(W * H) if g[i] and fm[i]) / max(1, sum(fm))))
@@ -328,70 +401,310 @@ def her_kind(name):
     return "basilica" if u"kızıl avlu" in n or u"kizil avlu" in n else "mosque" if u"cami" in n else "dome"
 
 
-def node_strip(G, nk, info, x, ytop, w):
-    """v2.9 "What meets here" to DIAGRAM_STYLE.md v2 refinements: one long low cut across the stream, the ground low
-    (about 70 % air above) and the one heavy line, poché under it; the town one low band on it; water only to its normal
-    level; drivers at the edges (bus road left, the loop stop's silhouette right, grey); the move a small accent (walk
-    hub: one line of terraces into the bed; hidden hub: one slab over the culvert; N4: the raised point on stems), people
-    on it; the one accent label in the air, every other name on a hairline bracket under the ground; no numbers on the
-    strip (the counts are in the line under it). Drawn with pages_common pc_dg_kit (local mm). Returns (items, height)"""
-    H_ = 24.0
+AXO_A = 22.0                                     # v2.17: plan turned 22 degrees, depth at 0.5, heights x 2.2 (diagram)
+AXO_F, AXO_Z = 0.5, 2.2
+AXO_SLAB = 2.2                                   # mm, the ground slab's cut face
+STOREY_M = 3.0                                   # Aras 12 Nov: storey height 3.0 m
+AX = dict(top="ECE8DF", street="FFFFFF", side="D9D4CA", wall_l="E4E0D8", wall_r="CBC6BC", roof="FFFFFF",
+          edge="8E877C", shop="5E5850", bus="3E5C76", loop="8B2D2D", water="A2B6B5", move="C07A2E",
+          move_t="DDAE76", canopy="F2DCC0")
+
+
+def clip_poly(P, L1, L2):
+    """Sutherland-Hodgman against the box 0..L1 x 0..L2 (local m)"""
+    for ax, lim, keep_lo in ((0, 0.0, True), (0, L1, False), (1, 0.0, True), (1, L2, False)):
+        if not P:
+            return P
+        inside = (lambda p: p[ax] >= lim) if keep_lo else (lambda p: p[ax] <= lim)
+        out = []
+        for i in range(len(P)):
+            a, b = P[i - 1], P[i]
+            ia, ib = inside(a), inside(b)
+            if ia != ib:
+                t = (lim - a[ax]) / ((b[ax] - a[ax]) or 1e-9)
+                out.append((a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1])))
+            if ib:
+                out.append(b)
+        P = out
+    return P
+
+
+def clip_line(P, L1, L2):
+    """runs of a polyline inside the box 0..L1 x 0..L2 (Liang-Barsky per segment)"""
+    runs, cur = [], []
+    for a, b in zip(P, P[1:]):
+        t0, t1 = 0.0, 1.0
+        dx, dy = b[0] - a[0], b[1] - a[1]
+        ok = True
+        for p_, q_ in ((-dx, a[0]), (dx, L1 - a[0]), (-dy, a[1]), (dy, L2 - a[1])):
+            if p_ == 0:
+                if q_ < 0:
+                    ok = False
+                    break
+            else:
+                r = q_ / p_
+                if p_ < 0:
+                    t0 = max(t0, r)
+                else:
+                    t1 = min(t1, r)
+        if not ok or t0 > t1:
+            if len(cur) > 1:
+                runs.append(cur)
+            cur = []
+            continue
+        A = (a[0] + t0 * dx, a[1] + t0 * dy)
+        B = (a[0] + t1 * dx, a[1] + t1 * dy)
+        if not cur or abs(cur[-1][0] - A[0]) > 1e-6 or abs(cur[-1][1] - A[1]) > 1e-6:
+            if len(cur) > 1:
+                runs.append(cur)
+            cur = [A]
+        cur.append(B)
+        if t1 < 1.0:
+            runs.append(cur)
+            cur = []
+    if len(cur) > 1:
+        runs.append(cur)
+    return runs
+
+
+def node_axo(G, K, X, nk, info, x0, y0, W, H, log):
+    """v2.17 (Aras 15 Nov 06:41 UTC "god these diagrams are awful"): the node as a small axonometric of its own ground,
+    from the data: the node frame as a slab with its cut face, the streets, the stream (MapBase), our move (MasterplanBase:
+    terraces, canopy, walks, bridges), the bus routes that run through it (OSM route ways) and the heritage loop's legs,
+    every building in it raised by its recorded floors (MapBase; unrecorded = the median of the node's recorded ones,
+    logged), shop buildings with dark roofs, and pins for the hub, the loop stops and the project's places.
+    The frame's long side runs left to right, turned as the map. Returns items"""
+    P_, L_, T_, circle = G["P_"], G["L_"], G["T_"], G["circle"]
+    M, C, D, H_, NODES, mpns, MPC = X["M"], X["C"], X["D"], X["H"], X["NODES"], X["mpns"], X["MPC"]
+    T = M.T
+    cs = NODES[nk]["corners"]
+    o = cs[0]
+    e1, e2 = (cs[1][0] - o[0], cs[1][1] - o[1]), (cs[3][0] - o[0], cs[3][1] - o[1])
+    p1 = (T(cs[1])[0] - T(o)[0], T(cs[1])[1] - T(o)[1])
+    p2 = (T(cs[3])[0] - T(o)[0], T(cs[3])[1] - T(o)[1])
+    if abs(p2[0]) > abs(p1[0]):                          # u = the side that runs most left-right on the map
+        e1, e2, p1, p2 = e2, e1, p2, p1
+    L1, L2 = math.hypot(*e1), math.hypot(*e2)
+    u1, u2 = (e1[0] / L1, e1[1] / L1), (e2[0] / L2, e2[1] / L2)
+    fu, fv = (1.0 if p1[0] >= 0 else -1.0), (1.0 if p2[1] >= 0 else -1.0)
+
+    def uv(p):
+        d = (p[0] - o[0], p[1] - o[1])
+        u, v = d[0] * u1[0] + d[1] * u1[1], d[0] * u2[0] + d[1] * u2[1]
+        return ((u if fu > 0 else L1 - u), (v if fv > 0 else L2 - v))
+    ca, sa = math.cos(math.radians(AXO_A)), math.sin(math.radians(AXO_A))
+    bld = []                                             # (local ring, floors, shop, fab)
+    fl_known = []
+    for i, (Rb, fab_, com, src, nm) in enumerate(C["bld"]):
+        if len(Rb) < 3:
+            continue
+        c_ = uv(cen_of(Rb))
+        if not (0.0 <= c_[0] <= L1 and 0.0 <= c_[1] <= L2):
+            continue
+        Q = clip_poly([uv(p) for p in Rb], L1, L2)
+        if len(Q) < 3:
+            continue
+        fl = (C.get("bld_x") or [[0]] * len(C["bld"]))[i][0] if i < len(C.get("bld_x") or []) else 0
+        try:
+            fl = float(fl or 0)
+        except (TypeError, ValueError):
+            fl = 0.0
+        if fl > 0:
+            fl_known.append(fl)
+        bld.append([Q, fl, com, fab_])
+    med = sorted(fl_known)[len(fl_known) // 2] if fl_known else 2.0
+    n_guess = sum(1 for b in bld if not b[1])
+    for b in bld:
+        b[1] = b[1] or med
+    hmax = max([b[1] * STOREY_M for b in bld] + [6.0])
+    log.append(u"%s diagram: %d buildings (floors recorded for %d; %d drawn at the node's median %.0f); frame %.0f x %.0f m"
+               % (nk, len(bld), len(bld) - n_guess, n_guess, med, L1, L2))
+    # scale to the box: the slab's corners, its cut face and the tallest building (+ pins)
+    pin_mm = 9.0
+    xs_ = [u * ca - v * sa for u, v in ((0, 0), (L1, 0), (L1, L2), (0, L2))]
+    ys_ = [(u * sa + v * ca) * AXO_F for u, v in ((0, 0), (L1, 0), (L1, L2), (0, L2))]
+    s = min(W / (max(xs_) - min(xs_)), (H - AXO_SLAB - pin_mm - 1.0) / (max(ys_) - min(ys_) + hmax * AXO_Z * 0.0 + 1e-9))
+    s = min(s, (H - AXO_SLAB - pin_mm - 1.0) / (max(ys_) - min(ys_) + hmax * AXO_Z))
+    ox = x0 + (W - s * (max(xs_) - min(xs_))) / 2.0 - s * min(xs_)
+    oy = y0 + AXO_SLAB - s * min(ys_)
+    Pj = lambda u, v, z=0.0: (ox + s * (u * ca - v * sa), oy + s * ((u * sa + v * ca) * AXO_F + z * AXO_Z))
+    lay = "cards"
     it = []
-    k = G["pc_dg_kit"](it, x, ytop - H_, w, H_, "cards", w, H_)
-    kind, hb = info["hub_kind"], info["hubs"]
-    yg, xm = 8.0, w * 0.5                                # ground at a third of the height: 67 % air
-    bed, base = yg - 2.6, yg - 3.4
-    if kind == "walk":
-        prof = [(0.0, yg), (xm - 9.0, yg), (xm - 6.0, bed), (xm + 5.0, bed), (xm + 7.0, yg), (w, yg)]
-    else:
-        prof = [(0.0, yg), (xm - 7.0, yg), (xm - 5.0, bed), (xm + 5.0, bed), (xm + 7.0, yg), (w, yg)]
-    k["water"](xm - 6.5, xm + 6.5, bed, bed + 1.1)      # the normal level only
-    k["ground"](prof, base)
-    k["city"](prof, 4.0, xm - 10.5, 2.0, 0.9, xm, False)
-    k["city"](prof, xm + 8.0, w - 5.5, 2.0, 0.9, xm, False)
-    yb = base - 0.7                                      # the brackets' line, under the ground
-    if info["bus"]:                                      # driver, left edge: the bus road
-        k["road"](0.3, yg, 5.0, 2.2)
-        k["arrow"]((3.4, yg + 3.4), (8.6, yg + 3.4), "bus")
-        k["bracket"](0.3, 7.0, yb, u"BUSES")
-    if info["loop"]:                                     # driver, right edge: the loop stop's monument
-        kd = her_kind(info["loop"][0][1])
-        k["silhouette"](kd, w - 3.6, yg, 0.35 if kd == "dome" else 0.2 if kd == "mosque" else 0.11)
-        k["bracket"](w - 8.0, w - 0.3, yb, u"HERITAGE LOOP")
-    if info["shops"]:
-        k["bracket"](xm + 8.5, xm + 16.0, yb, u"SHOPS")
-    mx, ly = xm, yg + 4.6
-    if kind == "walk":                                   # one line of terraces into the bed, people on it
-        k["steps"](xm - 9.0, xm - 6.0, yg, bed, 3, bed)
-        k["person"](xm - 7.5, yg - 0.87)
-        k["person"](xm - 10.5, yg)
-        mx = xm - 8.0
-    elif kind == "hidden":                               # one slab over the culvert
-        k["move"]([(xm - 7.0, yg), (xm + 7.0, yg), (xm + 7.0, yg + 0.5), (xm - 7.0, yg + 0.5)])
-        k["people"]([xm - 3.0, xm + 1.6], yg + 0.5)
-        if nk == "N4" and nk in IDEAS:                   # Aras's raised gathering point, on thin stems
-            k["move"]([(xm + 3.5, yg + 5.0), (xm + 9.5, yg + 5.0), (xm + 9.5, yg + 5.5), (xm + 3.5, yg + 5.5)])
-            k["line"]([(xm + 4.3, yg + 0.5), (xm + 4.3, yg + 5.0)], k["C"]["move"], k["W"]["thin"])
-            k["line"]([(xm + 8.7, yg + 0.5), (xm + 8.7, yg + 5.0)], k["C"]["move"], k["W"]["thin"])
-            k["person"](xm + 6.5, yg + 5.5)
-            ly = yg + 8.6
-    elif kind == "gateway":
-        k["arrow"]((xm + 2.0, yg + 2.6), (w - 9.0, yg + 2.6), "people")
-    else:                                                # no hub: the empty place, grey outline
-        k["poly"]([(xm - 12.0, yg), (xm - 8.0, yg), (xm - 8.0, yg + 2.2), (xm - 12.0, yg + 2.2)], "FFFFFF",
-                  k["C"]["ctx"], k["W"]["thin"])
-        mx = xm - 10.0
-    if hb:                                               # the one accent label in the air
-        s_ = u"%s %s" % (u" · ".join(c for c, k_ in hb), (KEYS.get(kind) or [(u"", True)])[0][0])
-        tw_ = len(s_) * 1.7 * 0.62
-        k["label"](s_, min(max(mx, tw_ / 2.0 + 1.0), w - tw_ / 2.0 - 1.0), ly, True, "C")
-    else:
-        k["bracket"](xm - 12.0, xm - 8.0, yb, u"NO HUB")
-    return it, H_ + 1.0
+    poly = lambda Q, f, st=None, w=0.0: it.append(P_([Q], f, st, w if st else 0.0, lay))
+    # ---- the slab: its two cut faces (front, right), then its top
+    c4 = [(0, 0), (L1, 0), (L1, L2), (0, L2)]
+    A_, B_, C_ = Pj(0, 0), Pj(L1, 0), Pj(L1, L2)
+    dz = (0.0, -AXO_SLAB)
+    poly([A_, B_, (B_[0], B_[1] + dz[1]), (A_[0], A_[1] + dz[1])], AX["side"], K["ink"], 0.18)
+    poly([B_, C_, (C_[0], C_[1] + dz[1]), (B_[0], B_[1] + dz[1])], "C4BEB2", K["ink"], 0.18)
+    poly([Pj(u, v) for u, v in c4], AX["top"])
+    # ---- streets, the stream, our move (ground level)
+    for key in ("street_net", "streets"):
+        for Q in (C.get("polys") or {}).get(key, []):
+            Qc = clip_poly([uv(p) for p in Q], L1, L2)
+            if len(Qc) >= 3:
+                poly([Pj(u, v) for u, v in Qc], AX["street"])
+    for Q in (C.get("polys") or {}).get("river", []):
+        Qc = clip_poly([uv(p) for p in Q], L1, L2)
+        if len(Qc) >= 3:
+            poly([Pj(u, v) for u, v in Qc], AX["water"])
+    nmove = 0
+    for key, recs in MPC["layers"].items():
+        if not any(key == p or key.startswith(p + "/") for _, ps in MP_ROWS for p in ps):
+            continue
+        w_ = key.split("/")
+        for kind, fill, stroke, wd, Pp in recs:
+            if kind == "s" or len(Pp) < 2:
+                continue
+            Qs = [uv(p) for p in Pp]
+            if kind == "a" and (max(q[0] for q in Qs) - min(q[0] for q in Qs)) * (
+                    max(q[1] for q in Qs) - min(q[1] for q in Qs)) > 200000.0:
+                continue
+            if kind in ("r", "a") and len(Qs) >= 3:
+                Qc = clip_poly(Qs, L1, L2)
+                if len(Qc) >= 3:
+                    f_ = AX["canopy"] if "kanopi" in w_ else AX["move_t"] if "teras" in w_ else AX["move"]
+                    poly([Pj(u, v) for u, v in Qc], f_, AX["move"], 0.15)
+                    nmove += 1
+            else:
+                for run in clip_line(Qs, L1, L2):
+                    it.append(L_([Pj(u, v) for u, v in run], AX["move"], 0.45, lay))
+                    nmove += 1
+    # ---- the flows: bus routes (OSM ways), the heritage loop's legs
+    seen = set()
+    nbus = 0
+    for r_ in (D.get("routes") or {}).values():
+        for wid in r_.get("ways", []):
+            if wid in seen or wid not in D.get("ways", {}):
+                continue
+            seen.add(wid)
+            for run in clip_line([uv(p) for p in D["ways"][wid]], L1, L2):
+                it.append(L_([Pj(u, v) for u, v in run], "FFFFFF", 1.25, lay))
+                it.append(L_([Pj(u, v) for u, v in run], AX["bus"], 0.8, lay))
+                nbus += 1
+    Hh = sorted(D["heritage"], key=lambda h: int(h["n"]))
+    nloop = 0
+    for a, b in zip(Hh, Hh[1:]):
+        Pl = [a["xy"], b["xy"]]
+        if {a["key"], b["key"]} == {"tabak_koprusu", "ulucami_onu"}:
+            Pl = G["pc_selinos"](a["xy"], b["xy"]) or Pl
+        for run in clip_line([uv(p) for p in Pl], L1, L2):
+            it.append(L_([Pj(u, v) for u, v in run], "FFFFFF", 1.5, lay))
+            it.append(L_([Pj(u, v) for u, v in run], AX["loop"], 1.0, lay))
+            nloop += 1
+    # ---- the buildings, back to front: walls that face the viewer, then the roof
+    depth = lambda Q: -max(q[0] * sa + q[1] * ca for q in Q)
+    for Q, fl, com, fab_ in sorted(bld, key=lambda b: depth(b[0])):
+        z = fl * STOREY_M
+        ar = sum(Q[i - 1][0] * Q[i][1] - Q[i][0] * Q[i - 1][1] for i in range(len(Q)))
+        sg = 1.0 if ar > 0 else -1.0                     # ccw: the outward normal of an edge (dx, dy) is (dy, -dx)
+        for i in range(len(Q)):
+            a, b = Q[i - 1], Q[i]
+            nx, ny = sg * (b[1] - a[1]), -sg * (b[0] - a[0])
+            if nx * sa + ny * ca < 0:                    # faces the viewer (toward the front)
+                f_ = AX["wall_l"] if nx * ca - ny * sa < 0 else AX["wall_r"]
+                poly([Pj(*a), Pj(*b), Pj(b[0], b[1], z), Pj(a[0], a[1], z)], f_, AX["edge"], 0.08)
+        poly([Pj(u, v, z) for u, v in Q], AX["shop"] if com else AX["roof"], AX["edge"], 0.08)
+    # ---- the pins: hub (tall), loop stops, places
+    pins = []
+    for hb in HUBS:
+        if any(c_ == hb["code"] for c_, _k in info["hubs"]):
+            for p in hb["pts"]:
+                q = uv(H_[p])
+                if 0 <= q[0] <= L1 and 0 <= q[1] <= L2:
+                    pins.append((q, pin_mm, "hub", hb))
+    for h in Hh:
+        q = uv(h["xy"])
+        if 0 <= q[0] <= L1 and 0 <= q[1] <= L2:
+            pins.append((q, pin_mm * 0.7, "loop", h))
+    for n in info["places"]:
+        q = uv(PLACES[n]["xy"])
+        if 0 <= q[0] <= L1 and 0 <= q[1] <= L2:
+            pins.append((q, pin_mm * 0.5, "place", n))
+    for q, ph, kd, obj in sorted(pins, key=lambda t: depth([t[0]])):
+        b = Pj(*q)
+        tp = (b[0], b[1] + ph)
+        it.append(P_([circle(b[0], b[1], 0.45, 12)], K["ink"], None, 0.0, lay))
+        it.append(L_([b, tp], K["ink"], 0.25, lay))
+        if kd == "hub":
+            c_ = K["hub"]["transit" if obj["kind"] == "hidden" else obj["kind"]]
+            it.append(P_([[(tp[0] - 2.0, tp[1]), (tp[0] + 2.0, tp[1]), (tp[0] + 2.0, tp[1] + 3.6),
+                           (tp[0] - 2.0, tp[1] + 3.6)]], c_, "FFFFFF", 0.25, lay))
+            it.append(T_(obj["code"], tp[0], tp[1] + 1.1, 2.0, "FFFFFF", lay, True, "C"))
+        elif kd == "loop":
+            it.append(P_([circle(tp[0], tp[1] + 1.6, 1.6, 24)], AX["loop"], "FFFFFF", 0.3, lay))
+            it.append(T_(obj["n"], tp[0], tp[1] + 0.95, 1.9, "FFFFFF", lay, True, "C"))
+        else:
+            it.append(P_([circle(tp[0], tp[1] + 1.5, 1.5, 24)], "FFFFFF", PLACE_C, 0.35, lay))
+            it.append(T_(str(obj), tp[0], tp[1] + 0.85, 1.8, PLACE_C, lay, True, "C"))
+    log.append(u"%s diagram: %d bus way runs, %d loop legs, %d pieces of our move, %d pins; drawn at %.3f mm a m" % (
+        nk, nbus, nloop, nmove, len(pins), s))
+    return it
+
+
+def node_card(G, lib, K, X, nk, nd, info, x, ytop, w, h, log):
+    """v2.17: one node card in the 3 x 2 grid: head (tile, name, claim), the axonometric, then two text columns:
+    what meets here | idea, places, weak link. Returns (items, overflow mm)"""
+    P_, T_, circle, wrap = G["P_"], G["T_"], G["circle"], G["wrap"]
+    tw = lib["text_w"]
+    INK = K["ink"]
+    col = NODE_COL.get(nk, NODE_C)
+    it = []
+    low = [ytop]
+
+    def para(s, y, size, xx, ww, c=INK, bold=False):
+        for ln in wrap(s, size, ww, tw, bold):
+            it.append(T_(ln, xx, y - size * 0.75, size, c, "cards", bold))
+            y -= size * 1.3
+        low[0] = min(low[0], y)
+        return y
+    it.append(P_([[(x, ytop - 1.4), (x + w, ytop - 1.4), (x + w, ytop), (x, ytop)]], col, None, 0.0, "cards"))
+    tile = (8.0, 5.0)
+    yh = ytop - 2.6
+    it.append(P_([[(x, yh - tile[1]), (x + tile[0], yh - tile[1]), (x + tile[0], yh), (x, yh)]], col, None, 0.0, "cards"))
+    it.append(T_(nk, x + tile[0] / 2, yh - tile[1] + 1.4, 2.8, "FFFFFF", "cards", True, "C"))
+    it.append(T_(nd["name"], x + tile[0] + 2.0, yh - 2.3, 2.8, INK, "cards", True))
+    it.append(T_(strip_claim(nk, info), x + tile[0] + 2.0, yh - 4.9, 2.0, col, "cards", True))
+    yd = yh - tile[1] - 1.5
+    it += node_axo(G, K, X, nk, info, x, yd - AXO_H, w, AXO_H, log)
+    y0 = yd - AXO_H - 2.0
+    cw = (w - 4.0) / 2.0
+    it.append(T_(u"WHAT MEETS HERE", x, y0 - 1.8, 1.9, GLY["ink2"], "cards", True))
+    y = para(strip_counts(info) or u"0 bus lines · no heritage loop stop · 0 shop buildings", y0 - 3.2, 1.9, x, cw)
+    if info["hub_kind"]:
+        y -= 0.6
+        for s_, b_ in KEYS[info["hub_kind"]]:
+            y = para(s_, y, 1.9, x, cw, INK, b_)
+    xd = x + cw + 4.0
+    it.append(T_(u"IDEA", xd, y0 - 1.8, 1.9, GLY["ink2"], "cards", True))
+    y = para(IDEAS.get(nk, u"open"), y0 - 3.2, 1.9, xd, cw, col if nk in IDEAS else GLY["ink2"], nk in IDEAS) - 0.6
+    if info["places"]:
+        it.append(T_(u"PLACES", xd, y - 1.8, 1.9, GLY["ink2"], "cards", True))
+        y -= 3.2
+        for n in info["places"]:
+            f = PLACES[n]
+            it.append(P_([circle(xd + 1.3, y - 1.3, 1.3, 20)], "FFFFFF", PLACE_C, 0.3, "cards"))
+            it.append(T_(str(n), xd + 1.3, y - 1.95, 1.7, PLACE_C, "cards", True, "C"))
+            y = para(f["name"] + u": " + f["kw"][0] + u" · " + f["kw"][1], y, 1.9, xd + 3.6, cw - 3.6) - 0.3
+    miss = [s for s, v in ((u"no hub", info["hubs"]), (u"no heritage loop stop", info["loop"]),
+                           (u"no bus line", info["bus"]), (u"no shops", info["shops"])) if not v]
+    it.append(T_(u"WEAK LINK", xd, y - 1.8, 1.9, GLY["ink2"], "cards", True))
+    para(u" · ".join(miss) if miss else u"none of the four missing", y - 3.2, 1.9, xd, cw)
+    return it, max(0.0, (ytop - h) - low[0])
+
+
+def strip_claim(nk, info):
+    """the claim: what meets here (what is missing is the WEAK LINK line)"""
+    have = [w_ for w_, v in ((u"a hub", info["hubs"]), (u"buses", info["bus"]), (u"the heritage loop", info["loop"]),
+                             (u"shops", info["shops"])) if v]
+    if not have:
+        return u"NOTHING MEETS HERE YET"
+    a = (u", ".join(have[:-1]) + u" and " + have[-1]) if len(have) > 1 else have[0]
+    return (a + u" meet here" if len(have) > 1 else a + u" alone").upper()
 
 
 def strip_counts(info):
-    """the numbers, as story text under the strip (the strip itself carries none)"""
+    """the numbers, as text beside the strip (the strip itself carries none)"""
     out = []
     if info["bus"]:
         out.append(u"%d bus lines" % info["bus"])
@@ -400,76 +713,6 @@ def strip_counts(info):
     if info["shops"]:
         out.append(u"%d shop buildings" % info["shops"])
     return u" · ".join(out)
-
-
-def strip_claim(nk, info):
-    """the title: one claim, from what is there and what is missing"""
-    have = [w_ for w_, v in ((u"a hub", info["hubs"]), (u"buses", info["bus"]), (u"the loop", info["loop"]),
-                             (u"shops", info["shops"])) if v]
-    miss = [w_ for w_, v in ((u"hub", info["hubs"]), (u"buses", info["bus"]), (u"loop", info["loop"]),
-                             (u"shops", info["shops"])) if not v]
-    if not have:
-        return u"NOTHING MEETS HERE YET"
-    a = (u", ".join(have[:-1]) + u" and " + have[-1]) if len(have) > 1 else have[0]
-    return (a + u" meet" + (u"s" if len(have) == 1 else u"") + (u" · no " + u", no ".join(miss) if miss else u"")).upper()
-
-
-def node_card(G, lib, K, nk, nd, info, x, ytop, w, hfix=None, dh=38.0, X=None):
-    """one node card: head, what meets here (spoke diagram), the hub's levels, the idea, the places, the weak link;
-    returns (items, height mm)"""
-    P_, L_, T_, circle, wrap = G["P_"], G["L_"], G["T_"], G["circle"], G["wrap"]
-    tw = lib["text_w"]
-    INK = K["ink"]
-    col = NODE_COL.get(nk, NODE_C)
-    it = []
-    xi, wi = x + CARD_PAD, w - 2 * CARD_PAD
-
-    def para(s, y, size, c=INK, bold=False, xx=None, ww=None, al="L"):
-        xx = xi if xx is None else xx
-        for ln in wrap(s, size, ww or wi, tw, bold):
-            it.append(T_(ln, xx, y - size * 0.75, size, c, "cards", bold, al))
-            y -= size * 1.32
-        return y
-    y = ytop - 2.0 - CARD_PAD
-    tile = (9.0, 6.0)
-    it.append(P_([[(xi, y - tile[1]), (xi + tile[0], y - tile[1]), (xi + tile[0], y), (xi, y)]], col, None, 0.0, "cards"))
-    it.append(T_(nk, xi + tile[0] / 2, y - tile[1] + 1.6, 3.2, "FFFFFF", "cards", True, "C"))
-    y2 = para(nd["name"], y - 0.4, 3.2, INK, True, xi + tile[0] + 2.0, wi - tile[0] - 2.0)
-    y = min(y - tile[1], y2) - 2.4
-    # ---- what meets here (v2.8): one cut to the diagram standard, its claim as the title, the hub keys as text
-    for ln in wrap(u"WHAT MEETS HERE · " + strip_claim(nk, info), 2.6, wi, tw, True):
-        it.append(T_(ln, xi, y - 2.0, 2.6, INK, "cards", True))
-        y -= 2.6 * 1.3
-    y -= 2.0
-    si, sh = node_strip(G, nk, info, xi, y, wi)
-    it += si
-    y -= sh + 1.0
-    if strip_counts(info):
-        y = para(strip_counts(info), y, 2.2, INK) - 1.0
-    if info["hub_kind"]:
-        for j, (s_, b_) in enumerate(KEYS[info["hub_kind"]]):
-            y = para(s_, y, 2.2, INK, b_)
-        y -= 2.0
-    # ---- the idea
-    it.append(T_(u"IDEA", xi, y - 2.0, 2.3, GLY["ink2"], "cards", True))
-    y = para(IDEAS.get(nk, u"open"), y - 3.4, 2.4, col if nk in IDEAS else GLY["ink2"], nk in IDEAS) - 1.8
-    # ---- the project's places in the node
-    for n in info["places"]:
-        f = PLACES[n]
-        it.append(P_([circle(xi + 1.8, y - 1.8, 1.8, 24)], "FFFFFF", PLACE_C, 0.35, "cards"))
-        it.append(T_(str(n), xi + 1.8, y - 2.6, 2.2, PLACE_C, "cards", True, "C"))
-        y = para(f["name"], y - 0.2, 2.4, INK, True, xi + 5.0, wi - 5.0)
-        y = para(f["kw"][0] + u" · " + f["kw"][1], y, 2.1, INK, False, xi + 5.0, wi - 5.0) - 1.2
-    # ---- the weak link (what is missing, from the spokes)
-    miss = [s for s, v in ((u"no hub", info["hubs"]), (u"no heritage loop stop", info["loop"]),
-                           (u"no bus line", info["bus"]), (u"no shops", info["shops"])) if not v]
-    y -= 0.8
-    it.append(T_(u"WEAK LINK", xi, y - 2.0, 2.3, GLY["ink2"], "cards", True))
-    y = para(u" · ".join(miss) if miss else u"none of the four missing", y - 3.4, 2.4, INK) - 1.0
-    h = max(ytop - (y - CARD_PAD), hfix or 0.0)
-    yb = ytop - h
-    return [P_([[(x, ytop - 2.0), (x + w, ytop - 2.0), (x + w, ytop), (x, ytop)]], col, None, 0.0, "cards"),
-            P_([[(x, yb), (x + w, yb), (x + w, ytop), (x, ytop)]], None, "B0AC9C", 0.25, "cards")] + it, h
 
 
 def main():
@@ -529,7 +772,19 @@ def main():
     items = MB[0]
     items += G["pc_study"](M, K, log)
     lab = G["Labels"](M, lib)
-    cnt = mpns["mp_draw"](MPC, items, T, k, M.box, "map", set(p for _, ps in MP_ROWS for p in ps))
+    cnt = mpns["mp_draw"](MPC, items, T, k, M.box, "map", set(p for _, ps in MP_ROWS for p in ps), MP_STYLE)
+    mapA, drop = M.mw * M.mh, 0                          # v2.14: no sheet over the map (picture-area outlines bigger
+    for i_ in range(len(items) - 1, -1, -1):             # than the frame in the cache, kopruler/texture)
+        it_ = items[i_]
+        if it_[0] == "poly" and str(it_[6]).startswith("mp/"):
+            xs_ = [p[0] for R_ in it_[1] for p in R_]
+            ys_ = [p[1] for R_ in it_[1] for p in R_]
+            if (max(xs_) - min(xs_)) * (max(ys_) - min(ys_)) > 0.25 * mapA:
+                del items[i_]
+                drop += 1
+                cnt[it_[6][3:]] = cnt.get(it_[6][3:], 1) - 1
+    if drop:
+        log.append(u"masterplan: %d piece(s) larger than a quarter of the map dropped (picture-area outlines)" % drop)
     log.append(u"masterplan drawn: " + (u", ".join(u"%s %d" % kv for kv in sorted(cnt.items())) or u"nothing"))
     if not cnt:
         log.append(u"FLAG: no masterplan piece inside the map strip")
@@ -580,12 +835,29 @@ def main():
                 log.append(u"%s part in %s: coloured as %s" % (nk, name, char[name]["fab"]))
         vals = bytearray(a_ed if edge[i] else (a_in if (g[i] and not (parts and lbl[i])) else 0) for i in range(W * Hh))
         items.append(soft_grid(vals, W, Hh, gx0, gy1, MASK_PPM, colr, "node_areas", "map"))
+    sel = [T(p) for p in G["pc_selinos_line"]()]       # v2.10: the spine, the stream's line, cut to the map
+    items.append(("line", sel, "3F86B8", 0.7, "map", "stream", 1))
+    lab.block_line(sel, 0.6)
     inbox = lambda q, r=0.0: M.box[0] + r <= q[0] <= M.box[2] - r and M.box[1] + r <= q[1] <= M.box[3] - r
+    obst = [T(H[p]) for hb in HUBS for p in hb["pts"]]
     for n, f in sorted(PLACES.items()):
         if f["xy"] and not inbox(T(f["xy"]), 1.5):
             log.append(u"place %d outside site_alan: not drawn" % n)
         elif f["xy"]:
-            q = T(f["xy"])
+            q0 = q = T(f["xy"])
+            for _ in range(6):                           # v2.11 (run 9 review): off the hub tiles and the other places,
+                near = [o for o in obst if dist(q, o) < 4.2]   # a hairline leader back to the true point
+                if not near:
+                    break
+                o = min(near, key=lambda o_: dist(q, o_))
+                d_ = dist(q, o)
+                u_ = ((q[0] - o[0]) / d_, (q[1] - o[1]) / d_) if d_ > 0.05 else (0.0, 1.0)
+                q = (o[0] + u_[0] * 4.4, o[1] + u_[1] * 4.4)
+            if q != q0:
+                items.append(L_([q0, q], PLACE_C, 0.15, "places"))
+                items.append(P_([circle(q0[0], q0[1], 0.35, 12)], PLACE_C, None, 0.0, "places"))
+                log.append(u"place %d moved %.1f mm off a hub tile or place, with a leader" % (n, dist(q, q0)))
+            obst.append(q)
             items.append(P_([circle(q[0], q[1], 1.5, 20)], "FFFFFF", PLACE_C, 0.35, "places"))
             items.append(T_(str(n), q[0], q[1] - 0.65, 1.8, PLACE_C, "places", True, "C"))
             lab.block_pt(q, 1.8)
@@ -601,13 +873,6 @@ def main():
                               (q[0] - s_ / 2, q[1] + s_ / 2)]], c_, "FFFFFF", 0.25, "hubs"))
             items.append(T_(hb["code"], q[0], q[1] - 0.7, 2.0, "FFFFFF", "hubs", True, "C"))
             lab.block_pt(q, s_ / 2 + 0.3)
-    for name, c_ in sorted(char.items()):                # the neighbourhoods' names with their main fabric
-        q_ = [T(p) for p in c_["pts"]]
-        if c_["n"] >= MIN_BLD and q_:
-            q = (sum(p[0] for p in q_) / len(q_), sum(p[1] for p in q_) / len(q_))
-            nm_ = name.replace(u" Mahallesi", u"")
-            lab.put(u"%s: %s" % (nm_, (words.get(c_["fab"]) or c_["fab"] or u"").lower()), q, 2.0, MAH_C,
-                    "neighbourhood_names", False)
     # pointers: a tag above (odd) or below (even) the node's area, a leader to its middle
     for i, nk in enumerate(nks):
         RR = [T(p) for p in NODES[nk]["corners"]]
@@ -624,6 +889,15 @@ def main():
         items.append(P_([[(xe - wt / 2, ye - 2.2), (xe + wt / 2, ye - 2.2), (xe + wt / 2, ye + 2.2), (xe - wt / 2, ye + 2.2)]],
                         col, "FFFFFF", 0.3, "node_pointers"))
         items.append(T_(txt, xe, ye - 0.95, 2.6, "FFFFFF", "node_pointers", True, "C"))
+        lab.boxes.append((xe - wt / 2 - 0.6, ye - 2.8, xe + wt / 2 + 0.6, ye + 2.8))   # v2.10: names keep off the tags
+        lab.block_line([c, (xe, ye - 2.2 if up else ye + 2.2)], 0.8)
+    for name, c_ in sorted(char.items()):                # the neighbourhoods' names with their main fabric
+        q_ = [T(p) for p in c_["pts"]]
+        if c_["n"] >= MIN_BLD and q_:
+            q = (sum(p[0] for p in q_) / len(q_), sum(p[1] for p in q_) / len(q_))
+            nm_ = name.replace(u" Mahallesi", u"")
+            lab.put(u"%s: %s" % (nm_, (words.get(c_["fab"]) or c_["fab"] or u"").lower()), q, 2.0, MAH_C,
+                    "neighbourhood_names", False)
     items += lab.items
     items.append(P_([[(M.box[0], M.box[1]), (M.box[2], M.box[1]), (M.box[2], M.box[3]), (M.box[0], M.box[3])]], None,
                     INK, 0.25, "frame"))
@@ -635,14 +909,15 @@ def main():
     box_ = lambda xx, yy: [(xx - 4.5, yy - 1.8), (xx + 4.5, yy - 1.8), (xx + 4.5, yy + 1.8), (xx - 4.5, yy + 1.8)]
     rows = [(lambda xx, yy: [soft_poly(box_(xx, yy), NODE_COL["N2"], NODE_ALPHA, "legend", None),
                              P_([box_(xx, yy)], None, NODE_COL["N2"], 0.25, "legend")],
-             u"node area: its blocks and stream")]
+             u"node area (in its node's colour): blocks and stream"),
+            (lambda xx, yy: [L_([(xx - 4.5, yy), (xx + 4.5, yy)], "3F86B8", 0.7, "legend")], u"the Selinos stream: the spine")]
     for f_ in [f_ for f_ in CHAR_COL if f_ in used_char]:
         rows.append(((lambda c__: lambda xx, yy: [soft_poly(box_(xx, yy), c__, NODE_ALPHA, "legend", None)])(CHAR_COL[f_]),
                      u"neighbourhood node, part mostly %s" % (words.get(f_) or f_).lower()))
     rows += [(lambda xx, yy: [L_([(xx - 4.5, yy), (xx + 4.5, yy)], MAH_C, 0.3, "legend", (1.4, 0.8))],
               u"neighbourhood (mahalle) boundary: name, main fabric"),
              (lambda xx, yy: [P_([circle(xx, yy, 1.5, 20)], "FFFFFF", PLACE_C, 0.35, "legend")],
-              u"the project's places, numbered as on the cards"),
+              u"the project's places (numbered)"),
              (sq(K["hub"]["walk"]), u"walking hub"), (sq(K["hub"]["transit"]), u"main transit hub"),
              (sq(K["hub"]["gateway"]), u"gateway out of town"),
              (lambda xx, yy: [P_([circle(xx, yy, 1.6, 20)], K["heritage"], "FFFFFF", 0.25, "legend")],
@@ -672,21 +947,32 @@ def main():
         items.append(T_(lns[0], xx + 12.0, yy - ls * 0.38, ls, INK, "legend"))
     ylb = yl - nrow * rh
 
-    # ---- the node cards under the legend
-    X = dict(M=M, C=C, D=D, H=H, mpns=mpns, MPC=MPC, clips={}, mp_layers=set(p for _, ps in MP_ROWS for p in ps))
+    # ---- the six nodes: a 3 x 2 grid of cards, each with its axonometric (v2.17)
+    X = dict(M=M, C=C, D=D, H=H, NODES=NODES, mpns=mpns, MPC=MPC)
     yt = ylb - 6.0
     items.append(T_(u"THE SIX NODES: WHAT MEETS AT EACH, WHAT IS MISSING", MARGIN, yt + 3.0, tm["sub"], INK, "cards", True))
-    cw = (PAGE_W - 2 * MARGIN - (len(nks) - 1) * CARD_GAP) / len(nks)
-    hc = max(node_card(G, lib, K, nk, NODES[nk], info[nk], 0.0, 0.0, cw, None, 38.0, X)[1] for nk in nks)
-    room = yt - MARGIN
-    dh = 38.0 + max(0.0, min(40.0, room - hc - 2.0))     # the spare height goes to the plans
-    hc = max(node_card(G, lib, K, nk, NODES[nk], info[nk], 0.0, 0.0, cw, None, dh, X)[1] for nk in nks)
-    if hc > room + 0.1:
-        log.append(u"FLAG: the node cards need %.0f mm, the page gives %.0f mm under the legend" % (hc, room))
-    hc = max(hc, room)                                   # the cards reach the page margin
+    xk = PAGE_W - MARGIN                                 # the one key for the six drawings, right of the heading
+    keys = [(u"our move (proposed)", "sq", AX["move"]), (u"shop buildings", "sq", AX["shop"]),
+            (u"stream", "sq", AX["water"]), (u"heritage loop", "ln", AX["loop"]), (u"bus routes", "ln", AX["bus"])]
+    for txt, kd, c_ in keys:
+        wt = tw(txt, 2.0) + 7.0
+        xk -= wt
+        if kd == "sq":
+            items.append(P_([[(xk, yt + 2.6), (xk + 4.0, yt + 2.6), (xk + 4.0, yt + 5.0), (xk, yt + 5.0)]], c_, None, 0.0,
+                            "cards"))
+        else:
+            items.append(L_([(xk, yt + 3.8), (xk + 4.0, yt + 3.8)], c_, 0.9, "cards"))
+        items.append(T_(txt, xk + 5.0, yt + 3.1, 2.0, INK, "cards"))
+    room = yt - 1.5 - MARGIN
+    ch = (room - CARD_GAP) / 2.0
+    cw = (PAGE_W - 2 * MARGIN - 2 * CARD_GAP) / 3.0
     for i, nk in enumerate(nks):
-        items += node_card(G, lib, K, nk, NODES[nk], info[nk], MARGIN + i * (cw + CARD_GAP), yt, cw, hc, dh, X)[0]
-    log.append(u"cards: %.0f mm high, plans %.0f mm" % (hc, dh))
+        cx, cy = MARGIN + (i % 3) * (cw + CARD_GAP), yt - 1.5 - (i // 3) * (ch + CARD_GAP)
+        its_, over = node_card(G, lib, K, X, nk, NODES[nk], info[nk], cx, cy, cw, ch, log)
+        items += its_
+        if over > 0.1:
+            log.append(u"FLAG: card %s text runs %.1f mm below its card" % (nk, over))
+    log.append(u"cards: %.0f x %.0f mm, axonometrics %.0f mm high" % (cw, ch, AXO_H))
 
     # ---- the side column: title, north, scale
     x = M.box[2] + 8.0
@@ -716,7 +1002,6 @@ def main():
     G["pc_frame_check"] = lambda its, box, lg, tw_=None: orig(its, box, lg, tw_, skip=G["PC_SHEET_LAYERS"] + (
         "cards", "node_pointers"))
     clips = {"map": [[[(M.box[0], M.box[1]), (M.box[2], M.box[1]), (M.box[2], M.box[3]), (M.box[0], M.box[3])]]]}
-    clips.update(X["clips"])
     paths = G["pc_write"](lib, M, items, OUT_DIR, NAME, u"The six nodes along the spine", log, None, clips)
     pdfs = [p_ for p_ in paths if p_.lower().endswith(".pdf")]
     if pdfs:
