@@ -64,12 +64,12 @@
   ],
   "N4-A": [
    [
-    30307.99,
-    32047.4
+    30306.31,
+    32046.22
    ],
    [
-    30051.13,
-    31868.26
+    30049.45,
+    31867.09
    ]
   ],
   "N4-B": [
@@ -624,6 +624,7 @@
   ]
  },
  "changes": [
-  "15 Nov 2026 (Aras 04:58 UTC, 'All defaults are fine'): N4-A moved 22.6 m sideways (same direction) so it passes through the Kizil Avlu heritage point (30203.92, 31974.82, Data/bergama_access_heritage.json); was [30320.93, 32028.85] - [30064.07, 31849.71]"
+  "15 Nov 2026 (Aras 04:58 UTC, 'All defaults are fine'): N4-A moved 22.6 m sideways (same direction) so it passes through the Kizil Avlu heritage point (30203.92, 31974.82, Data/bergama_access_heritage.json); was [30320.93, 32028.85] - [30064.07, 31849.71]",
+  "15 Nov 2026: N4-A ends clipped to the v3 N4 frame edges (moved about 1.6 m along the line)"
  ]
 }
