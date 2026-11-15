@@ -74,8 +74,8 @@
   ],
   "N4-B": [
    [
-    30269.56,
-    31802.88
+    30250.01,
+    31830.91
    ],
    [
     30157.8,
@@ -625,6 +625,7 @@
  },
  "changes": [
   "15 Nov 2026 (Aras 04:58 UTC, 'All defaults are fine'): N4-A moved 22.6 m sideways (same direction) so it passes through the Kizil Avlu heritage point (30203.92, 31974.82, Data/bergama_access_heritage.json); was [30320.93, 32028.85] - [30064.07, 31849.71]",
-  "15 Nov 2026 05:0x UTC: N4-A (moved onto the Kizil Avlu point) clipped edge to edge to the v3 N4 frame (shift ~1.6 m along itself)"
+  "15 Nov 2026 05:0x UTC: N4-A (moved onto the Kizil Avlu point) clipped edge to edge to the v3 N4 frame (shift ~1.6 m along itself)",
+  "15 Nov 2026 05:3x UTC (run 12 FLAG: N4-B crossed the stream 77 deg off square): N4-B starts at u 1098 along the strip again (its v2 end), so it runs along the bank and no longer crosses the stream"
  ]
 }
