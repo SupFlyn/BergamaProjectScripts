@@ -242,3 +242,5 @@ bergama_slide04_systems: Data/water_balance_key_figures.json  # hand, 15 Nov
 bergama_slide04_systems: cached/bergama_masterplanbase/masterplan.json  # hand, 15 Nov
 bergama_slide04_systems: cached/bergama_basemap/basemap_layers.json  # hand, 15 Nov
 bergama_slide04_systems: cached/Bergama_water_balance_analysis/water_balance_results.json  # hand, 15 Nov
+bergama_slide04_systems: cached/bergama_mapbase/mapbase.json  # hand, 15 Nov (v1.3)
+bergama_slide04_systems: scripts/bergama_mapbase_v1_9.py  # hand, 15 Nov (v1.3)
