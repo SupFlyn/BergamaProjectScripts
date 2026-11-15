@@ -45,9 +45,11 @@ Writes ~/Downloads/Bergama/output/bergama_sections/Sections.pdf          ONE pag
 import os, re, time, json, math, bisect, glob, random
 
 # ---- SETTINGS ----
-VERSION = "v1.17.4"   # v1.17.4: S4 bed and strip from the engine's own low point (they came from the cut drawn before it); v1.17.3 v1.17.3 (error review of v1.17.2): no plan wall inside the channel, seat walls start on the ground, decks 0.25 m clear, near-coincident dashed levels merged, existing ground a fine light dashed hairline; v1.17.2 v1.17.2 (fresh review of v1.17): canopy trunks on the ground and branches meeting the shell, overlapping canopies / pavilions thinned (nearer first), deck balustrade as rail and posts (the glass box read as a tank); v1.17.1 v1.17.1: the cut line drawn whole (an end trim had dropped most of it since v1.6.13); v1.17 v1.17 (two independent reviews of v1.16): the cut line on top of the ground skin (it lay hidden), butt ends; clouds under the frame top and off the ground; land-use band 2.8 mm, words 1.7 mm, street lighter; scale bar in the title line (cells give the drawing ~6 mm more height); v1.16.1 v1.16.1: land-use band words one size on every cut (they ran 1.6-3.3 mm); v1.16 v1.16 (600 dpi read of the v1.15.2 PDF): one-line titles and a tighter band / scale bar (drawings larger), bridges at bank level (N2-A on the bed), seat walls where the ground is flat, water ripples only inside water, thinner water surface; v1.15.2: v1.15.2: sheet fix (KeyError on the smallest scale, v1.15.1 crashed before the PDF and the cache); v1.15.1 v1.15.1: dashed water levels 0.1 mm, water surface line and wall outlines thin at small scales (600 dpi read of the v1.14 PDF); v1.15 v1.15 (Aras 21:33 "do a proper check"): each cut on the A3 sheet at its own largest scale, fitted to its cell (the sheet was about 60 % empty), titles one size, cut line heavier (0.4-0.6 mm); v1.14 v1.14 (Aras 21:31 "please remove these kind of showings"): no floating text labels with dashed leader lines over the cuts (Road, Canopy, Building n floors, ...); cut houses drawn like the background houses, light (Aras 21:32); v1.13 (Aras 21:26 "drawings flows out fix that"): every fill cut at the cut frame, clouds / cutouts / circles crossing it left out; v1.12 (recheck of v1.11 output): footbridges only on cuts that cross the stream; canopy edge thin at small scales; v1.11: masterplan read right (no 2.1 km2 texture frame as "green", open lines only for walls, kopruler = bridges), plan trees 12-20 m apart, drawing lines cut at the frame; v1.10: channel walls only to the bank ground + a 0.9 m parapet (Aras 16:23); masterplan spans merged per kind, a progress file logs/bergama_sections_progress.txt (v1.9 ran > 17 min); v1.9 (Aras 14 Nov 16:12-16:13): section_lines.json v2: per node A square to the stream and B along the bank crossing it, both from frame edge to frame edge (drawn whole), looking different ways; v1.8 (Aras 14 Nov 15:38-15:41): the sections are the masterplan in 3D: every piece of his plan the cut crosses (MasterplanBase cache of B19_setB_layers259.svg) drawn as a designed form (stepped terraces as the finished ground, promenade and cycle paving, retaining walls, boulders, water decks, lens footbridges, saddle-shell canopies on steel trees, sedum-roof pavilions; canopies and pavilions behind the cut in elevation), heights design intent; v1.7 (Aras 14 Nov 15:25-15:35): all 12 cuts on ONE A3 landscape sheet, no 1:x printed; planting drawn at 1:75 and scaled to the page (true proportions), no soil root hairs; cut houses as plain silhouettes; houses behind more detailed (plinth, tiles, chimney, sills, glazing bars, shutters, balconies, door hood) and up to 200 m behind
+VERSION = "v1.18"   # v1.18 (Aras 15 Nov 04:58 UTC "All defaults are fine"): proposals outlined in the accent C07A2E, S4 drawn from the B19 masterplan (parts cached for the seasons page), N4-A moved 22.6 m onto the Red Hall (section_lines.json); v1.17.4 v1.17.4: S4 bed and strip from the engine's own low point (they came from the cut drawn before it); v1.17.3 v1.17.3 (error review of v1.17.2): no plan wall inside the channel, seat walls start on the ground, decks 0.25 m clear, near-coincident dashed levels merged, existing ground a fine light dashed hairline; v1.17.2 v1.17.2 (fresh review of v1.17): canopy trunks on the ground and branches meeting the shell, overlapping canopies / pavilions thinned (nearer first), deck balustrade as rail and posts (the glass box read as a tank); v1.17.1 v1.17.1: the cut line drawn whole (an end trim had dropped most of it since v1.6.13); v1.17 v1.17 (two independent reviews of v1.16): the cut line on top of the ground skin (it lay hidden), butt ends; clouds under the frame top and off the ground; land-use band 2.8 mm, words 1.7 mm, street lighter; scale bar in the title line (cells give the drawing ~6 mm more height); v1.16.1 v1.16.1: land-use band words one size on every cut (they ran 1.6-3.3 mm); v1.16 v1.16 (600 dpi read of the v1.15.2 PDF): one-line titles and a tighter band / scale bar (drawings larger), bridges at bank level (N2-A on the bed), seat walls where the ground is flat, water ripples only inside water, thinner water surface; v1.15.2: v1.15.2: sheet fix (KeyError on the smallest scale, v1.15.1 crashed before the PDF and the cache); v1.15.1 v1.15.1: dashed water levels 0.1 mm, water surface line and wall outlines thin at small scales (600 dpi read of the v1.14 PDF); v1.15 v1.15 (Aras 21:33 "do a proper check"): each cut on the A3 sheet at its own largest scale, fitted to its cell (the sheet was about 60 % empty), titles one size, cut line heavier (0.4-0.6 mm); v1.14 v1.14 (Aras 21:31 "please remove these kind of showings"): no floating text labels with dashed leader lines over the cuts (Road, Canopy, Building n floors, ...); cut houses drawn like the background houses, light (Aras 21:32); v1.13 (Aras 21:26 "drawings flows out fix that"): every fill cut at the cut frame, clouds / cutouts / circles crossing it left out; v1.12 (recheck of v1.11 output): footbridges only on cuts that cross the stream; canopy edge thin at small scales; v1.11: masterplan read right (no 2.1 km2 texture frame as "green", open lines only for walls, kopruler = bridges), plan trees 12-20 m apart, drawing lines cut at the frame; v1.10: channel walls only to the bank ground + a 0.9 m parapet (Aras 16:23); masterplan spans merged per kind, a progress file logs/bergama_sections_progress.txt (v1.9 ran > 17 min); v1.9 (Aras 14 Nov 16:12-16:13): section_lines.json v2: per node A square to the stream and B along the bank crossing it, both from frame edge to frame edge (drawn whole), looking different ways; v1.8 (Aras 14 Nov 15:38-15:41): the sections are the masterplan in 3D: every piece of his plan the cut crosses (MasterplanBase cache of B19_setB_layers259.svg) drawn as a designed form (stepped terraces as the finished ground, promenade and cycle paving, retaining walls, boulders, water decks, lens footbridges, saddle-shell canopies on steel trees, sedum-roof pavilions; canopies and pavilions behind the cut in elevation), heights design intent; v1.7 (Aras 14 Nov 15:25-15:35): all 12 cuts on ONE A3 landscape sheet, no 1:x printed; planting drawn at 1:75 and scaled to the page (true proportions), no soil root hairs; cut houses as plain silhouettes; houses behind more detailed (plinth, tiles, chimney, sills, glazing bars, shutters, balconies, door hood) and up to 200 m behind
 CUT_HOUSE_DIST_M = 60.0   # v1.14: cut houses toned like a house 60 m behind (light, quiet; drawing value, ours)
 LEVEL_LW = 0.1   # v1.15: dashed water levels as hairlines (mm)
+ACCENT = "C07A2E"   # v1.18: the project accent = our intervention (DIAGRAM_STYLE), Aras 15 Nov 04:58 UTC
+S4_FROM_B19 = True   # v1.18 (Aras 15 Nov 04:58 UTC): S4 drawn from his masterplan like the 12 cuts, not the 27 Oct engine design
 CALLOUTS = False   # v1.14: leader-line labels over the cuts left out (Aras 21:31 UTC)
 GH_LABEL = "Sections"
 OUT_FOLDER = "bergama_sections"
@@ -745,7 +747,7 @@ class Sec(object):
         self.steps = []
         self.design = []         # (s from, s to) under the design
         left, right = [], []
-        if C.is_s4:
+        if C.is_s4 and not S4_FROM_B19:
             for dsec in E["SECTIONS"]:
                 b = E["Sec"](dsec, self.prof)
                 self.banks.append(b)
@@ -770,7 +772,7 @@ class Sec(object):
         if not C.is_s4 and WALL_BED[0] <= C.z_th <= WALL_BED[1]:
             self._wall_channel()
         mp_surface(self)                                    # v1.8: the plan's terraces become the ground
-        if not C.is_s4:
+        if not C.is_s4 or S4_FROM_B19:
             self._rule_planting(sea)
         mp_planting(self)
 
@@ -996,7 +998,7 @@ class _Bank(object):
 
 def people_for(S, sea_key, E):
     """S4: the engine's people of both banks for the season; other cuts: walkers on dry, gentle ground every ~9 m"""
-    if S.C.is_s4:
+    if S.C.is_s4 and not S4_FROM_B19:
         for dsea in E["SEASONS"]:
             if dsea["key"] == sea_key:
                 return (list(dsea["people"].get("1", [])) + list(dsea["people"].get("2", [])),
@@ -1359,6 +1361,17 @@ def draw_cut(E, C, sea, den, x_left, y_top, with_text=True):
     out_ = [it for it in out_ if id(it) not in drop_]
     out_ = [(it[:2] + ("A39E95", 0.1, [0.6, 0.45]) + it[5:]) if it[0] == "line" and it[5] == "existing ground" else it
             for it in out_]
+    # v1.18 (Aras 15 Nov 04:58 UTC, "All defaults are fine": orange accent on our proposals): every line and outline
+    # of the plan's proposals in the accent C07A2E (behind the cut toned toward the sky), fills unchanged
+    def _acc(it):
+        lay = it[5] if it[0] == "line" else it[6] if it[0] == "poly" else None
+        if lay not in ("proposal structures", "proposal behind", "proposal ground"):
+            return it
+        col = ACCENT if lay != "proposal behind" else _mix(ACCENT, SKY_LOW, 0.35)
+        if it[0] == "line":
+            return it[:2] + (col,) + it[3:]
+        return it[:3] + (col,) + it[4:] if it[3] else it
+    out_ = [_acc(it) for it in out_]
     pg.items[:] = out_
     y_band = S.Y(S.zb) - 3.0
     if with_text:
@@ -1723,7 +1736,7 @@ def band(E, pg, S, y, h=9.0):
     items = [(min(sa, sb), max(sa, sb), mat, lab) for sa, sb, z, mat, lab in S.flats]
     items += [(a, b, "road", u"Road") for a, b in C.roads]        # "road": the engine's plain grey swatch
     items += [(t[0], t[1], "concrete", u"Building") for t in C.bld if t[4]]
-    if C.is_s4:                                     # the engine's own band of both banks
+    if C.is_s4 and not S4_FROM_B19:                 # the engine's own band of both banks
         for b_ in S.banks:
             ra, rb = b_.d["regrade"]
             items.append((min(ra, rb), max(ra, rb), "gravel", u"Stream gravel"))
@@ -2168,7 +2181,10 @@ def cut_cache(E, C):
                 bld=[dict(s=[round(t[0], 2), round(t[1], 2)], h=t[3], cut=t[4], behind_m=round(t[5], 1))
                      for t in C.bld],
                 roads=[[round(a, 2), round(b, 2)] for a, b in C.roads], trees=[round(t, 2) for t in C.trees],
-                notes=list(C.notes))
+                notes=list(C.notes),
+                # v1.18 (seasons thread): the masterplan parts on the cut line, in s order (s from the line's A end)
+                parts=[[round(a_, 2), round(b_, 2), MP_LABEL.get(k_, k_)]
+                       for k_, a_, b_, dist_, cut_ in sorted(getattr(C, "mp", []), key=lambda t: t[1]) if cut_])
 
 
 A3 = (420.0, 297.0)                # mm, landscape: Aras 14 Nov 15:25-15:27 UTC "fit every drawing into A3's like the
@@ -2674,7 +2690,7 @@ def main():
             prog(u"%s: build" % C.name)
             build_cut(C, CL, cum, E, log, BM)
             prog(u"%s: built (%d buildings, window %.0f m); masterplan" % (C.name, len(C.bld), C.window[1] - C.window[0]))
-            mp_for(C, MP if not C.is_s4 else {})       # S4 keeps the 27 Oct engine design
+            mp_for(C, MP if (not C.is_s4 or S4_FROM_B19) else {})   # v1.18: S4 from his masterplan too
             prog(u"%s: %d masterplan spans" % (C.name, len(C.mp)))
             if not getattr(C, "cache_only", False):
                 pages.append(C)

@@ -64,12 +64,12 @@
   ],
   "N4-A": [
    [
-    30320.93,
-    32028.85
+    30307.99,
+    32047.4
    ],
    [
-    30064.07,
-    31849.71
+    30051.13,
+    31868.26
    ]
   ],
   "N4-B": [
@@ -372,5 +372,8 @@
     30760.56
    ]
   ]
- }
+ },
+ "changes": [
+  "15 Nov 2026 (Aras 04:58 UTC, 'All defaults are fine'): N4-A moved 22.6 m sideways (same direction) so it passes through the Kizil Avlu heritage point (30203.92, 31974.82, Data/bergama_access_heritage.json); was [30320.93, 32028.85] - [30064.07, 31849.71]"
+ ]
 }
