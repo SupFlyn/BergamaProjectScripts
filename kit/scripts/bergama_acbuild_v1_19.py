@@ -760,9 +760,21 @@ def set_stories(ac, log, z0, ST):
             keep.append(dict(name=nm, level=lv, dispOnSections=False))
             last = lv
         views.append((vn, keep[-1]["name"], keep[-1]["level"], nd, j))
-    r = ac.t("SetStories", {"stories": keep})
-    if isinstance(r, dict) and r.get("success") is False:
-        log.append(u"FLAG stories not set (%s): plans drawn by the node scripts" % json.dumps(r)[:160])
+    # v1.19 (v1.18 run: "Failed to set the level of story 1: requested 50.2480, got 3.0000": Archicad 29 does not move
+    # an existing story that far): when the levels cannot be set, the stories above story 0 are removed (the model
+    # is already cleared) and the list is sent again, so every building story is inserted on its own level
+    def _set(lst):
+        try:
+            r_ = ac.t("SetStories", {"stories": lst})
+        except Exception as ex_:
+            return u"%s" % ex_
+        return json.dumps(r_)[:200] if isinstance(r_, dict) and r_.get("success") is False else None
+    err = _set(keep)
+    if err:
+        log.append(u"stories: levels not set in place (%s): stories above story 0 removed, set again" % err[:160])
+        err = _set(keep[:1]) or _set(keep)
+    if err:
+        log.append(u"FLAG stories not set (%s): plans drawn by the node scripts" % err[:160])
         return []
     log.append(u"stories: story 0 + %d node building floor(s) (%s), level lines off in the sections" % (
         len(keep) - 1, u", ".join(u"%s %+.2f" % (k["name"], k["level"]) for k in keep[1:])))
