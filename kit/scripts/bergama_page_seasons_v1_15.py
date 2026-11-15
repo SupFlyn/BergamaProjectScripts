@@ -40,7 +40,7 @@ largest cached scale that fits).
 """
 import os, re, glob, json, math, time, zlib, struct
 
-VERSION = "v1.10.3"   # v1.10.3 (fresh review of run v1101e: no water, no level lines on the cuts): the bed low point checked against the cached bed (Sections joins the water to it and draws nothing when the ground there is higher), a cache check line in the log, summer subtitle no longer says "no flow figure" (the columns show its depths); v1.10.2: v1.10.2 (run v1101e check): the levels diagram's half fixed by the engine strip zone and read in the cache order (it ran 335 m wide at heights x41, walls zigzagged); range and exaggeration logged, FLAG outside x3-15; v1.10.1: v1.10.1: pc_dg_kit called with dash_at=4 (the Sections writer reads the dash at item [4]; v1.10 put it in the cap slot: TypeError in write_pdf); v1.10: v1.10: DIAGRAM_STYLE v2 (pages_common v3.22): air above the levels diagram, water filled to the normal level only, every higher level a full-width dashed hairline, move outline at the kit weight; v1.9: v1.9: the levels diagram drawn with the shared pages_common pc_dg_kit (v3.20) instead of local copies; v1.8: v1.8: the levels diagram and rain / water columns to library/diagram_style/DIAGRAM_STYLE.md v1 (Aras 21:31 UTC "all the diagrams are awful"): one claim, 0.70 ground over D9D4CA poché, our move in the accent, water A2B6B5 with hairline levels, band brackets, people on the move, grey rain bars; v1.7: v1.7, Aras 21:28-21:29 UTC: the levels diagram redrawn as the real north-east half of the cut with water bands, planting band strip and one label column ("looks awful ... fix it"); the month water as the old bed icons ("put the icons from before"); v1.6.2: v1.6.2 (run v16 check): the levels diagram's half-bed wider, gentle steps (it read as a tower), the bands bar beside the labels; v1.6.1: v1.6.1: Sh.ex no longer calls the Sections surf (it falls back to ex outside the surface: endless recursion, Rhino crashed on S4); v1.6, Aras 14 Nov 16:37-16:38 UTC ("we dont have these diagrams ... humans or trees or background assets"; "create this as a diagram that shows in lowest river bed depth and shows on it where it fills up to etc. and plug that into one of the pages"): default cut S4 (the engine's designed banks, cached by Sections v1.10, trees, people, houses, shrubs, lavender), the RAIN · WATER columns per season, numbered zone bar + ZONES key, PLANTS key, the LEVELS diagram with planting bands A-F (slide 3 design concept), the main idea under the title; the four cuts fitted to the rows box (scale not important, Aras 15:27); the year chart left out (the columns carry it); v1.5: default cut N3-A (section_lines v2, 14 Nov 16:14 UTC: B cuts run along the bank, N6-B no longer crosses the stream); v1.4   # v1.4, Aras 14 Nov 15:28 UTC "the grass is too long please be careful about the proportions": the planting drawn at the engine's own 1:75 and scaled down as a whole to the page scale (blade widths, plumes and culms were fixed page mm, oversized at 1:500); the base's soil root hairs (fixed 1-3 mm lines) left out; v1.3   # v1.3, Aras 14 Nov 15:23-15:24 UTC: "dont give sources in the drawings at all", "no sources for nothing": no source or status brackets on the page, the sources go to the log only; v1.2   # v1.2 (run 2 check): the four cuts spread over the rows box height (half the page was empty); taller year chart; the strip label inside its bars (it ran over "no figure"); no false FLAG on a cropped cut exactly the box wide; v1.1   # v1.1 (run 1 check): the cuts cropped to a window round the stream at the largest cached scale that fits (1:1000 read flat); the summer strip in the year chart hangs below the bed (it is cut 0.30 m into it)
+VERSION = "v1.15"   # v1.15 (run of v1.14: at true scale the 4.3 m of levels were 6 mm high, unreadable): the levels diagram heights x LEVELS_EX from 1 m under the strip floor (the zone strip and the poché below unchanged), the houses and canopies behind left out there (stretched they would misdraw the design; the four cuts show them at true scale), top at the promenade + 1.5 m; v1.14: v1.14 (Aras 15 Nov 15:04 UTC "this is awful ... do that like our current sections"): the levels diagram is the Sections cut itself (cache 1:500, summer look: ground, zone strip, Archicad background houses and canopies, planting, held strip; no people), true scale, cropped to the strip and the north-east bank, with the average flow filled and every level a blue hairline to the right edge; bands A-F as brackets with spread letters; the bed close-up under it; v1.13: v1.13 (Aras 06:49 UTC, trees from his asset files; Sections v1.23-1.24): every tree on the cut is the asset cutout of its species (plane, ash, stone_pine, olive, tamarisk), none below Q500 on S4 (as Sections), no drawn tree symbol (a missing cutout is a FLAG line); v1.12: v1.12 (Aras 15 Nov 05:58-06:00 UTC): no blue level lines on the four cuts (the levels diagram shows them), the levels diagram's level lines run on to their labels, no people in it, a BED CLOSE-UP of the strip in it, a KEY MAP of the cut in the site (site_alan turned flat, Basemap houses, the Selinos, the cut); parts named with a capital; v1.11: v1.11 (Aras 15 Nov "All defaults are fine": S4 redrawn from B19, Sections v1.18): zones from the cache's masterplan parts (ground parts on the bar, structures above where free, one number per name), the cuts cropped to the cut window, the engine's shrubs / lavender and plant callouts only for the old engine cut; v1.10.6: v1.10.6 also (second fresh review of run v1105): level dashes as the key, the accent a thin band under the move, the ground line ends with its poché, bands A-F as vertical brackets by level (E had none), every level joined to the profile by a dotted hairline, the overlap of the source day ranges said, column text 1.9 mm, a 20 m scale bar with its mid value and the exact ratio; v1.10.6 (run v1105 check): the held strip filled in the diagram water A2B6B5 (the pale fill read as empty); v1.10.5: v1.10.5 (review findings 10, 15): autumn subtitle one range, the page scale ratio beside the bar; v1.10.4: v1.10.4 (run v1103 log): when the cached strip lies off the surface, the bed level and the strip move to the surface's low point with it; v1.10.3: v1.10.3 (fresh review of run v1101e: no water, no level lines on the cuts): the bed low point checked against the cached bed (Sections joins the water to it and draws nothing when the ground there is higher), a cache check line in the log, summer subtitle no longer says "no flow figure" (the columns show its depths); v1.10.2: v1.10.2 (run v1101e check): the levels diagram's half fixed by the engine strip zone and read in the cache order (it ran 335 m wide at heights x41, walls zigzagged); range and exaggeration logged, FLAG outside x3-15; v1.10.1: v1.10.1: pc_dg_kit called with dash_at=4 (the Sections writer reads the dash at item [4]; v1.10 put it in the cap slot: TypeError in write_pdf); v1.10: v1.10: DIAGRAM_STYLE v2 (pages_common v3.22): air above the levels diagram, water filled to the normal level only, every higher level a full-width dashed hairline, move outline at the kit weight; v1.9: v1.9: the levels diagram drawn with the shared pages_common pc_dg_kit (v3.20) instead of local copies; v1.8: v1.8: the levels diagram and rain / water columns to library/diagram_style/DIAGRAM_STYLE.md v1 (Aras 21:31 UTC "all the diagrams are awful"): one claim, 0.70 ground over D9D4CA poché, our move in the accent, water A2B6B5 with hairline levels, band brackets, people on the move, grey rain bars; v1.7: v1.7, Aras 21:28-21:29 UTC: the levels diagram redrawn as the real north-east half of the cut with water bands, planting band strip and one label column ("looks awful ... fix it"); the month water as the old bed icons ("put the icons from before"); v1.6.2: v1.6.2 (run v16 check): the levels diagram's half-bed wider, gentle steps (it read as a tower), the bands bar beside the labels; v1.6.1: v1.6.1: Sh.ex no longer calls the Sections surf (it falls back to ex outside the surface: endless recursion, Rhino crashed on S4); v1.6, Aras 14 Nov 16:37-16:38 UTC ("we dont have these diagrams ... humans or trees or background assets"; "create this as a diagram that shows in lowest river bed depth and shows on it where it fills up to etc. and plug that into one of the pages"): default cut S4 (the engine's designed banks, cached by Sections v1.10, trees, people, houses, shrubs, lavender), the RAIN · WATER columns per season, numbered zone bar + ZONES key, PLANTS key, the LEVELS diagram with planting bands A-F (slide 3 design concept), the main idea under the title; the four cuts fitted to the rows box (scale not important, Aras 15:27); the year chart left out (the columns carry it); v1.5: default cut N3-A (section_lines v2, 14 Nov 16:14 UTC: B cuts run along the bank, N6-B no longer crosses the stream); v1.4   # v1.4, Aras 14 Nov 15:28 UTC "the grass is too long please be careful about the proportions": the planting drawn at the engine's own 1:75 and scaled down as a whole to the page scale (blade widths, plumes and culms were fixed page mm, oversized at 1:500); the base's soil root hairs (fixed 1-3 mm lines) left out; v1.3   # v1.3, Aras 14 Nov 15:23-15:24 UTC: "dont give sources in the drawings at all", "no sources for nothing": no source or status brackets on the page, the sources go to the log only; v1.2   # v1.2 (run 2 check): the four cuts spread over the rows box height (half the page was empty); taller year chart; the strip label inside its bars (it ran over "no figure"); no false FLAG on a cropped cut exactly the box wide; v1.1   # v1.1 (run 1 check): the cuts cropped to a window round the stream at the largest cached scale that fits (1:1000 read flat); the summer strip in the year chart hangs below the bed (it is cut 0.30 m into it)
 SLIDE = 3                            # slide 3 (main + design idea); presentation/3.pdf
 GH_LABEL = "PageSeasons"
 OUT_FOLDER = "bergama_page_seasons"
@@ -61,6 +61,8 @@ DESIGN_IDEA = (u"The Selinos becomes a stepped, amphibious bed whose terraces fl
 PAGE_W, PAGE_H = 420.0, 297.0
 ROWS_BOX = (48.0, 22.0, 262.0, 266.0)      # mm: x0, y0, x1, y1 of the four cuts (v1.6: the rain columns left of them)
 COL_X0, COL_X1 = 276.0, 406.0              # mm: the right column (year chart, key)
+LEVELS_EX = 4.0                            # v1.15: heights x4 in the levels diagram
+LEVELS_DROP = ("people", "houses behind", "proposal behind", "proposal structures", "context buildings")
 ROW_GAP = 7.0                              # mm between two season cuts (their title sits in it)
 SEASONS = ("winter", "spring", "summer", "autumn")
 SEA_MONTHS = {"winter": u"Dec–Feb", "spring": u"Mar–May", "summer": u"Jun–Aug", "autumn": u"Sep–Nov"}
@@ -77,6 +79,7 @@ TINT = {"winter": ("duo", "6E675C", "DAD5CB"), "spring": ("mix", "D7E8A0", 0.30)
         "autumn": ("duo", "7C4F2B", "EAD08E")}
 INK, GREY, ORANGE = "2C2219", "6E675E", "C07A2E"
 PLANT_DEN = 75.0                     # v1.4: the engine's planting pieces are sized for 1:75 (bergama_sections_engine SCALE)
+TREE_KEYS = (u"plane", u"ash", u"stone_pine", u"olive", u"tamarisk")   # v1.13: the asset species (Sections v1.23)
 BACK_LAYERS = ("sky", "ground behind", "houses behind", "context buildings")
 DROP_LAYERS = ("title", "callouts", "dimensions")
 
@@ -153,6 +156,13 @@ class Sh(object):
                          u"surface's lowest point s %.2f %+.2f used for the water" % (
                              self.C.s_th, u"none" if g is None else u"%+.2f" % g, self.C.z_th, lo_p[0], lo_p[1]))
             self.C.s_th = lo_p[0]
+            # v1.10.4 (run v1103 log: strip s 315.25-319.25 and bed +44.35 outside the S4 window 538-652, lowest
+            # point +43.59 at s 592): bed and strip moved with it, the strip Sections' width round the low point
+            self.C.z_th = lo_p[1]
+            if self.has_strip:
+                hw = (self.strip[1] - self.strip[0]) / 2.0
+                self.strip = (lo_p[0] - hw, lo_p[0] + hw, self.strip[2])
+            self.note += u"; bed %+.2f and the strip moved there" % lo_p[1]
 
     def X(self, s):
         return self.X0 + (s - self.lo) * self.K
@@ -252,32 +262,33 @@ def season_cut(X, E, name, J, cut_its, M, sea, log, cnt):
     back = [it for it in base if il(it) in BACK_LAYERS]
     front = [it for it in base if il(it) not in BACK_LAYERS]
     pg = E["Page"](u"seasons_%s" % sea, u"")
-    pg.items += [tuple(it) for it in back]
+    for it in back:                                    # v1.13: his asset trees behind the cut in the season's tint
+        if it[0] == "image" and os.path.basename(str(it[5])).lower().startswith(TREE_KEYS):
+            it = it[:5] + (tinted(X, it[5], sea, log, cnt),) + it[6:]
+        pg.items.append(tuple(it))
     # trees (behind the cut ground, as Sections draws them), the asset cutouts tinted for the season
     n_tree = 0
+    q5_ = J["levels"].get("q500", [None])[0]
     for t in S.d["trees"]:
         s, r_, h = t[0], t[1], t[2]
         g = S.surf(s)
+        if q5_ is not None and g < q5_ - 1e-6 and name == "S4":
+            continue                                   # v1.13: as Sections, no tree below Q500 on S4
+        sp_ = t[3] if len(t) > 3 and t[3] in TREE_KEYS else u"plane"
         Xp, Yp = S.P(s, g)
         n0 = len(pg.items)
-        if X["cutout"](pg, "plane", Xp, Yp, h * K, int(s * 7) % 6, (int(s) % 2) == 1, "trees"):
+        if X["cutout"](pg, sp_, Xp, Yp, h * K, int(s * 7) % 6, (int(s) % 2) == 1, "trees"):
             it = list(pg.items[n0])
             it[5] = tinted(X, it[5], sea, log, cnt)
             pg.items[n0] = tuple(it)
-        else:
-            E["veg_tree"](pg, Xp, Yp, h * K, 2 * r_ * K, (S.d["key"], round(s, 2)))
+        else:                                          # v1.13: no drawn symbol (Aras: trees from the asset files)
+            log.append(u"FLAG %s: no cutout for %s at s %.1f: tree left out" % (sea, sp_, s))
+            continue
         n_tree += 1
     q100 = J["levels"].get("q100", [None])[0]
     q500 = J["levels"].get("q500", [None])[0]
     jl = X["joined_level"]
-    if q500 is not None:
-        jl(E, pg, S, q500, u"", [2.0, 1.0])
-    if q100 is not None:
-        jl(E, pg, S, q100, u"", [0.8, 0.8])
-    sw = season_water(X, J, sea)
-    for z, fill_, dash in sw:
-        if not fill_:
-            jl(E, pg, S, z, u"", dash, colour=E["WATER_LINE"])
+    sw = season_water(X, J, sea)                       # v1.12: no dashed level lines on the cuts (Aras 05:59 UTC)
     pg.items += [tuple(it) for it in front]
     # planting from the cache in the season's look (engine SEASON_LOOK), v1.4: drawn at the engine's own scale
     # PLANT_DEN on a page of its own, then every point (and line width, circle radius) scaled by K / K75 onto the cut
@@ -294,7 +305,7 @@ def season_cut(X, E, name, J, cut_its, M, sea, log, cnt):
             E["reeds"](pp, S75, a, b, h)
         for a, b in S.d["iris"]:
             E["iris"](pp, S75, a, b)
-        if name == "S4":                             # v1.6: the design's shrubs and lavender (engine SECTIONS, as Sections)
+        if name == "S4" and "parts" not in J:        # v1.11: old engine cut only; v1.6: the design's shrubs and lavender (engine SECTIONS, as Sections)
             for dsec in E["SECTIONS"]:
                 for a, b in dsec.get("lavender", []):
                     E["lavender"](pp, S75, a, b)
@@ -309,7 +320,12 @@ def season_cut(X, E, name, J, cut_its, M, sea, log, cnt):
         jl(E, pg, S, z, u"", None, colour=E["FLOOD"], fill=True)
     held = X["STRIP_HELD"].get(sea) and S.has_strip
     if held:
-        jl(E, pg, S, S.C.z_th, u"", None, colour=E["FLOOD"], fill=True, line=not filled)
+        # v1.10.4: the held strip drawn here (Sections' joined water needs ground below the level; the cached surface
+        # has no notch): the strip's water 0.30 m into the bed, its edge in the proposal orange
+        a_, b_, d_ = S.strip
+        zt_ = S.C.z_th
+        ring = [S.P(a_, zt_ - d_), S.P(b_, zt_ - d_), S.P(b_, zt_), S.P(a_, zt_)]
+        pg.items.append(("poly", [ring], DG_WATER, ORANGE, 0.22, None, "water", 1, None, None))   # v1.10.6: reads as water
     wl = max([S.C.z_th if held else -99.0] + [w[0] for w in filled])
     n_p = 0
     keys = X["PEOPLE_KEYS"]
@@ -326,7 +342,7 @@ def season_cut(X, E, name, J, cut_its, M, sea, log, cnt):
         ly = il(it)
         if ly in DROP_LAYERS:
             continue
-        if ly == "levels" and not (it[0] == "line" and abs(it[1][-1][0] - it[1][0][0]) > 2.0):
+        if ly == "levels":                             # v1.12: no level lines either (the levels diagram has them)
             continue
         its.append(it)
     log.append(u"%s: %d trees (cutouts, %s), %d people, %d water level(s) filled, strip %s, grass %d, reeds %d, "
@@ -543,8 +559,6 @@ def key_rows(E, X, x0, ytop, w, sea_look):
     row("box", X["BLD_CUT_FILL"], u"buildings the cut passes through")
     row("box", X["ROAD_FILL"], u"road surface")
     row("box", E["WATER"], u"water of the season over the bed", "7DB3D3")
-    row("line", E["WATER_LINE"], u"the season's high end", (1.6, 0.6, 0.3, 0.6))
-    row("line", E["FLOOD"], u"Q100 short dash · Q500 long dash", (2.0, 1.0))
     y[0] -= 1.0
     hdr(u"PROPOSAL MARKS", ORANGE)
     row("box", "F3E3CF", u"summer strip at the bed low point, held water", ORANGE)
@@ -639,7 +653,7 @@ def rain_col(E, x0, ytop, h, sea, rain, depth):
     """v1.6 (Aras 16:37 UTC, the RAIN · WATER columns he liked): the season's three months, rain in mm (bars up, the
     year's wettest month = full height); v1.7: the mean water over the bed as the bed icons of the old page"""
     it = []
-    it.append(T_(u"RAIN mm" + (u" · WATER m" if depth else u""), x0, ytop - 2.0, 1.7, GREY, True, "L", "rain"))
+    it.append(T_(u"RAIN mm" + (u" · WATER m" if depth else u""), x0, ytop - 2.0, 1.9, GREY, True, "L", "rain"))
     room = max(8.0, h - 14.0)
     rh_ = room
     yb = ytop - 6.0 - rh_
@@ -650,10 +664,10 @@ def rain_col(E, x0, ytop, h, sea, rain, depth):
         hr = rain[m] / rmax * rh_
         it.append(R_(xc - 2.6, yb, xc + 2.6, yb + hr, RAIN_COL, None, 0.0, "rain"))
         it.append(T_(u"%d" % int(round(rain[m])), xc, yb + hr + 0.7, 1.7, INK, False, "C", "rain"))
-        it.append(T_(MON3[m], xc, yb - 2.5, 1.7, INK, False, "C", "rain"))
+        it.append(T_(MON3[m], xc, yb - 2.6, 1.9, INK, False, "C", "rain"))
         if depth:
             it += bed_icon(xc, yb - 3.6, depth[m], dmax, "A2B6B5")   # v1.8: DIAGRAM_STYLE water
-            it.append(T_(u"%.2f" % depth[m], xc, yb - 9.0, 1.7, INK, False, "C", "rain"))
+            it.append(T_(u"%.2f" % depth[m], xc, yb - 9.2, 1.9, INK, False, "C", "rain"))
     it.append(L_([(x0, yb), (x0 + RAIN_W - 1.0, yb)], INK, 0.15, "rain"))
     return it
 
@@ -669,66 +683,71 @@ def _spread(ys, gap):
 DG_GROUND, DG_WATER, DG_ACCENT_T = "D9D4CA", "A2B6B5", "F0DECB"   # DG_GROUND kept for reference; v1.9 draws with pc_dg_kit   # DIAGRAM_STYLE v1: ground poché, water, accent 25 %
 
 
-def levels_diagram(X, E, G, Lv, W, J, zones, x0, ytop, x1):
-    """v1.8, to library/diagram_style/DIAGRAM_STYLE.md v1 (Aras 21:31 UTC "all the diagrams are awful"): one claim
-    (each level floods in turn); the real north-east half of the cut (Sections cache surface, heights exaggerated); one
-    heavy ground line over a pale poché; our move (the summer strip and the designed terraces) in the accent; water
-    flat A2B6B5 with one hairline per named level; the planting bands A-F as hairline brackets under the ground; people
-    on the move; the levels in one column with hairline leaders (Aras 16:38 asked for every level); v1.9: drawn with
-    the shared kit pages_common pc_dg_kit (page mm: unit box at 0, 0)"""
+def clip_top(X, items, yt):
+    """v1.14: the items cut at the height yt (mm): polygons and lines through clip_x on swapped axes; texts, circles and
+    images only when wholly below"""
+    def sw(it):
+        if it[0] == "poly":
+            return (it[0], [[(p[1], p[0]) for p in R] for R in it[1]]) + tuple(it[2:])
+        return (it[0], [(p[1], p[0]) for p in it[1]]) + tuple(it[2:])
+    res = []
+    for it in items:
+        if it[0] in ("poly", "line"):
+            res += [sw(i) for i in clip_x(X, [sw(it)], -1e9, yt)]
+        elif X["items_bbox"]([it])[3] <= yt + 1e-6:
+            res.append(it)
+    return res
+
+
+def exag(it, yb, ex):
+    """v1.15: one item with its heights above yb (mm) times ex; below yb unchanged; texts and images moved, not
+    stretched"""
+    T = lambda y: yb + (y - yb) * ex if y > yb else y
+    t = it[0]
+    if t == "poly":
+        return (t, [[(p[0], T(p[1])) for p in r] for r in it[1]]) + tuple(it[2:])
+    if t == "line":
+        return (t, [(p[0], T(p[1])) for p in it[1]]) + tuple(it[2:])
+    if t == "circle":
+        return (t, it[1], T(it[2])) + tuple(it[3:])
+    if t == "text":
+        return (t, it[1], it[2], T(it[3])) + tuple(it[4:])
+    if t == "image":
+        return (t, it[1], T(it[2])) + tuple(it[3:])
+    return it
+
+
+def levels_diagram(X, E, G, Lv, W, J, zones, x0, ytop, x1, name, per, cnt):
+    """v1.14 (Aras 15 Nov 15:04 UTC "this is awful ... do that like our current sections"): the Sections cut itself
+    (the 1:500 cache in the summer look, as season_cut draws it: ground, zone strip, Archicad background houses and
+    canopies, planting, the held strip; no people), true scale, cropped from the strip to past the promenade on the
+    north-east bank; water filled to the average flow; every level a blue hairline to the right edge (the only blue
+    level lines of the slide); the levels in one column with leaders; bands A-F as brackets; the bed close-up under it"""
     it = []
     K = G["pc_dg_kit"](it, 0.0, 0.0, 1.0, 1.0, layer="levels", lw=1.0, lh=1.0, dash_at=4)   # Sections writer: dash at [4]
     bed = Lv["bed"]
     floor = bed - X["STRIP_D"]
     prom = E["DRY"]
     dmax = max(Lv["depth"]) if Lv["depth"] else None
-    zt = float(J["z_th"])
-    V = [tuple(p) for p in J["surface"]]               # v1.10.2: in the cache's own order (walls keep their order)
+    zt = Lv["bed"] if Lv.get("bed") is not None else float(J["z_th"])
+    V = [tuple(p) for p in J["surface"]]
     st = J.get("strip")
     sz = [z_ for z_ in zones if u"strip" in z_[2].lower()]
-    if sz:                                             # v1.10.2 (run v1101e: the half ran 335 m wide, heights x41):
-        st = (sz[0][0], sz[0][1], X["STRIP_D"])        # the designed strip of the engine zones fixes the half
+    if sz:
+        st = (sz[0][0], sz[0][1], X["STRIP_D"])
     sc = (st[0] + st[1]) / 2.0 if st else min(V, key=lambda p: p[1])[0]
     s_end = max(p[0] for p in V)
-    if zones:
+    if "parts" in J:
+        s_end = min(s_end, float(J["window"][1]))
+    elif zones:
         s_end = min(s_end, zones[-1][1])
-    pts = [p for p in V if sc <= p[0] <= s_end]
+    pts = sorted(p for p in V if sc <= p[0] <= s_end)
     if st:
         sb = st[1]
         pts = [(sc, zt - X["STRIP_D"]), (sb, zt - X["STRIP_D"]), (sb, zt)] + [p for p in pts if p[0] > sb + 1e-6]
     if len(pts) < 2:
+        LOGQ.append(u"FLAG levels diagram: fewer than 2 surface points past the strip: left out")
         return it, ytop
-    LOGQ.append(u"levels diagram: half from s %.1f to %.1f m (%d surface points)" % (pts[0][0], pts[-1][0], len(pts)))
-    # the designed part (our move): from the first engine part above the gravel bed (zones after "Stream gravel")
-    s_move = None
-    for a, b, nm in zones:
-        if a > sc and nm != u"Stream gravel" and u"strip" not in nm.lower():
-            s_move = a
-            break
-    lab_w = 40.0
-    pw = (x1 - x0) - lab_w
-    kx = pw / (pts[-1][0] - pts[0][0])
-    kz = 11.0
-    ex = kz / kx
-    if not 3.0 <= ex <= 15.0:
-        LOGQ.append(u"FLAG levels diagram: heights x%.0f (expected 3-15): check the half's range" % ex)
-    zmax = max(prom, max(p[1] for p in pts))
-    it.append(T_(u"LEVELS · EACH LEVEL FLOODS IN TURN", x0, ytop, 2.8, INK, True, "L", "levels"))
-    it.append(T_(u"cut %s, north-east half, summer strip to promenade, heights x%.0f" % (Lv["id"], ex),
-                 x0, ytop - 3.4, 1.9, GREY, False, "L", "levels"))
-    yt = ytop - 18.0                                 # v1.10: air above the promenade (DIAGRAM_STYLE v2)
-
-    def P(s, z):
-        return (x0 + (s - pts[0][0]) * kx, yt - (zmax - z) * kz)
-    prof = [P(*p) for p in pts]
-    ybot = P(0, min(floor, zt - X["STRIP_D"]))[1] - 4.0
-    xR = prof[-1][0]
-
-    def ground_at(s):
-        for a, b in zip(pts, pts[1:]):
-            if a[0] <= s <= b[0] and b[0] > a[0]:
-                return a[1] + (b[1] - a[1]) * (s - a[0]) / (b[0] - a[0])
-        return pts[-1][1]
 
     def reach(z):
         """s where the ground first reaches z, from the strip outward"""
@@ -736,70 +755,72 @@ def levels_diagram(X, E, G, Lv, W, J, zones, x0, ytop, x1):
             if b[1] >= z > a[1]:
                 return a[0] + (b[0] - a[0]) * (z - a[1]) / (b[1] - a[1])
         return pts[-1][0]
+    # the crop: from 4 m before the strip to 8 m past where the ground reaches the promenade level
+    sa = (st[0] if st else sc) - 4.0
+    sb_ = min(s_end, reach(prom) + 8.0)
+    # the Sections cut (cache, smallest scale = most detail), drawn as season_cut draws the summer
+    d0 = str(min(int(d) for d in per))
+    M = per[d0]["map"]
+    k_keep, ek_keep, sea_keep = E.get("K"), X["_ENGINE_K"][0], dict(E["SEA"])
+    lg = []
+    try:
+        its, S = season_cut(X, E, name, J, per[d0]["items"], M, "summer", lg, cnt)
+        pg = E["Page"](u"levels_water", u"")
+        if Lv["avg"] is not None:                    # the average flow filled as Sections fills water (no line)
+            X["joined_level"](E, pg, S, Lv["avg"], u"", None, colour=E["FLOOD"], fill=True, line=False)
+    finally:
+        E["K"] = k_keep
+        X["_ENGINE_K"][0] = ek_keep
+        E["SEA"].clear()
+        E["SEA"].update(sea_keep)
+    LOGQ.extend(l if l.startswith(u"FLAG") else u"levels diagram cut: " + l for l in lg)
+    il = X["_item_layer"]
+    its = [i for i in its if il(i) not in LEVELS_DROP] + [tuple(i) for i in pg.items]   # no people (Aras 05:58 UTC)
+    xa, xb = S.X(sa), S.X(sb_)
+    yb0 = S.Y(floor - 1.0)                           # v1.15: heights x LEVELS_EX above this
+    ytc = yb0 + (S.Y(prom + 1.5) - yb0) * LEVELS_EX
+    its = clip_top(X, [exag(i, yb0, LEVELS_EX) for i in clip_x(X, its, xa, xb)], ytc)
+    lab_w = 36.0
+    pw = (x1 - x0) - lab_w
+    f2 = pw / (xb - xa)
+    LOGQ.append(u"levels diagram: Sections 1:%s cache, s %.1f to %.1f m, fitted x%.2f = about 1:%d, heights x%g" % (
+        d0, sa, sb_, f2, int(round(float(d0) / f2)), LEVELS_EX))
+    it.append(T_(u"LEVELS · EACH LEVEL FLOODS IN TURN", x0, ytop, 2.8, INK, True, "L", "levels"))
+    it.append(T_(u"cut %s, strip and north-east bank, about 1:%d, heights x%g" % (Lv["id"], int(round(float(d0) / f2)),
+                                                                             LEVELS_EX),
+                 x0, ytop - 3.4, 1.9, GREY, False, "L", "levels"))
+    yt = ytop - 6.0
+    ox, oy = x0 - xa * f2, yt - ytc * f2
 
-    # v1.10 (DIAGRAM_STYLE v2 "fill water only to the normal level"): the fill to the average flow, every higher level
-    # a full-width dashed hairline
-    zw = Lv["avg"] if Lv["avg"] is not None else zt
-    ring = [P(pts[0][0], zw)]
-    for a, b in zip(pts, pts[1:]):
-        if a[1] >= zw:
-            break
-        ring.append(P(*a))
-        if b[1] >= zw:
-            ring.append(P(reach(zw), zw))
-            break
-    it.append(("poly", [ring], DG_WATER, None, 0.0, None, "levels", 1, None, None))
-    for z in ((bed + dmax) if dmax else None, Lv["q100"], Lv["q500"]):
+    def P(s, z):
+        y_ = S.Y(z)
+        return (ox + f2 * S.X(s), oy + f2 * (yb0 + (y_ - yb0) * LEVELS_EX if y_ > yb0 else y_))
+    it += [scaled(i, f2, ox, oy) for i in its]
+    bb = X["items_bbox"]([scaled(i, f2, ox, oy) for i in its]) if its else (x0, yt - 20.0, x0 + pw, yt)
+    ybot = bb[1]
+    xR = x0 + pw
+    prof = [P(*p) for p in pts if p[0] <= sb_]
+    # every level a blue hairline across the cut to the right edge (Aras 06:00 UTC), dashes as the key
+    for z, dash in ((floor, (0.3, 0.6)), (bed, (0.3, 0.6)), (Lv["avg"], None), (Lv["terrace"], (0.3, 0.6)),
+                    ((bed + dmax) if dmax else None, (1.6, 0.6, 0.3, 0.6)), (Lv["bank"], (0.3, 0.6)),
+                    (Lv["q100"], (0.8, 0.8)), (Lv["q500"], (2.0, 1.0)), (prom, (0.3, 0.6))):
         if z is not None:
-            K["line"]([P(pts[0][0], z), (xR + 3.0, P(0, z)[1])], K["C"]["water_ln"], K["W"]["hair"], (1.4, 0.9))
-    # ground poché, our move as the accent tint, one heavy ground line, the move's outline in the accent
-    K["poly"](prof + [(xR, ybot), (prof[0][0], ybot)], K["C"]["ground"])
-    mv = []
-    if st:
-        mv.append([P(sc, zt), P(sc, zt - X["STRIP_D"]), P(st[1], zt - X["STRIP_D"]), P(st[1], zt)])
-    if s_move is not None:
-        seg = [P(s_move, ground_at(s_move))] + [P(*p) for p in pts if p[0] > s_move]
-        mv.append(seg)
-        it.append(("poly", [seg + [(xR, seg[-1][1] - 2.2), (seg[0][0], seg[0][1] - 2.2)]], DG_ACCENT_T, None, 0.0,
-                   None, "levels", 1, None, None))
-    K["line"](prof + [(xR + 3.0, prof[-1][1])], K["C"]["ink"], K["W"]["cut"])
-    for seg in mv:
-        K["line"](seg, K["C"]["move"], K["W"]["move"])
-    if s_move is not None:                             # people on the move: lower walk and promenade
-        for s in (s_move + 3.0, pts[-1][0] - 4.0):
-            if s_move <= s <= pts[-1][0]:
-                K["person"](*P(s, ground_at(s)))
-    # the planting bands as hairline brackets under the ground (band rule of WaterBoard: by ground height)
+            K["line"]([(x0, P(0, z)[1]), (xR + 3.4, P(0, z)[1])], K["C"]["water_ln"], K["W"]["hair"] * 1.5, dash)
     terr = Lv["terrace"] if Lv["terrace"] is not None else bed + 0.5
-
-    def band_of(z):
-        if z <= bed + 1e-6:
-            return "A"
-        if dmax and z <= bed + dmax:
-            return "B"
-        if z < terr:
-            return "C"
-        if Lv["q100"] is not None and z <= Lv["q100"]:
-            return "D"
-        if Lv["q500"] is not None and z <= Lv["q500"]:
-            return "E"
-        return "F"
-    runs = []
-    for a, b in zip(pts, pts[1:]):
-        if b[0] - a[0] < 1e-6:
+    # the planting bands as vertical brackets by level at the left edge, letters spread so each reads
+    xv = x0 - 2.0
+    br = []
+    for k, za, zb2 in (("F", Lv["q500"], prom), ("E", Lv["q100"], Lv["q500"]), ("D", terr, Lv["q100"]),
+                       ("C", bed + (dmax or 0.0), terr), ("B", bed, bed + (dmax or 0.0)), ("A", floor, bed)):
+        if za is None or zb2 is None or zb2 <= za:
             continue
-        k = band_of((a[1] + b[1]) / 2.0)
-        if runs and runs[-1][0] == k:
-            runs[-1][2] = b[0]
-        else:
-            runs.append([k, a[0], b[0]])
-    yb_ = ybot - 1.5
-    for k, a, b in runs:
-        xa, xb = P(a, 0)[0], P(b, 0)[0]
-        if xb - xa < 1.2:
-            continue
-        K["bracket"](xa + 0.2, xb - 0.2, yb_, k)
-    K["label"](u"our move: strip and terraces", P(s_move or sc, 0)[0], yt + 3.6, accent=True)
+        ya, yb2 = P(0, za)[1] + 0.08, P(0, zb2)[1] - 0.08
+        K["line"]([(xv + 0.6, ya), (xv, ya), (xv, yb2), (xv + 0.6, yb2)], K["C"]["ink"], K["W"]["hair"] * 1.5)
+        br.append((k, (ya + yb2) / 2.0))
+    for (k, ym), y in zip(br, _spread([ym for k, ym in br], 2.0)):
+        if abs(y - ym) > 0.3:
+            it.append(L_([(xv, ym), (xv - 0.8, y + 0.6)], GREY, 0.08, "levels"))
+        K["text"](k, xv - 1.6, y, 1.7, K["C"]["ink"], True, "C")
     # the levels in one column with hairline leaders
     lab = [(prom, u"promenade"), (Lv["q500"], u"Q500 flood"), (Lv["q100"], u"Q100 flood"),
            (Lv["bank"], u"bank today"), (Lv["terrace"], u"flood terrace"),
@@ -813,9 +834,14 @@ def levels_diagram(X, E, G, Lv, W, J, zones, x0, ytop, x1):
         it.append(L_([(xR + 3.4, w_ + 0.7), (xl - 1.0, y + 0.7)], GREY, 0.10, "levels"))
         it.append(T_(u"+%.2f" % z, xl, y, 1.9, INK, True, "L", "levels"))
         it.append(T_(s, xl + 8.5, y, 1.9, INK, False, "L", "levels"))
+    yb_ = min(ybot, min(ys) - 1.0)
+    # the bed close-up (Aras 05:58 UTC "a bigger bed strip") under the cut, the whole plot width
+    box = (x0 + 1.0, x0 + pw - 1.0, yb_ - 3.0, yb_ - 3.0 - 24.0)
+    it += bed_closeup(X, J, Lv, st, zt, bed, dmax, terr, prof, P, x0, pw, yt, reach, box)
+    yb_ = box[3]
     # the bands named under it (story text)
-    y = min(yb_ - 5.0, min(ys) - 2.0) - 3.0
-    it.append(T_(u"PLANTING BANDS · DAYS UNDER WATER A YEAR", x0, y, 1.7, INK, True, "L", "levels"))
+    y = yb_ - 4.0
+    it.append(T_(u"PLANTING BANDS · DAYS UNDER WATER A YEAR (THE RANGES OVERLAP)", x0, y, 1.7, INK, True, "L", "levels"))
     y -= 3.2
     names = dict((b_[0], b_[1]) for b_ in W["PLANT_BANDS"])
     days = W["BAND_DAYS"]
@@ -832,7 +858,180 @@ def levels_diagram(X, E, G, Lv, W, J, zones, x0, ytop, x1):
     return it, y
 
 
+def bed_closeup(X, J, Lv, st, zt, bed, dmax, terr, prof, P, x0, pw, yt, reach, box=None):
+    """v1.12 (Aras 05:58 UTC "give us more area to see where the bed strip really is and how it is"): the strip and the
+    low bed enlarged in the free air top left of the levels diagram, with a dashed box round the same part below"""
+    out = []
+    if not st:
+        LOGQ.append(u"bed close-up: no strip cached, left out")
+        return out
+    d = X["STRIP_D"]
+    V = sorted(tuple(p) for p in J["surface"])
+    sa_ = st[0] - 2.0
+    sb_ = min(max(reach(terr) + 3.0, st[1] + 8.0), sa_ + 30.0)
+    zlo = zt - d - 0.20
+    zhi = max(z for z in (terr, Lv["avg"], (bed + dmax) if dmax else None, zt) if z is not None) + 0.25
+    if box:                                            # v1.14: a given box (under the Sections-look cut)
+        xa, xb, ytop_i, ybot_i = box
+        wi = xb - xa
+    else:
+        wi = 0.42 * pw
+        xa, xb = x0 + 4.0, x0 + 4.0 + wi
+        ytop_i = yt - 0.5
+        yprof = max([q[1] for q in prof if q[0] <= xb + 2.0] or [yt - 40.0])
+        ybot_i = yprof + 3.0
+    hi = ytop_i - ybot_i
+    if hi < 14.0:
+        LOGQ.append(u"bed close-up: only %.1f mm free above the low ground, left out" % hi)
+        return out
+    kxi = wi / (sb_ - sa_)
+    kzi = (hi - 7.0) / (zhi - zlo)
+    yb0 = ybot_i + 1.0
+
+    def Q(s, z):
+        return (xa + (s - sa_) * kxi, yb0 + (z - zlo) * kzi)
+
+    def gz(s):
+        for a, b in zip(V, V[1:]):
+            if a[0] <= s <= b[0] and b[0] > a[0]:
+                return a[1] + (b[1] - a[1]) * (s - a[0]) / (b[0] - a[0])
+        return V[0][1] if s < V[0][0] else V[-1][1]
+    pts = ([(sa_, gz(sa_))] + [p for p in V if sa_ < p[0] < st[0]] + [(st[0], zt), (st[0], zt - d), (st[1], zt - d),
+           (st[1], zt)] + [p for p in V if st[1] < p[0] < sb_] + [(sb_, gz(sb_))])
+    pts = [(s, min(max(z, zlo + 0.05), zhi)) for s, z in pts]
+    prof_i = [Q(*p) for p in pts]
+    out.append(R_(xa - 1.0, ybot_i, xb + 1.0, ytop_i, "FFFFFF", "9A948C", 0.10, "levels"))
+    zw = Lv["avg"] if Lv["avg"] is not None else zt
+    out.append(R_(xa, Q(0, zlo)[1], xb, Q(0, zw)[1], "A2B6B5", None, 0.0, "levels"))       # water, hidden by the ground
+    out.append(("poly", [prof_i + [(xb, yb0 - 1.0 + 0.0), (xa, yb0 - 1.0)]], "D9D4CA", None, 0.0, None, "levels", 1,
+                None, None))
+    out.append(L_(prof_i, INK, 0.50, "levels"))
+    out.append(L_([Q(st[0], zt), Q(st[0], zt - d), Q(st[1], zt - d), Q(st[1], zt)], ORANGE, 0.35, "levels"))
+    for z, dash, nm in (((bed + dmax) if dmax else None, (1.6, 0.6, 0.3, 0.6), u"wettest month"),
+                        (Lv["avg"], None, u"average flow")):
+        if z is None or not zlo < z < zhi:
+            continue
+        if dash:
+            out.append(L_([Q(sa_, z), Q(sb_, z)], "3F86B8", 0.15, "levels", dash))
+        out.append(T_(nm, xb - 0.5, Q(0, z)[1] + 0.5, 1.6, "3F86B8", False, "R", "levels"))
+    xm = (Q(st[0], 0)[0] + Q(st[1], 0)[0]) / 2.0
+    out.append(T_(u"summer strip %.1f m wide, %.2f m deep" % (st[1] - st[0], d), xm, Q(0, zt - d)[1] - 2.4, 1.6, ORANGE,
+                  True, "C", "levels"))
+    out.append(T_(u"BED CLOSE-UP · heights x%.0f" % (kzi / kxi), xa, ytop_i - 2.6, 1.8, INK, True, "L", "levels"))
+    sbar = 5.0 if sb_ - sa_ > 12.0 else 2.0                 # a short scale bar under the caption
+    out.append(L_([(xa, ytop_i - 4.6), (xa + sbar * kxi, ytop_i - 4.6)], INK, 0.25, "levels"))
+    out.append(T_(u"%g m" % sbar, xa + sbar * kxi + 1.0, ytop_i - 5.2, 1.6, INK, False, "L", "levels"))
+    # the same part on the diagram: a dashed box (from the strip centre, the half shown) and a hairline to the close-up
+    bx0, by0 = P(max(sa_, (st[0] + st[1]) / 2.0), zlo)
+    bx1, by1 = P(sb_, zhi)
+    out.append(L_([(bx0, by0), (bx1, by0), (bx1, by1), (bx0, by1), (bx0, by0)], "9A948C", 0.12, "levels", (0.8, 0.6)))
+    out.append(L_([(bx0, by0), (xa - 1.0, ytop_i)] if box else [(bx0, by1), (xa - 1.0, ybot_i)], "9A948C", 0.10,
+                  "levels"))                           # v1.14: the close-up sits under the cut
+    LOGQ.append(u"bed close-up: s %.1f to %.1f m, z %+.2f to %+.2f, %.0f x %.0f mm, heights x%.0f" % (
+        sa_, sb_, zlo, zhi, wi, hi, kzi / kxi))
+    return out
+
+
+def key_map(G, X, E, x0, ytop, w, h_max, log):
+    """v1.12 (Aras 05:58 UTC "we need a keymap to show where this section really is"): site_alan turned flat as on the
+    site maps (Basemap frame), the Basemap houses, the Selinos centreline and cut S4 in the accent, a north arrow"""
+    it = []
+    try:
+        M = G["pc_site_map"](1000, [])
+    except Exception as ex:
+        log.append(u"FLAG key map: site frame not read (%s), left out" % ex)
+        return it, ytop
+    F = M.F
+    k = min(w / F.w, (h_max - 5.0) / F.h)                   # narrower when the column has less height left
+    h = F.h * k
+    if k * F.w < 60.0:
+        log.append(u"FLAG key map: only %.0f mm free under the key: left out" % h_max)
+        return it, ytop
+    it.append(T_(u"KEY MAP · cut S4 (orange) in the site, the Selinos in blue", x0, ytop, 2.2, INK, True, "L",
+                 "keymap"))
+    yb = ytop - 3.0 - h
+
+    def T(p):
+        u, v = F.local(p)
+        return (x0 + u * k, yb + v * k)
+    ring = [T(c) for c in M.ring]
+    it.append(("poly", [ring], "F4F1EC", None, 0.0, None, "keymap", 1, None, None))
+    nb = 0
+    try:
+        BM = X["load_basemap"]([])
+        for b in BM.get("buildings", []):
+            u, v = F.local(((b[0] + b[2]) / 2.0, (b[1] + b[3]) / 2.0))
+            if 0.0 <= u <= F.w and 0.0 <= v <= F.h:
+                it.append(("poly", [[T(q) for q in b[4]]], "C9C3B8", None, 0.0, None, "keymap", 1, None, None))
+                nb += 1
+    except Exception as ex:
+        log.append(u"FLAG key map: Basemap houses not read (%s)" % ex)
+    try:
+        CL = X["load_centreline"]([])[0]
+        seg, segs = [], []
+        for p in CL:
+            u, v = F.local(p)
+            if 0.0 <= u <= F.w and 0.0 <= v <= F.h:
+                seg.append(T(p))
+            elif seg:
+                segs.append(seg)
+                seg = []
+        if seg:
+            segs.append(seg)
+        for sg in segs:
+            if len(sg) > 1:
+                it.append(L_(sg, "3F86B8", 0.45, "keymap"))
+    except Exception as ex:
+        log.append(u"FLAG key map: Selinos centreline not read (%s)" % ex)
+    it.append(L_(ring + [ring[0]], "9A948C", 0.12, "keymap"))
+    a, b = T(E["S4_A"]), T(E["S4_B"])
+    dx, dy = b[0] - a[0], b[1] - a[1]
+    L = math.hypot(dx, dy) or 1.0
+    ux, uy = dx / L, dy / L
+    ext = max(0.0, (3.0 - L) / 2.0)                         # at least 3 mm long on the map
+    a, b = (a[0] - ux * ext, a[1] - uy * ext), (b[0] + ux * ext, b[1] + uy * ext)
+    it.append(L_([a, b], ORANGE, 0.6, "keymap"))
+    it.append(T_(u"S4", b[0] + ux * 1.2 - 0.0, b[1] + uy * 1.2, 2.0, ORANGE, True, "L", "keymap"))
+    nx, ny = F.north()
+    cx, cy, r = x0 + F.w * k - 2.0, ytop + 0.4, 1.8
+    ex_, ey_ = ny, -nx
+    Pn = lambda p, q: (cx + p * ex_ + q * nx, cy + p * ey_ + q * ny)
+    it.append(("poly", [[Pn(0, r), Pn(-0.45 * r, -0.6 * r), Pn(0, -0.25 * r), Pn(0.45 * r, -0.6 * r)]], INK, None, 0.0,
+               None, "keymap", 1, None, None))
+    it.append(T_(u"N", cx - 3.2, cy - 0.6, 1.8, INK, True, "C", "keymap"))
+    log.append(u"key map: site_alan %.0f x %.0f m at %.0f x %.0f mm (about 1:%d), %d houses, cut S4 %.0f m" % (
+        F.w, F.h, F.w * k, h, int(round(1000.0 / k)), nb, math.hypot(E["S4_A"][0] - E["S4_B"][0], E["S4_A"][1] - E["S4_B"][1])))
+    return it, yb - 1.0
+
+
 ZONE_SKIP = (u"Handrail", u"Column", u"Balcony", u"Shading")
+
+
+ABOVE = (u"Canopy", u"Pavilion", u"Footbridge")   # v1.11: structures standing over the ground parts
+
+
+def b19_zones(J):
+    """v1.11: the masterplan parts on the cut (Sections v1.18 cache, s order): ground parts on the bar without overlap,
+    structures above only where the bar is free; one number per name, in s order (structures drawn on the cuts anyway)"""
+    ps = sorted((float(p[0]), float(p[1]), p[2][:1].upper() + p[2][1:]) for p in J["parts"])   # v1.12: "green"
+    bar, end = [], None
+    for a, b, nm in ps:
+        if nm in ABOVE:
+            continue
+        if end is not None and a < end:
+            a = end
+        if b - a >= 0.5:
+            bar.append((a, b, nm))
+            end = b
+    for a, b, nm in ps:
+        if nm in ABOVE and not any(a < q[1] and b > q[0] for q in bar) and b - a >= 0.5:
+            bar.append((a, b, nm))
+    bar.sort()
+    names = []                                         # only names on the bar (a number nobody can find misleads)
+    for a, b, nm in bar:
+        if nm not in names:
+            names.append(nm)
+    return bar, names
 
 
 def s4_zones(E):
@@ -859,9 +1058,9 @@ def s4_zones(E):
     return out
 
 
-def plant_names(E, name):
+def plant_names(E, name, engine=True):
     """the species named on the cut: S4 from the engine's callouts "Name (Turkish)", other cuts the Sections words"""
-    if name == "S4":
+    if name == "S4" and engine:                       # v1.11: the engine callouts only for the old engine cut
         seen = []
         for d in E["SECTIONS"]:
             for c in d.get("callouts", []):
@@ -903,9 +1102,17 @@ def main():
                                           min(p[1] for p in _V), min(_V, key=lambda p: p[1])[0], J.get("window"),
                                           J.get("strip"), float(J["z_th"]),
                                           u", ".join(u"%s %.2f" % (k, v[0]) for k, v in sorted(J["levels"].items()))))
-    zones = s4_zones(E) if name == "S4" else []
+    if "parts" in J:                                   # v1.11: the masterplan parts (Sections v1.18)
+        zones, znames = b19_zones(J)
+        log.append(u"zones: masterplan parts, %d on the bar, %d names (%s)" % (len(zones), len(znames),
+                                                                               u", ".join(znames) or u"none"))
+    else:
+        zones = s4_zones(E) if name == "S4" else []
+        znames = [z_[2] for z_ in zones]
+    znum = [znames.index(z_[2]) + 1 if "parts" in J else i + 1 for i, z_ in enumerate(zones)]
     if zones:
-        log.append(u"zones: engine s %.1f to %.1f m" % (zones[0][0], zones[-1][1]))
+        log.append(u"zones: %s s %.1f to %.1f m" % (u"parts" if "parts" in J else u"engine", zones[0][0],
+                                                     zones[-1][1]))
     sea_look = dict((s, dict(E["SEASON_LOOK"][s])) for s in SEASONS)
     keep_sea = dict(E["SEA"])
 
@@ -930,7 +1137,9 @@ def main():
             for sea in SEASONS:
                 its, S = season_cut(X, E, name, J, cut_its, M, sea, log, cnt)
                 b0 = X["items_bbox"](its)
-                if zones:
+                if zones and "parts" in J:             # v1.11: the cut window (frame edge to frame edge)
+                    xa, xb = S.X(float(J["window"][0])), S.X(float(J["window"][1]))
+                elif zones:
                     xa, xb = S.X(zones[0][0] - 2.0), S.X(zones[-1][1] + 2.0)
                 elif b0[2] - b0[0] > rw * 1.25:
                     xc = S.X(S.C.s_th)
@@ -972,9 +1181,9 @@ def main():
         items.append(T_(sea.upper(), RAIN_X0, y, 3.2, SEA_COL[sea], True, "L", "seasons"))
         tw = X["text_w_any"](sea.upper(), 3.2, True)
         sw = season_water(X, J, sea)
-        word = {"winter": u"Jan–Feb mean over the bed · high end dashed", "spring": u"Mar–Apr low end · high end dashed",
+        word = {"winter": u"Jan–Feb mean water over the bed", "spring": u"Mar–Apr water over the bed",
                 "summer": u"the strip holds stored water · the stream runs low",
-                "autumn": u"Oct–Dec high end"}[sea] if (sw or sea == "summer") else u"no level cached"
+                "autumn": u"the rains return"}[sea] if (sw or sea == "summer") else u"no level cached"
         items.append(T_(u"%s · %s" % (SEA_MONTHS[sea], word), RAIN_X0 + tw + 2.0, y, 2.2, GREY, False, "L",
                         "seasons"))
         y -= 1.5
@@ -991,20 +1200,21 @@ def main():
         for i, (a, b_, nm) in enumerate(zones):
             xa_, xb_ = S.X(a) * f + dx_last, S.X(b_) * f + dx_last
             items.append(R_(xa_, yz, xb_, yz + 1.3, "E6E1D6" if i % 2 else "CFC8B8", "FFFFFF", 0.1, "zones"))
-            items.append(T_(u"%d" % (i + 1), (xa_ + xb_) / 2.0, yz + 2.0, 1.8, INK, True, "C", "zones"))
+            items.append(T_(u"%d" % znum[i], (xa_ + xb_) / 2.0, yz + 2.0, 1.8, INK, True, "C", "zones"))
         items.append(T_(u"SW", S.X(zones[0][0]) * f + dx_last - 1.5, yz, 1.8, GREY, True, "R", "zones"))
         items.append(T_(u"NE", S.X(zones[-1][1]) * f + dx_last + 1.5, yz, 1.8, GREY, True, "L", "zones"))
         y = yz - 1.0
     # one scale bar for the four cuts (same scale)
     K = 1000.0 / den * f
-    bar = 10.0 if den <= 500 else 20.0 if den <= 1500 else 50.0
+    bar = 20.0 if den <= 500 else 50.0 if den <= 1500 else 100.0   # v1.10.6 (review 2, finding 10): mid tick named
     xb, yb = ROWS_BOX[0], max(12.0, y - 5.0)
     items.append(L_([(xb, yb), (xb + bar * K, yb)], INK, 0.3, "scale"))
     for i in (0.0, 0.5, 1.0):
         items.append(L_([(xb + bar * K * i, yb), (xb + bar * K * i, yb + 1.2)], INK, 0.2, "scale"))
     items.append(T_(u"0", xb, yb - 3.0, 2.0, INK, False, "C", "scale"))
     items.append(T_(u"%d m" % bar, xb + bar * K, yb - 3.0, 2.0, INK, False, "C", "scale"))
-    items.append(T_(u"section %s, both banks" % name, xb + bar * K + 6.0, yb - 0.6, 2.0, GREY, False, "L", "scale"))
+    items.append(T_(u"%d" % (bar / 2), xb + bar * K / 2.0, yb - 3.0, 2.0, INK, False, "C", "scale"))
+    items.append(T_(u"section %s, both banks · about 1:%d on A3" % (name, int(round(den / f))), xb + bar * K + 6.0, yb - 0.6, 2.0, GREY, False, "L", "scale"))
 
     # ---- title, the main idea, and the right column: levels diagram, zones, plants, key
     items.append(T_(u"FOUR SEASONS ON ONE CUT", RAIN_X0, 284.0, 7.0, INK, True, "L", "title"))
@@ -1014,21 +1224,21 @@ def main():
         items.append(T_(ln, COL_X0, yy, 2.2, INK, False, "L", "concept"))
         yy -= 3.0
     del LOGQ[:]
-    yl, yy = levels_diagram(X, E, G, Lv, W, J, zones, COL_X0, yy - 3.0, COL_X1)
+    yl, yy = levels_diagram(X, E, G, Lv, W, J, zones, COL_X0, yy - 3.0, COL_X1, name, per, cnt)
     log += LOGQ
     items += yl
     if zones:
         yy -= 2.5
         items.append(T_(u"ZONES · %s, south-west to north-east" % name, COL_X0, yy, 2.2, INK, True, "L", "zones"))
         yy -= 3.2
-        half = (len(zones) + 1) // 2
-        for i, (a, b_, nm) in enumerate(zones):
+        half = (len(znames) + 1) // 2
+        for i, nm in enumerate(znames):                  # v1.11: one line per name (parts repeat along the cut)
             cx = COL_X0 + (0.0 if i < half else (COL_X1 - COL_X0) / 2.0)
             cy = yy - (i % half) * 2.7
             items.append(T_(u"%d" % (i + 1), cx + 2.5, cy, 1.8, INK, True, "R", "zones"))
             items.append(T_(nm, cx + 4.0, cy, 1.8, INK, False, "L", "zones"))
         yy -= half * 2.7
-    pn = plant_names(E, name)
+    pn = plant_names(E, name, "parts" not in J)
     yy -= 2.5
     items.append(T_(u"PLANTS ON THE CUT", COL_X0, yy, 2.2, INK, True, "L", "plants"))
     yy -= 3.2
@@ -1039,6 +1249,9 @@ def main():
     yy -= half * 2.7
     yk, yend = key_rows(E, X, COL_X0, yy - 3.0, COL_X1 - COL_X0, sea_look)
     items += yk
+    km, yend2 = key_map(G, X, E, COL_X0, yend - 4.0, COL_X1 - COL_X0, yend - 4.0 - 8.0, log)
+    items += km
+    yend = min(yend, yend2)
     src = (u"Sources: section base, cut ground, buildings and water levels: Sections %s cache, %s (survey "
            u"Bergama_Altlik.3dm; Manning n 0.050; DSİ Q100 / Q500 and gauge flows 2016-2021 area-scaled, "
            u"research/rain_river_levels). Rain: WaterBoard RAIN (WMO 1991-2020 normals, MGM 17742). Planting bands "
