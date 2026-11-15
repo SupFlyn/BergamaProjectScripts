@@ -32,8 +32,8 @@ scripts/bergama_page_transit_v2_19.py
 scripts/bergama_page_heritage_v1_8.py
 scripts/bergama_page_spine_v2_37.py
 scripts/bergama_page01_axo_v3_3.py
-scripts/bergama_page01_free_v1_16.py
-scripts/bergama_page01_move_v1_18.py
+scripts/bergama_page01_free_v1_17.py
+scripts/bergama_page01_move_v1_19.py
 scripts/bergama_slide01_v1_9.py
 Data/bergama_pages_common.py
 Data/bergama_access_heritage.json
