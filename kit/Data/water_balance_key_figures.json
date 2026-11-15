@@ -1,0 +1,211 @@
+{
+ "_about": "Shared key figures of the water balance (Thread 2, 24 Oct 2026). Read these instead of recalculating; correct here if wrong. Method and sources: research/water_balance/NOTES.md. Recompute: scripts/water_balance.py.",
+ "farms_fed": {
+  "extent": "around2.pdf (Aras 24 Oct), registered to survey coordinates",
+  "corners_survey_xy": [
+   [
+    29351.2,
+    33176.5
+   ],
+   [
+    32436.3,
+    31335.6
+   ],
+   [
+    31787.4,
+    30248.1
+   ],
+   [
+    28702.3,
+    32089.0
+   ]
+  ],
+  "area_ha": 455.0,
+  "cropland_ha": 34.9,
+  "orchard_inferred_ha": 1.34,
+  "tree_cover_ha": 62.66,
+  "grassland_ha": 113.85,
+  "source": "ESA WorldCover 2021 v200 (data/landcover)",
+  "label": "calculated"
+ },
+ "climate": {
+  "rain_normal_mm": 619.6,
+  "et0_penman_monteith_normal_mm": 1369.1,
+  "et0_hargreaves_normal_mm": 1241.0,
+  "water_years": 34,
+  "year_types": {
+   "normal": "WMO 1991-2020 normal (measured)",
+   "wet": "WY2023 (1 in 5 wet of 34, ERA5 scaled)",
+   "dry": "WY1994 (1 in 5 dry of 34, ERA5 scaled)",
+   "very_dry": "WY2007 (1 in 10 dry of 34, ERA5 scaled)"
+  }
+ },
+ "net_irrigation_mm": {
+  "normal/olive": 611.7,
+  "normal/cotton": 855.2,
+  "normal/maize": 729.0,
+  "normal/tomato": 748.9,
+  "wet/olive": 575.4,
+  "wet/cotton": 811.5,
+  "wet/maize": 614.1,
+  "wet/tomato": 628.0,
+  "dry/olive": 681.7,
+  "dry/cotton": 896.9,
+  "dry/maize": 726.8,
+  "dry/tomato": 747.9,
+  "very_dry/olive": 695.2,
+  "very_dry/cotton": 902.1,
+  "very_dry/maize": 774.9,
+  "very_dry/tomato": 816.9
+ },
+ "gross_demand_farms_m3_per_year": {
+  "cropland cotton": {
+   "normal": 340738,
+   "dry_1in5": 357963,
+   "dry_1in10": 360177
+  },
+  "cropland tomato": {
+   "normal": 299504,
+   "dry_1in5": 300177,
+   "dry_1in10": 327121
+  },
+  "basis": "drip 90 %"
+ },
+ "site_collection_m3_per_year": {
+  "roofs_20110m2": 9659,
+  "plus_walk_tops_2682m2": 902,
+  "plus_riverside_walks_17694m2": 5950,
+  "plus_terraces_3490m2": 25,
+  "total": 16536,
+  "share_of_farm_need_pct": "4.6-5.5"
+ },
+ "river_take_worst_case": {
+  "min_flow_m3s": 0.0451,
+  "lowest_month_Dec_Apr_m3": 154721,
+  "May_Oct": 0
+ },
+ "storage_needed_closed_m3": {
+  "25pct": [
+   104000,
+   113000
+  ],
+  "50pct": [
+   186000,
+   202000
+  ],
+  "75pct": [
+   268000,
+   292000
+  ],
+  "100pct": [
+   351000,
+   379000
+  ],
+  "basis": "v2, 1-in-5 dry year, incl. strip, tomato..cotton"
+ },
+ "storage_needed_open_pond_m3": {
+  "25pct": [
+   114000,
+   127000
+  ],
+  "50pct": [
+   209000,
+   236000
+  ],
+  "basis": "v2"
+ },
+ "existing_strip_storage_m3": 26675,
+ "_v2": "v2 (24 Oct 08:00-08:20) supersedes the storage figures below marked v1: soil water balance, strip on the same storage, 365-day age rule, cost ladder. Source tables C0-C6.",
+ "rain_credit_pct_of_crop_use": {
+  "olive": 34.4,
+  "cotton": 19.8,
+  "tomato": 15.4
+ },
+ "net_irrigation_mm_soil_balance_mean34": {
+  "olive": 614,
+  "cotton": 853,
+  "tomato": 781
+ },
+ "strip_from_storage_m3_per_year": 23462,
+ "water_age": {
+  "rule": "release at 365 days to strip/river",
+  "released_m3_per_year": [
+   31,
+   48
+  ],
+  "oldest_without_rule_days": [
+   474,
+   477
+  ]
+ },
+ "cost_ladder_usd_per_m3_delivered": {
+  "aquifer_recharge_0-150k": [
+   0.19,
+   0.45
+  ],
+  "ponds_vacant_land_to_209k": [
+   1.56,
+   5.74
+  ],
+  "crates_to_238k": [
+   16.6,
+   29.1
+  ],
+  "cisterns_to_388k": [
+   35.6,
+   46.7
+  ],
+  "alternative_recycled_water_MAR": [
+   0.74,
+   1.89
+  ]
+ },
+ "recommended": {
+  "total_m3": [
+   350000,
+   375000
+  ],
+  "farms_covered_1in5_dry_pct": [
+   99.2,
+   99.7
+  ],
+  "full_range_m3": [
+   325000,
+   405000
+  ],
+  "full_range_pct": [
+   92.3,
+   100.0
+  ],
+  "made_of": "aquifer recharge, sized by the cost cut-off (recharge cost per extra m3 delivered vs recycled water); strip included",
+  "status": "computed live by scripts/bergama_water_balance_v2.py on every run; default lands here",
+  "live_value": "~/Downloads/Bergama_water_balance_analysis/water_balance_results.json key 'design' (Aras's PC); cloud copy with default lands: research/water_balance/water_balance_results_default.json"
+ },
+ "net_irrigation_mm_v2_daily": {
+  "olive": {
+   "mean": 614.3,
+   "wet5": 519.6,
+   "dry5": 720.1,
+   "dry10": 725.2
+  },
+  "cotton": {
+   "mean": 853.2,
+   "wet5": 789.5,
+   "dry5": 891.8,
+   "dry10": 962.6
+  },
+  "maize": {
+   "mean": 722.7,
+   "wet5": 675.4,
+   "dry5": 761.8,
+   "dry10": 816.2
+  },
+  "tomato": {
+   "mean": 781.0,
+   "wet5": 719.7,
+   "dry5": 837.0,
+   "dry10": 860.8
+  }
+ },
+ "_note_net_irrigation": "Added 24 Oct 09:45 (Thread 1 number check). 'net_irrigation_mm' above is v1 (scripts/water_balance.py, the named year types: dry = WY1994). The live sheet bergama_water_balance_v2.py uses a daily FAO-56 soil balance and ranks the 34 annual totals (dry5 = 80th percentile), so olive 1-in-5 dry = 720.1 mm there against 681.7 mm here. The design storage comes from v2, so scripts that size or print water per hectare read v2 (water_balance_results.json, key net_irrigation_mm)."
+}
