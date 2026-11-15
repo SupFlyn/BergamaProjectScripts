@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-"""Bergama Group 6: PAGE HERITAGE v1 (14 Nov 2026): the heritage loop, Teleferik to Asklepion, as one map (a page
+"""Bergama Group 6: PAGE HERITAGE v1.9 (15 Nov 2026; v1.9 = legend stop numbers centred in their discs (pages_common pc_text_c v3.31); v1.8 = the loop numbered from Asklepion (Aras 16:26 UTC "route should start from askepelion"; data file renumbered): stop texts follow; v1.7 = the loop drawn by pages_common pc_loop (the same code as on the transit map, Aras 15:31 UTC "the bold connection between the heritage should stay there just like the old diagram": drawn there too); the upper station named as on the transit map (Teleferik, Yukarı İstasyon); a heritage building closer than 2 badge radii to a loop stop is left out (it sat on badge 4); v1.6 = Aras 15:23 UTC "dont give sources in the brackets dont give sources in the drawings at all", 15:24 "no sources for nothing": no source in any label, legend row, note or credit (sources in the log only); v1.5 = Aras 13:02 rule check, run 6 review: names kept off the loop, the Selinos and the study line (Labels.block_line); WorldCover off (its 10 m cells drew stair steps); v1.4 = Aras 13:02 UTC "make sure nothing repeats in the slides": the grey bus routes and stops are left out (the transit page draws them); v1.3 = run 4 review: the 2023 satellite cover ends inside this frame (x 29521, y 32880) and drew a straight seam west and north, so WorldCover alone (it covers the whole frame), fainter; v1.2 = Aras 12:16 UTC "update all maps to include every detail, and top of the map, data is missing": the context is the one MapBase (survey + OSM + satellite + contours), quiet look; v1.1 = legend in EXISTING / PROPOSAL groups as the node pages)
+v1 (14 Nov 2026): the heritage loop, Teleferik to Asklepion, as one map (a page
 script of the new set: one script per page, Aras 14 Nov 10:46 UTC). Redraws the heritage loop of selinus_board v67
 (booklet p19, HER_STOPS: the loop order and its places) on the shared page frame.
 
@@ -22,7 +23,7 @@ Reads: as the transit page. Grasshopper: a Button on any input runs it; input `s
 """
 import os, time
 
-VERSION = "v1"
+VERSION = "v1.9"   # v1.9 = legend stop numbers centred by pc_text_c (Aras 15 Nov 14:56 UTC "center the numbers in the boundries", standing)
 GH_LABEL = "PageHeritage"
 OUT_FOLDER = "bergama_page_heritage"
 LOG_NAME = "bergama_page_heritage_log.txt"
@@ -33,13 +34,13 @@ OUT_DIR = os.path.join(BERGAMA_ROOT, "output", OUT_FOLDER)
 LOG_DIR = os.path.join(BERGAMA_ROOT, "logs")
 NAME = "HeritageLoop"
 # one line per stop: selinus_board v67 pages/p21_heritage.py HER21_PLACES "txt" (sources noted there; HER_SRC)
-STOP_TXT = {"teleferik": u"cable car (2010): the loop starts here",
+STOP_TXT = {"teleferik": u"cable car (2010): the loop ends here, up to Akropol",
             "kizil_avlu": u"Hadrian's temple, built over the stream",
-            "tabak_koprusu": u"Roman bridge: the stream walk starts",
+            "tabak_koprusu": u"Roman bridge: the stream walk ends",
             "ulucami_onu": u"bridge to Ulucami (mosque of 1398-99) and Tabaklar Hamamı",
             "arasta": u"bazaar of 1513; its hamam: Parchment Museum",
             "bergama_muzesi": u"museum of 1936: Pergamon's finds",
-            "asklepion": u"healing sanctuary, 4th c. BC: the loop's end"}
+            "asklepion": u"healing sanctuary, 4th c. BC: the loop starts here"}
 AKROPOL_TXT = u"World Heritage hill city: the loop's goal, up by the Teleferik"
 
 
@@ -53,6 +54,10 @@ def load_common():
     return ns
 
 
+MB_LAYERS = {"ground", "areas", "parks", "contours", "streets", "water", "walls", "buildings", "bridges", "trees"}
+# v1.3: MapBase layers drawn: all but "veg" (the 2023 satellite cover stops inside this frame: a seam)
+
+
 def main():
     t0 = time.time()
     log = []
@@ -64,21 +69,14 @@ def main():
     M = G["Map"](D, den)
     T, L_, P_, T_, circle, dist = M.T, G["L_"], G["P_"], G["T_"], G["circle"], G["pc_dist"]
     tm, RED = K["text_mm"], K["heritage"]
-    C = G["pc_context"](M, D, log)
-    items = G["pc_context_items"](M, C, K)
+    MB = G["pc_mapbase"](M, K, log, MB_LAYERS, {"lc_light": 0.8})                      # v1.2: the one base map (every detail we have)
+    items = MB[0]
+    mb_rows = G["pc_mb_legend"]([r_ for r_ in MB[1] if u"WorldCover" not in r_[2]], K)   # v1.5: no WorldCover
     items += G["pc_study"](M, K, log)
     lab = G["Labels"](M, lib)
 
-    # the bus network as quiet context (the transit page's subject)
-    items += G["pc_line_items"](M, D, K, grey=(K["grey_line"], 0.3))
-    for name, xy, _ln in G["pc_stop_groups"](D):
-        q = T(xy)
-        if M.inside(q):
-            items.append(P_([circle(q[0], q[1], 0.6, 16)], "FFFFFF", K["grey_line"], 0.2, "bus_stops"))
-
     # the Teleferik (same symbol as the transit page)
     st_g = [s for s in D["stations"] if s["kind"] == "gondola"]
-    upper = next((s for s in st_g if u"Yukarı" in (s["name"] or u"")), None)
     for run in M.clip([T(p) for p in D["cable"]]):
         items += G["ticked"](run, K["cable"], 0.35, 2.5, 0.9, "gondola")
     for s in st_g:
@@ -88,92 +86,65 @@ def main():
                               (q[0] - 1.4, q[1] + 1.4)]], K["cable"], "FFFFFF", 0.2, "gondola"))
             lab.block_pt(q, 1.8)
 
-    # the loop: legs stop to stop; 3 -> 4 along the Selinos (the stream walk)
     H = sorted(D["heritage"], key=lambda h: int(h["n"]))
-    W = K["heritage_w"]
-    legs = []
-    for a, b in zip(H, H[1:]):
-        if (a["key"], b["key"]) == ("tabak_koprusu", "ulucami_onu"):
-            sw = G["pc_selinos"](C, a["xy"], b["xy"])
-            if sw:
-                legs.append(("walk", sw))
-                log.append(u"stream walk: Tabak Köprüsü -> Ulucami Önü along the Selinos, %.0f m" % sum(
-                    dist(p, q) for p, q in zip(sw, sw[1:])))
-                continue
-            log.append(u"FLAG: the OSM Selinos line is over 80 m from stop 3 or 4: the stream walk is drawn straight")
-        legs.append(("leg", [a["xy"], b["xy"]]))
-    for kind, P in legs:
-        Q = [T(p) for p in P]
-        for run in M.clip(Q):
-            items.append(L_(run, "FFFFFF", W + 0.6, "loop"))
-            items.append(L_(run, RED, W + (0.6 if kind == "walk" else 0.0), "loop"))
-            if kind == "walk":
-                items.append(L_(run, "FFFFFF", 0.3, "loop", (1.2, 1.2)))
-    if upper:
-        for run in M.clip([T(upper["xy"]), T(D["akropol"])]):
-            items.append(L_(run, RED, 0.5, "loop", (0.01, 1.0)))
-    log.append(u"loop: %d stops, %d legs, %.0f m stop to stop (straight legs; the walk along the stream)" % (
-        len(H), len(legs), sum(dist(p, q) for _k, P in legs for p, q in zip(P, P[1:]))))
-
-    # the stops: red numbered circles; Akropol a red ring; Ulucami and Tabaklar Hamamı small red rings
-    R = K["heritage_r"]
-    for h in H:
-        q = T(h["xy"])
-        if not M.inside(q):
-            log.append(u"FLAG: stop %s %s lies outside the frame" % (h["n"], h["name"]))
-            continue
-        items.append(P_([circle(q[0], q[1], R, 32)], RED, "FFFFFF", 0.35, "loop_stops"))
-        items.append(T_(h["n"], q[0], q[1] - tm["label"] * 0.36, tm["label"] + 0.2, "FFFFFF", "loop_stops", True, "C"))
-        lab.block_pt(q, R + 0.4)
+    R, W = K["heritage_r"], K["heritage_w"]
+    items += G["pc_loop"](M, D, K, lab, log)          # v1.7: one code with the transit map
+    lab.block_items(items, ("study_area",))
+    lab.block_line([T(p) for p in G["pc_selinos_line"]()], 2.5)
     qa = T(D["akropol"])
-    items.append(P_([circle(qa[0], qa[1], R * 0.8, 32)], "FFFFFF", RED, 0.6, "loop_stops"))
-    lab.block_pt(qa, R)
+    dots = [d_ for d_ in D.get("heritage_dots", []) if min(dist(T(d_["xy"]), T(h["xy"])) for h in H) > 2 * R]
     for d_ in D.get("heritage_dots", []):
+        if d_ not in dots:
+            log.append(u"%s left out: closer than %.1f mm to a loop stop at 1:%d" % (d_["name"], 2 * R, den))
+    for d_ in dots:
         q = T(d_["xy"])
         items.append(P_([circle(q[0], q[1], 1.0, 16)], "FFFFFF", RED, 0.4, "heritage_places"))
         lab.block_pt(q, 1.3)
     for h in H:
         lab.put(h["name"], T(h["xy"]), tm["label"], RED, "loop_names", True, gap=R + 1.0)
     lab.put(u"Akropol", qa, tm["label"], RED, "loop_names", True, gap=R + 0.6)
-    for d_ in D.get("heritage_dots", []):
+    for d_ in dots:
         lab.put(d_["name"], T(d_["xy"]), tm["small"], RED, "loop_names", gap=1.6)
     for s in st_g:
         if s.get("name") and u"Yukarı" in s["name"]:
-            lab.put(u"Teleferik, upper station", T(s["xy"]), tm["small"], K["cable"], "station_names")
+            lab.put(G["pc_station_name"](s), T(s["xy"]), tm["small"], K["cable"], "station_names")
     items += lab.items
     if lab.forced:
-        log.append(u"names with no free place (printed on the right of their point): %s" % u", ".join(lab.forced))
+        log.append(u"names with no free place (printed where they overlap least): %s" % u", ".join(lab.forced))
 
     # legend: the seven stops in order, then the symbols
     def stop_sw(n):
         return lambda x, y: [P_([circle(x, y, R, 32)], RED, "FFFFFF", 0.35, "legend"),
-                             T_(n, x, y - tm["label"] * 0.36, tm["label"] + 0.2, "FFFFFF", "legend", True, "C")]
-    legend = [(stop_sw(h["n"]), u"%s: %s" % (h["name"], STOP_TXT.get(h["key"], u""))) for h in H]
+                             G["pc_text_c"](n, x, y, tm["label"] + 0.2, "FFFFFF", "legend")]   # v1.9: centred mark
+    # v1.1 (brief plan rules, as the node pages): EXISTING kept apart from the PROPOSAL (the loop, in red, its own colour)
+    legend = [(None, u"EXISTING: HERITAGE PLACES, LOOP ORDER")]
+    legend += [(stop_sw(h["n"]), u"%s: %s" % (h["name"], STOP_TXT.get(h["key"], u""))) for h in H]
     legend += [
         (lambda x, y: [P_([circle(x, y, R * 0.8, 32)], "FFFFFF", RED, 0.6, "legend")], u"Akropol: " + AKROPOL_TXT),
+        (None, u"PROPOSAL: THE HERITAGE LOOP (RED)"),
         (lambda x, y: [L_([(x - 4.5, y), (x + 4.5, y)], "FFFFFF", W + 0.6, "legend"),
                        L_([(x - 4.5, y), (x + 4.5, y)], RED, W, "legend")], u"heritage loop, stop to stop"),
         (lambda x, y: [L_([(x - 4.5, y), (x + 4.5, y)], RED, W + 0.6, "legend"),
                        L_([(x - 4.5, y), (x + 4.5, y)], "FFFFFF", 0.3, "legend", (1.2, 1.2))],
-         u"stream walk Tabak Köprüsü to Ulucami Önü, along the Selinos"),
+         u"stream walk Ulucami Önü to Tabak Köprüsü, along the Selinos"),
         (lambda x, y: [L_([(x - 4.5, y), (x + 4.5, y)], RED, 0.5, "legend", (0.01, 1.0))],
          u"on foot from the Teleferik's upper station to Akropol"),
+        (None, u"EXISTING: CONTEXT"),
+    ] + mb_rows + [
         (lambda x, y: G["ticked"]([(x - 4.5, y), (x + 4.5, y)], K["cable"], 0.35, 2.5, 0.9, "legend"),
-         u"Teleferik (gondola) and its stations, OSM"),
+         u"Teleferik (gondola) and its stations"),
         (lambda x, y: [P_([circle(x, y, 1.0, 16)], "FFFFFF", RED, 0.4, "legend")], u"other heritage building"),
-        (lambda x, y: [L_([(x - 4.5, y), (x + 4.5, y)], K["grey_line"], 0.3, "legend"),
-                       P_([circle(x, y, 0.6, 16)], "FFFFFF", K["grey_line"], 0.2, "legend")],
-         u"bus routes and stops (OSM): see the transit page"),
-        (lambda x, y: [L_([(x - 4.5, y), (x + 4.5, y)], K["water"][0], 1.4, "legend")],
-         u"Selinos and side streams (OSM centre lines); dashed: covered"),
+        (lambda x, y: [L_([(x - 4.5, y), (x + 4.5, y)], K["water"][0], 0.3, "legend")],
+         u"Selinos and side streams"),
         (lambda x, y: [L_([(x - 4.5, y), (x + 4.5, y)], K["study"][0], K["study"][1], "legend", (2.4, 0.8))],
          u"study area"),
     ]
-    notes = [u"Numbers = the loop's order (selinus_board v67, HER_STOPS). Legs are drawn straight from stop to stop; "
+    notes = [u"Numbers = the loop's order. Legs are drawn straight from stop to stop; "
              u"they show the order, not the streets walked."]
-    credit = (u"Sources: " + D["sources"]["osm"] + u"; places and texts: Wikipedia 'Pergamon', 'Bergama Acropolis "
+    log.append(u"sources (log only, Aras 15:23): " + D["sources"]["osm"] + u"; places and texts: Wikipedia 'Pergamon', 'Bergama Acropolis "
               u"Gondola', 'Red Basilica', 'Bergama Museum'; UNESCO WHL 1457 and ICOMOS 2014; Kültür Envanteri; Visit "
               u"İzmir; KTB (as selinus_board v67 HER_SRC).")
+    credit = u""
     items += G["pc_sheet"](M, K, lib, u"The heritage loop", u"From the Teleferik to Asklepion, across the Selinos",
                            legend, notes, credit)
     G["pc_write"](lib, M, items, OUT_DIR, NAME, u"The heritage loop, 1:%d" % den, log)
