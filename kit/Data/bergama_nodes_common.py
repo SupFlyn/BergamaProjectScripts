@@ -11,13 +11,13 @@ job done twice (Aras 14 Nov 12:38 UTC): Basemap -> MapBase -> Sections -> the no
             same node) and V1; everything cut to the plan frame (FLAG on ink outside)
   SECTIONS  N#-A, N#-B from cached/bergama_sections/cuts.json (Sections v1.6.4+), the first cached scale that fits
   DIAGRAMS  land use of the node frame (Page02's land_use on MapBase data), water over the bed by season (cached levels)
-  PLACEHOLDERS V1 perspective, program brief, building proposal (NO DRAWING rule: Aras makes them)
+  PLACEHOLDERS V1 perspective, building proposal (program brief filled since v12.7) (NO DRAWING rule: Aras makes them)
 Reads the newest scripts/bergama_basemap_v*, bergama_p02_what_is_there_v*, bergama_sections_v*, bergama_mapbase_v*
 (code only), Data/bergama_pages_common.py, section_lines.json, bergama_access_heritage.json and the caches above.
 """
 import os, re, glob, json, math, time
 
-NC_VERSION = "v12.6"   # v12.6 (Aras 15 Nov 14:45 UTC "we gonna use masterplan svg as the base of the maps"): the node plans show his masterplan drawing whole (his ev-yol / builts2 no longer hidden); MapBase stays only where his sheet is see-through; v12.5: the river in the node plans is a flat fill, no hatch (Aras 15 Nov 14:38 UTC); v12.4: every context from MapBase (Aras 13:41): node plan crops hide his ev-yol / builts2 and are see-through over MapBase (opaque crop refused, vector fallback; legend sampler skips see-through pixels); why-here houses, streets, parks, bridges from MapBase (houses raised by survey floors x 3.0 m, sacred 5.0 m, else flat); v12.3: no white box behind plan labels (Aras 15 Nov 13:44 UTC "dont have a opaque background for texts in any single of the drawings"): a letter-shaped white halo instead (pages_common v3.27 pc_halo); v12.2: svg_crop bg=False (transparent, for MapBase under; node plans unchanged); v12.1: why-here blocks in the language of his liked examples (white context, one heavy cut line, his masterplan move laid on the ground in depth, his canopy triangles folded on Y columns, his trees and people as his cutouts, one movement arrow; Aras 12:10 "compare with the examples"); v12: why-here diagrams drawn from the node's A cut in the Sections cache (true ground, bed, all water levels, masterplan move, buildings and bridges in depth; Aras 10:36 "this diagram is just so wrong"); v11.6: N4 canopy: every other bay a glazed room up to the louvres, planters in the open bay (Aras 10:02); v11.5: N4 raised gathering drawn as the designed canopy (folded triangle skin, louvres, Y columns; Sections v1.28 language); v11.4: svg_crop takes css (slide 4 sub-system colours), node plans unchanged; v11.3: MapBase under the plans in the A05 base map look (white houses with shadows, one road outline; MapBase v1.8 mb_a05_style; Aras 15 Nov 07:59 "you need to update other scripts so i can see the change in the basemap aswell"); v11.2: legend colours read from the crop itself, diagram town as gabled rows, moves as tint + accent edge, no arrows from the air, own figures, diagram right under its title, placeholders one system; v11: each node plan is a straight crop of master.svg (rendered by Edge / Chrome on his PC, cached), marks on top; v10: v10: why-here diagrams as section-axo blocks (depth, shaded planes, extruded town, accent move with shadow); MapBase always under the plan, his existing roads/buildings left out; v9.9: v9.9: a heritage stop on a cut line stays in the cropped section (N4-A Red Hall); v9.8: v9.8: Ulu Cami silhouette as built (hall, three domes, minaret on a stone base); v9.7: v9.7: Red Hall drawn as the roofless arched brick hall; diagram levels start at the riser they meet; v9.6: v9.6: program brief under the land-use bar when it fits, perspective the full right half; v9.5: v9.5: diagram levels run to the banks, N5 town band lower and label over its move; cuts packed from the top, why-here block follows, perspective room grows; V1 clear of stops, names and its arrows; v9.4: v9.4: at least 30 % (or 90 m) of a cut in view, so flat cuts get taller; v9.3: v9.3: section fit by the drawing without its sky, at least 55 % (or 150 m) of the cut in view, sky cut to the room; v9.2: v9.2 (fresh review of run 4): sections fill their rooms (cropped round the stream, own scale bar), no intro line, short key words, V1 in ink, land use = 5 classes + other with names on one row, program brief under the story, diagram arrows start at their cause, slots as voids, FLAG count includes carried FLAGs; v9.1: v9.1: diagrams to DIAGRAM_STYLE v2 (Niarchos measured: low ground, names under it, small accent); v9: v9: why-here diagrams redrawn on the shared diagram kit (pc_dg_kit, DIAGRAM_STYLE.md; Aras 21:30 UTC); v8.4: v8.4: scale + north above the plan (off his drawing), intro wording; v8.3: v8.3: B cut subtitle "along the bank", N3 diagram label clear of the dots; v8.2: v8.2: 4-corner picture rectangles of the masterplan left out (no solid green blocks), the river filled as water; v8.1: v8.1: masterplan sheet / texture frames (> 0.1 km2) left out, legend columns balanced, intro without the old levels text; v8: plan = his masterplan drawing; why-here story + one concept diagram per node; water bars and meets line gone; v7.5: v7.5: section_lines v2 (B along the bank: looks at the stream, no water bars); v7.4: v7.4: cut marks = two end arrows, no line between (pages_common v3.14); v7.3: v7.3: scale + north ignore the node frame line; v7.2: v7.2: the proposal from his masterplan SVG (MasterplanBase cache); v7.1: v7.1: R01 cut arrows (pc_cut_mark), no city-square ring, land-use columns >= 45 mm; v7: v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
+NC_VERSION = "v12.7"   # v12.7: PROGRAM BRIEF filled from NODE_IDEAS.md (text, no box; Aras 15 Nov 14:47 UTC "fill the placeholders"); v12.6 (Aras 15 Nov 14:45 UTC "we gonna use masterplan svg as the base of the maps"): the node plans show his masterplan drawing whole (his ev-yol / builts2 no longer hidden); MapBase stays only where his sheet is see-through; v12.5: the river in the node plans is a flat fill, no hatch (Aras 15 Nov 14:38 UTC); v12.4: every context from MapBase (Aras 13:41): node plan crops hide his ev-yol / builts2 and are see-through over MapBase (opaque crop refused, vector fallback; legend sampler skips see-through pixels); why-here houses, streets, parks, bridges from MapBase (houses raised by survey floors x 3.0 m, sacred 5.0 m, else flat); v12.3: no white box behind plan labels (Aras 15 Nov 13:44 UTC "dont have a opaque background for texts in any single of the drawings"): a letter-shaped white halo instead (pages_common v3.27 pc_halo); v12.2: svg_crop bg=False (transparent, for MapBase under; node plans unchanged); v12.1: why-here blocks in the language of his liked examples (white context, one heavy cut line, his masterplan move laid on the ground in depth, his canopy triangles folded on Y columns, his trees and people as his cutouts, one movement arrow; Aras 12:10 "compare with the examples"); v12: why-here diagrams drawn from the node's A cut in the Sections cache (true ground, bed, all water levels, masterplan move, buildings and bridges in depth; Aras 10:36 "this diagram is just so wrong"); v11.6: N4 canopy: every other bay a glazed room up to the louvres, planters in the open bay (Aras 10:02); v11.5: N4 raised gathering drawn as the designed canopy (folded triangle skin, louvres, Y columns; Sections v1.28 language); v11.4: svg_crop takes css (slide 4 sub-system colours), node plans unchanged; v11.3: MapBase under the plans in the A05 base map look (white houses with shadows, one road outline; MapBase v1.8 mb_a05_style; Aras 15 Nov 07:59 "you need to update other scripts so i can see the change in the basemap aswell"); v11.2: legend colours read from the crop itself, diagram town as gabled rows, moves as tint + accent edge, no arrows from the air, own figures, diagram right under its title, placeholders one system; v11: each node plan is a straight crop of master.svg (rendered by Edge / Chrome on his PC, cached), marks on top; v10: v10: why-here diagrams as section-axo blocks (depth, shaded planes, extruded town, accent move with shadow); MapBase always under the plan, his existing roads/buildings left out; v9.9: v9.9: a heritage stop on a cut line stays in the cropped section (N4-A Red Hall); v9.8: v9.8: Ulu Cami silhouette as built (hall, three domes, minaret on a stone base); v9.7: v9.7: Red Hall drawn as the roofless arched brick hall; diagram levels start at the riser they meet; v9.6: v9.6: program brief under the land-use bar when it fits, perspective the full right half; v9.5: v9.5: diagram levels run to the banks, N5 town band lower and label over its move; cuts packed from the top, why-here block follows, perspective room grows; V1 clear of stops, names and its arrows; v9.4: v9.4: at least 30 % (or 90 m) of a cut in view, so flat cuts get taller; v9.3: v9.3: section fit by the drawing without its sky, at least 55 % (or 150 m) of the cut in view, sky cut to the room; v9.2: v9.2 (fresh review of run 4): sections fill their rooms (cropped round the stream, own scale bar), no intro line, short key words, V1 in ink, land use = 5 classes + other with names on one row, program brief under the story, diagram arrows start at their cause, slots as voids, FLAG count includes carried FLAGs; v9.1: v9.1: diagrams to DIAGRAM_STYLE v2 (Niarchos measured: low ground, names under it, small accent); v9: v9: why-here diagrams redrawn on the shared diagram kit (pc_dg_kit, DIAGRAM_STYLE.md; Aras 21:30 UTC); v8.4: v8.4: scale + north above the plan (off his drawing), intro wording; v8.3: v8.3: B cut subtitle "along the bank", N3 diagram label clear of the dots; v8.2: v8.2: 4-corner picture rectangles of the masterplan left out (no solid green blocks), the river filled as water; v8.1: v8.1: masterplan sheet / texture frames (> 0.1 km2) left out, legend columns balanced, intro without the old levels text; v8: plan = his masterplan drawing; why-here story + one concept diagram per node; water bars and meets line gone; v7.5: v7.5: section_lines v2 (B along the bank: looks at the stream, no water bars); v7.4: v7.4: cut marks = two end arrows, no line between (pages_common v3.14); v7.3: v7.3: scale + north ignore the node frame line; v7.2: v7.2: the proposal from his masterplan SVG (MasterplanBase cache); v7.1: v7.1: R01 cut arrows (pc_cut_mark), no city-square ring, land-use columns >= 45 mm; v7: v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
 ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 PAGE_W, PAGE_H = 420.0, 297.0
 NODE_MARGIN_M = 25.0                       # m of town round the node frame on the plan
@@ -170,6 +170,34 @@ STORY = {
         u"Our move: a workers hall and a research centre lifted on the dry top, facing the arrival.")),
 }
 DG_INK, DG_GREY, DG_WATER = "1E1E1E", "C9C6BF", "A2B6B5"
+
+
+# v12.7 (Aras 15 Nov 14:47 UTC "fill the placeholders"): the program brief, from
+# library/node_ideas_2026-11-15/NODE_IDEAS.md (DESIGN; room areas are our proposal, totals = sum of the rooms, calculated)
+PROGRAM = {
+    "N1": (u"Neighbourhood house in the west park, ~500 m2 proposed: hall 200, kitchen 80, 3 workshops of 40, "
+           u"children 60, tool and seed library 40; a waiting room for the village buses.",
+           u"For: the Upper and Lower Neighbourhoods, riders of the village buses 831-833."),
+    "N2": (u"Heritage walk point, ~400 m2 proposed: exhibition 250, info 40, café 80, lookout. Terraces step into the "
+           u"river upstream of the bridge; the bank road splits into a ramp and seating; the hamam ruin becomes an open "
+           u"room; 5 story markers.",
+           u"For: heritage loop walkers (stop 4), hub K4, riders of the village buses 831-833."),
+    "N3": (u"Craft and produce hall, ~850 m2 proposed: market 600, 3 workshop / sales rooms of 60, arrival + WC 60. "
+           u"Viewing steps at the upstream tunnel mouth, the water line in the İstiklal paving, a live flow marker; the "
+           u"stream stays covered (Roman tunnels; culvert work needs DSİ).",
+           u"For: bazaar traders and makers, arrivals at transit hub T, heritage loops 3 and 5."),
+    "N4": (u"No building. People gather where the stream leaves the tunnels; a bank-level route runs to Üç Kemer; a "
+           u"raised canopy platform on the north bank never touches the monument.",
+           u"For: visitors of heritage stop 2 and transit hub T."),
+    "N5": (u"Day-care and sports pavilion, ~280 m2 proposed: day-care 150, changing + WC 100, store 30; courts on "
+           u"the dry terraces.",
+           u"For: families of the settled housing, riders of the town buses 651-653 and 656."),
+    "N6": (u"Water-enrichment research and education centre, ~1,560 m2 proposed. Industry: 2 labs of 80, pilot "
+           u"enrichment line 150 (in the irrigation line, never in the stream), canteen 200, showers 80, training "
+           u"workshop 120. Education, open to all: display hall 250, 2 classrooms of 60, course room 80, greenhouse "
+           u"400 + trial plots (cotton, maize, tomato).",
+           u"For: industry workers, DEÜ Bergama MYO students, anyone interested."),
+}
 
 
 # ================================================================ v12: why-here diagrams from the real cut (Aras 15 Nov
@@ -2045,7 +2073,32 @@ def node_page(cfg, log):
     ys_ = (y_story if st else 54.0)
     yp = (yy if st else 54.0) - 1.0
     yl = bar_y - 5.2 - 2.6 - 4.0
-    PB = (u"PROGRAM BRIEF", u"placeholder: what happens here, for whom, in which season", "placeholder_program")
+    PB = (u"PROGRAM BRIEF", None, "program")             # v12.7: filled from PROGRAM (no box, no fill)
+    holder_ = holder
+
+    def holder(x0, y0, x1, y1, title, sub, layer):         # v12.7: the program brief as text, smaller if it must
+        if sub is not None:
+            return holder_(x0, y0, x1, y1, title, sub, layer)
+        pg = PROGRAM.get(node)
+        if not pg:
+            log.append(u"FLAG no program brief for %s" % node)
+            return
+        for sz in (2.2, 2.0, 1.8, 1.6):
+            st_ = sz * 1.35
+            rows = [wrap(B, p_, sz, x1 - x0) for p_ in pg]
+            need = 3.6 + sum(len(r_) for r_ in rows) * st_ + 1.0 * (len(rows) - 1)
+            if need <= y1 - y0:
+                break
+        else:
+            log.append(u"FLAG program brief of %s needs %.0f mm, has %.0f" % (node, need, y1 - y0))
+        items.append(T_(title, x0, y1 - 2.8, 2.6, INK, True, "L", layer))
+        yy_ = y1 - 2.8 - 3.6
+        for r_ in rows:
+            for ln in r_:
+                items.append(T_(ln, x0, yy_, sz, INK, False, "L", layer))
+                yy_ -= st_
+            yy_ -= 1.0
+        log.append(u"program brief %s at %.1f mm text (NODE_IDEAS.md 15 Nov; areas proposed, totals summed)" % (node, sz))
     BP = (u"BUILDING PROPOSAL", u"placeholder: plan, section, elevation (if the node has one)", "placeholder_building")
     holder(310.0, 12.0, 406.0, ys_, u"V1 · PERSPECTIVE · %s" % node,
            u"placeholder: Aras's render (Archicad, Unreal 5) from V1 on the plan", "placeholder_perspective")
