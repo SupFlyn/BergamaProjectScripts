@@ -37,7 +37,7 @@ Works when: the log's first line is "TAPIR OK <version>" and Archicad's Navigato
 """
 import os, re, json, math, time, glob
 
-VERSION = "v1.13"   # v1.13 (Aras 15 Nov 16:31-16:32 UTC "Make canopies top view match with masterplan", "Get structrual idea from the photo i have sent you and invent from there"): every canopy built on his own filled kanopi ring (no hull, no merging, outline within 0.25 m), facets by ear clipping with his fold ends on the outline, low / high vertices alternating round it, Y columns under the low vertices 1.2 m inside (4-10 m apart, arms toward the neighbouring vertices), plinth + deck bays between the columns; rooms and planters only where they fit inside; v1.12 (v1.11 publish run: 10.5 min for 13 DWGs): no vector sun shadows in the section views; a change of the view settings (SEC_SIG) publishes once even when the model is unchanged   # v1.11 (run of v1.10: the Archicad 29 API refused "CutPlane" too): sections listed through Tapir GetElementsByType (CutPlane)   # v1.10 (Aras 15 Nov 15:00 "you need to make archicad runs faster"): the model is rebuilt only when its inputs changed (buildings from MapBase, cut lines, masterplan canopies, Sections levels, BUILD_SIG) or Archicad holds other element counts; with the model and sections unchanged nothing is published either (the last DWGs are kept); model time logged; sections listed as element type CutPlane (v1.9 run: "Section" is not an API type)   # v1.9 (15 Nov: Archicad reopened from a recovery file: new GUIDs, the build doubled, 9 section views twice): the previous model is cleared by element type (windows, walls, slabs, roofs, meshes, columns, beams), not by recorded GUIDs; when the project\'s sections differ from the recorded ones, all sections and the "Bergama sections" View Map folder are made again (FLAG: refresh the publisher set)   # v1.8 (15 Nov: a refreshed publisher set held the whole project as PDF + DWG and Archicad hung an hour; the pln reopened without the build after a restart): the project is saved (Tapir SaveProject) before publishing, and only the set's items of our sections are published (selectedNavigatorItemIds); a set holding other items is not published whole   # v1.7 (Sections thread, run of v1.28.2: houses up the hill float, the survey TIN does not reach that hill): the ground behind each cut in depth bands (10-50, 50-100, 100-200, 200-400 m, 400 m to the farthest building), each the highest survey ground of the band raised to the base of every building standing in it, so every house has ground under it; written to acbuild.json cuts[].bands   # v1.6 (also: the ground-behind profile reaches 1000 m, as houses of other cuts beyond 200 m show in the sections); v1.6 (Aras 15 Nov 09:52-10:29 "draw our canopies much better like designed ones" / "Some closed areas underneath" / canopies in Archicad "yes please"): his master.svg canopies (kanopi layer) built as his reference: folded triangle-facet roof (meshes) with a timber louvre layer under it, Y steel columns (trunk + 2 arms) under the valleys on a 12 m bay, timber deck on a stone plinth bay by bay, a glazed room in every other bay where the floor is >= Q500 + 0.60 m, timber planters in the open bays; heights as Sections v1.28.2 (DfT 2.30 m clear, EA 0.60 m over Q500, ridge +1.8 m ASSUMED)   # v1.5 + Kızıl Avlu: the main hall outline(s) from the MasterplanBase cache (Sections library red_hall_load), roofless walls 19 m (Wikipedia, Red Basilica: "Its walls still survive up to a height of 19 metres"), no windows, no roof; v1.5 (15 Nov run 7: houses beyond the 200 m depth drawn as floating outlines): no marked distant area (only the 200 m behind each cut is drawn); publishing may take 30 min (the set grew)   # v1.4 v1.4 (15 Nov: Sections v1.18 moved the N4 lines): the Archicad origin is kept from the first run; a section whose line moved is deleted and made again on the new line (its view too), with a FLAG to refresh the publisher set   # v1.3 (run 4: houses 200 m behind stood in the sky, the hill under them was not drawn): per cut the ground behind (highest survey ground 10-200 m behind, every 2 m) written to acbuild.json for SectionsAC   # v1.2 (SectionsAC run 3: the DWGs held only the roofs = the one element type without a BG layer, so the BG layers are not shown in the views): every element on the tool default layers; registration blocks at -50 m (found by geometry); no terrain mesh (our ground is drawn instead)   # v1.1 (14 Nov run 1): mesh without layerIndex (Tapir schema), hipped roofs as one-level polyroofs, footprints cleaned (slab failures)
+VERSION = "v1.13"   # v1.13 (Aras 15 Nov 19:18: the publisher set may be PDF): published PDFs count as the kept output   # v1.12 (v1.11 publish run: 10.5 min for 13 DWGs): no vector sun shadows in the section views; a change of the view settings (SEC_SIG) publishes once even when the model is unchanged   # v1.11 (run of v1.10: the Archicad 29 API refused "CutPlane" too): sections listed through Tapir GetElementsByType (CutPlane)   # v1.10 (Aras 15 Nov 15:00 "you need to make archicad runs faster"): the model is rebuilt only when its inputs changed (buildings from MapBase, cut lines, masterplan canopies, Sections levels, BUILD_SIG) or Archicad holds other element counts; with the model and sections unchanged nothing is published either (the last DWGs are kept); model time logged; sections listed as element type CutPlane (v1.9 run: "Section" is not an API type)   # v1.9 (15 Nov: Archicad reopened from a recovery file: new GUIDs, the build doubled, 9 section views twice): the previous model is cleared by element type (windows, walls, slabs, roofs, meshes, columns, beams), not by recorded GUIDs; when the project\'s sections differ from the recorded ones, all sections and the "Bergama sections" View Map folder are made again (FLAG: refresh the publisher set)   # v1.8 (15 Nov: a refreshed publisher set held the whole project as PDF + DWG and Archicad hung an hour; the pln reopened without the build after a restart): the project is saved (Tapir SaveProject) before publishing, and only the set's items of our sections are published (selectedNavigatorItemIds); a set holding other items is not published whole   # v1.7 (Sections thread, run of v1.28.2: houses up the hill float, the survey TIN does not reach that hill): the ground behind each cut in depth bands (10-50, 50-100, 100-200, 200-400 m, 400 m to the farthest building), each the highest survey ground of the band raised to the base of every building standing in it, so every house has ground under it; written to acbuild.json cuts[].bands   # v1.6 (also: the ground-behind profile reaches 1000 m, as houses of other cuts beyond 200 m show in the sections); v1.6 (Aras 15 Nov 09:52-10:29 "draw our canopies much better like designed ones" / "Some closed areas underneath" / canopies in Archicad "yes please"): his master.svg canopies (kanopi layer) built as his reference: folded triangle-facet roof (meshes) with a timber louvre layer under it, Y steel columns (trunk + 2 arms) under the valleys on a 12 m bay, timber deck on a stone plinth bay by bay, a glazed room in every other bay where the floor is >= Q500 + 0.60 m, timber planters in the open bays; heights as Sections v1.28.2 (DfT 2.30 m clear, EA 0.60 m over Q500, ridge +1.8 m ASSUMED)   # v1.5 + Kızıl Avlu: the main hall outline(s) from the MasterplanBase cache (Sections library red_hall_load), roofless walls 19 m (Wikipedia, Red Basilica: "Its walls still survive up to a height of 19 metres"), no windows, no roof; v1.5 (15 Nov run 7: houses beyond the 200 m depth drawn as floating outlines): no marked distant area (only the 200 m behind each cut is drawn); publishing may take 30 min (the set grew)   # v1.4 v1.4 (15 Nov: Sections v1.18 moved the N4 lines): the Archicad origin is kept from the first run; a section whose line moved is deleted and made again on the new line (its view too), with a FLAG to refresh the publisher set   # v1.3 (run 4: houses 200 m behind stood in the sky, the hill under them was not drawn): per cut the ground behind (highest survey ground 10-200 m behind, every 2 m) written to acbuild.json for SectionsAC   # v1.2 (SectionsAC run 3: the DWGs held only the roofs = the one element type without a BG layer, so the BG layers are not shown in the views): every element on the tool default layers; registration blocks at -50 m (found by geometry); no terrain mesh (our ground is drawn instead)   # v1.1 (14 Nov run 1): mesh without layerIndex (Tapir schema), hipped roofs as one-level polyroofs, footprints cleaned (slab failures)
 GH_LABEL = "AcBuild"
 OUT_FOLDER = "bergama_archicad"
 LOG_NAME = "bergama_acbuild_log.txt"
@@ -52,7 +52,7 @@ LIB_GLOB = os.path.join(BERGAMA_ROOT, "scripts", "bergama_sections_v*.py")
 PORTS = range(19723, 19744)        # Archicad's JSON API ports (the first Archicad opened takes 19723)
 SHADOWS = False                    # v1.12: vector sun shadows off in the section views (publish took 10.5 min)
 SEC_SIG = "sections-noshadow-1"    # v1.12: change with the section view settings (forces one publish)
-BUILD_SIG = "acbuild-geometry-2"   # v1.13: canopies on his outlines; v1.10: change when the element-making code changes (forces a rebuild)
+BUILD_SIG = "acbuild-geometry-1"   # v1.10: change when the element-making code changes (forces a rebuild)
 CLEAR_TYPES = ["Window", "Wall", "Slab", "Roof", "Mesh", "Column", "Beam"]   # v1.9: what AcBuild makes
 PUB_SET = "Bergama_Sections"       # publisher set name (made once by hand: DWG, the "Bergama sections" views)
 VIEW_FOLDER = "Bergama sections"
@@ -223,10 +223,7 @@ CAN_T, CAN_LOUVRE_M = 0.15, 0.30                  # skin plate, louvre depth (de
 CAN_Y_FORK, CAN_Y_ARM_M = 0.6, 2.5                # Y fork at 60 % of the column, arm reach (design intent, v1.28)
 CAN_PLINTH_M, CAN_DECK_M = 0.45, 0.12             # stone plinth, timber deck (design intent, v1.28.2)
 CAN_PLANTER_M = 2.4                               # planter length (design intent, v1.28.2)
-CAN_BAY_M = 0.0                                   # v1.13: no fixed bay; the columns follow each outline (below)
-CAN_OUT_TOL = 0.25                                # v1.13: m, the built outline within this of his drawn kanopi line
-CAN_COL_IN = 1.2                                  # v1.13: m, a column stands this far inside the outline (ours)
-CAN_COL_MIN, CAN_COL_MAX = 4.0, 10.0              # v1.13: m, columns at least / a high vertex at most this far apart
+CAN_BAY_M = 12.0                                  # bay between Y columns along the canopy (design intent, ours)
 CAN_EAVE_F = 0.6                                  # outline edge at valley + 0.6 x rise: folds to knife edges (ours)
 CAN_GLASS_W, CAN_GLASS_STEP = 1.4, 1.5            # glazing panes, mullion step (design intent, v1.28.2 1.5 m)
 CANOPY_REC = []                                   # per canopy: outline + heights, written to acbuild.json (SectionsAC colours)
@@ -273,126 +270,66 @@ def _inpoly(p, P):
 
 
 def canopy_groups(log):
-    """v1.13 (Aras 15 Nov 16:31 UTC "Make canopies top view match with masterplan"): one canopy per FILLED ring of his
-    kanopi layer (MasterplanBase cache), the ring itself as the outline (no hull, no merging); his fold lines and
-    facet edges inside it (unfilled rings, lines) kept with it: their ends on the outline become fold points.
-    Returns [(outline ring, [fold points on the outline])]"""
+    """[(outline ring)] per canopy from the MasterplanBase cache: the pieces of the kanopi layer grouped by touching
+    boxes; the outline = the hull of the group's ring and line points simplified (his canopies are long folded strips)"""
     mp = os.path.join(BERGAMA_ROOT, "cached", "bergama_masterplanbase", "masterplan.json")
     if not os.path.isfile(mp):
         log.append(u"FLAG canopies: %s missing (press MasterplanBase): no canopies built" % mp)
         return []
     with open(mp, encoding="utf-8") as f:
         J = json.load(f)
-    outl, inner = [], []
+    items = []
     for key, pieces in J.get("layers", {}).items():
         if key.split("/")[-1] not in CAN_KEYS:
             continue
         for p in pieces:
             q = [tuple(v) for v in p[4]]
-            if p[0] == "r" and p[1] and len(q) >= 3 and abs(area(q)) >= 20.0:
-                outl.append(q)
-            elif p[0] in ("r", "l") and len(q) >= 2:
-                inner.append(q)
-    outl.sort(key=lambda R: -abs(area(R)))
-    keep = []
-    for R in outl:                                         # a filled ring inside a bigger one is a part of it
-        if not any(all(_inpoly(v, K) for v in R[::max(1, len(R) // 8)]) for K in keep):
-            keep.append(R)
+            if p[0] in ("r", "l", "a") and len(q) >= 2:
+                xs, ys = [v[0] for v in q], [v[1] for v in q]
+                items.append([q, min(xs), max(xs), min(ys), max(ys)])
+    groups = []
+    for it in items:
+        hit = [g for g in groups if any(it[1] <= o[2] + 3 and o[1] <= it[2] + 3 and it[3] <= o[4] + 3 and o[3] <= it[4] + 3
+                                        for o in g)]
+        groups = [g for g in groups if g not in hit] + [[it] + [o for g in hit for o in g]]
     out = []
-    for R in keep:
-        H = clean(R[:-1] if R[0] == R[-1] else R)
-        if area(H) < 0:
-            H = H[::-1]
-        folds = []
-        for L in inner:
-            for v in (L[0], L[-1]) + tuple(L[1:-1]):
-                d = min(_seg_d(v, a, b) for a, b in zip(H, H[1:] + H[:1]))
-                if d <= 0.6:
-                    folds.append(v)
-        out.append((H, folds))
-    log.append(u"canopies: %d outlines = his filled kanopi rings as drawn (%d inner fold / facet lines)" % (
-        len(out), len(inner)))
+    for g in groups:
+        pts = sorted(set((round(v[0], 2), round(v[1], 2)) for o in g for v in o[0]))
+        if len(pts) < 3:
+            continue
+        def cr(o, a, b):
+            return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+        lo, hi = [], []                                        # convex hull (monotone chain)
+        for p in pts:
+            while len(lo) >= 2 and cr(lo[-2], lo[-1], p) <= 0:
+                lo.pop()
+            lo.append(p)
+        for p in reversed(pts):
+            while len(hi) >= 2 and cr(hi[-2], hi[-1], p) <= 0:
+                hi.pop()
+            hi.append(p)
+        H = lo[:-1] + hi[:-1]
+        if abs(area(H)) >= 20.0:
+            out.append(H)
+    log.append(u"canopies: %d from the masterplan kanopi layer (%d pieces), outline = hull of each group" % (
+        len(out), len(items)))
     return out
 
 
-def _seg_d(p, a, b):
-    dx, dy = b[0] - a[0], b[1] - a[1]
-    L2 = dx * dx + dy * dy
-    f = 0.0 if L2 < 1e-12 else max(0.0, min(1.0, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / L2))
-    return math.hypot(p[0] - a[0] - f * dx, p[1] - a[1] - f * dy)
-
-
-def _with_folds(H, folds, tol=0.6):
-    """the outline (CCW) simplified to CAN_OUT_TOL, his fold ends inserted as vertices where they meet it"""
-    R = _dp(H + [H[0]], CAN_OUT_TOL)[:-1] if len(H) > 4 else list(H)
-    for v in folds:
-        k = min(range(len(R)), key=lambda i: _seg_d(v, R[i], R[(i + 1) % len(R)]))
-        a, b = R[k], R[(k + 1) % len(R)]
-        if _seg_d(v, a, b) > tol or min(math.hypot(v[0] - q[0], v[1] - q[1]) for q in (a, b)) < 1.0:
-            continue
-        dx, dy = b[0] - a[0], b[1] - a[1]
-        f = max(0.0, min(1.0, ((v[0] - a[0]) * dx + (v[1] - a[1]) * dy) / (dx * dx + dy * dy)))
-        R.insert(k + 1, (a[0] + f * dx, a[1] + f * dy))
-    return R
-
-
-def _ears(R):
-    """ear clipping of a simple CCW ring -> triangles (index triples); each step takes the ear with the widest
-    smallest angle (no slivers), so a long strip folds across in zigzag triangles"""
-    idx = list(range(len(R)))
-    tris = []
-
-    def ang(a, b, c):
-        u, v = (a[0] - b[0], a[1] - b[1]), (c[0] - b[0], c[1] - b[1])
-        n = math.hypot(*u) * math.hypot(*v)
-        return math.acos(max(-1.0, min(1.0, (u[0] * v[0] + u[1] * v[1]) / n))) if n > 1e-12 else 0.0
-    while len(idx) > 3:
-        best = None
-        for j in range(len(idx)):
-            i0, i1, i2 = idx[j - 1], idx[j], idx[(j + 1) % len(idx)]
-            a, b, c = R[i0], R[i1], R[i2]
-            if (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]) <= 1e-9:
-                continue
-            if any(_inpoly(R[k], [a, b, c]) for k in idx if k not in (i0, i1, i2)):
-                continue
-            q = min(ang(c, a, b), ang(a, b, c), ang(b, c, a))
-            if best is None or q > best[0]:
-                best = (q, j)
-        if best is None:
-            break
-        j = best[1]
-        tris.append((idx[j - 1], idx[j], idx[(j + 1) % len(idx)]))
-        idx.pop(j)
-    if len(idx) == 3:
-        tris.append(tuple(idx))
-    return tris
-
-
 def build_canopies(ac, miss, log, rects, inside, tin, ox, oy, z0, xy, q500_at, wet_at):
-    """v1.13 (Aras 15 Nov 16:31-16:32 UTC "Make canopies top view match with masterplan", "Get structrual idea from the
-    photo i have sent you and invent from there"): each canopy is built ON his drawn outline, so its top view is the
-    masterplan's: the outline (simplified CAN_OUT_TOL m) with his fold ends on it is cut into triangle facets (ear
-    clipping, widest angles), the vertices alternate low / high round the outline, so the skin folds across the
-    strip like his reference; the structure follows that shape, no fixed bay: a Y steel column under every low
-    vertex, CAN_COL_IN m inside the outline (none closer than CAN_COL_MIN m to another; a high vertex farther than
-    CAN_COL_MAX m from every column gets one too), its two arms reaching toward the neighbouring outline vertices; the
-    timber louvre layer under the same facets; stone plinth + timber deck = the outline cut into bays between the
-    columns along the canopy's long axis (stepping with the ground); a glazed room in every other bay where the floor
-    is >= Q500 + 0.60 and the room fits inside the outline, a timber planter in the others. Heights: low vertex
-    underside >= deck + 2.30 (DfT) and >= Q500 + 0.60 (EA); high vertex + CAN_RISE_M (ASSUMED). Returns the new
-    element guids."""
+    """v1.6: each canopy as his reference: a folded roof of triangle facets (ridges on the long axis in the middle of
+    each bay, valleys over the Y columns, the outline edges between: folds running out to the edges), a timber
+    louvre layer under the skin, Y steel columns (trunk + two arms along the axis) on a regular bay under the valleys,
+    a timber deck on a stone plinth, a glazed room in every other bay where the floor is >= Q500 + 0.60, a timber
+    planter in the open bays. Heights: valley underside >= ground + 2.30 (DfT) and >= Q500 + 0.60 (EA); ridge +1.8 m
+    (ASSUMED). Returns the new element guids."""
     made = []
     roofs, louvres, trunks, arms, plinths, decks, walls, rooms, planters = [], [], [], [], [], [], [], [], []
     n_c = 0
-    n_dev = []
-    for H0, folds in canopy_groups(log):
-        if not any(inside(q, r) for q in H0 for r in rects):
-            continue
-        H = _with_folds(H0, folds)
-        if len(H) < 3:
+    for H in canopy_groups(log):
+        if not any(inside(q, r) for q in H for r in rects):
             continue
         n_c += 1
-        n_dev.append(max(min(_seg_d(p, a, b) for a, b in zip(H, H[1:] + H[:1])) for p in H0))
         cx, cy = sum(p[0] for p in H) / len(H), sum(p[1] for p in H) / len(H)
         sxx = sum((p[0] - cx) ** 2 for p in H); syy = sum((p[1] - cy) ** 2 for p in H)
         sxy = sum((p[0] - cx) * (p[1] - cy) for p in H)
@@ -401,125 +338,163 @@ def build_canopies(ac, miss, log, rects, inside, tin, ox, oy, z0, xy, q500_at, w
         v = (-u[1], u[0])
         T = lambda p: (p[0] - cx) * u[0] + (p[1] - cy) * u[1]
         W = lambda p: (p[0] - cx) * v[0] + (p[1] - cy) * v[1]
+        ta, tb = min(T(p) for p in H), max(T(p) for p in H)
+        nb = max(1, int(round((tb - ta) / CAN_BAY_M)))
+        P = lambda t, w=0.0: (cx + u[0] * t + v[0] * w, cy + u[1] * t + v[1] * w)
+
+        def mid_w(t):                                          # the axis: middle of the outline across at t
+            ws = []
+            for a, b in zip(H, H[1:] + H[:1]):
+                ta_, tb_ = T(a), T(b)
+                if (ta_ - t) * (tb_ - t) <= 0 and ta_ != tb_:
+                    f = (t - ta_) / (tb_ - ta_)
+                    ws.append(W(a) + (W(b) - W(a)) * f)
+            return ((min(ws) + max(ws)) / 2.0, (max(ws) - min(ws)) / 2.0) if ws else (0.0, 0.0)
+
         q5 = q500_at(cx, cy)
-        gz = [tin.z(p[0] - ox, p[1] - oy) for p in H]
-        gs = [g for g in gz if g is not None]
+        # axis points: valleys at the bay ends (the outer ones 12 % in from the tips), ridges at the bay middles
+        e0, e1 = ta + 0.12 * (tb - ta), tb - 0.12 * (tb - ta)      # the end columns stand in under the roof
+        ax = []
+        for k in range(2 * nb + 1):
+            t = e0 + (e1 - e0) * k / (2.0 * nb)
+            w, hw = mid_w(t)
+            p = P(t, w)
+            ax.append([t, w, hw, k % 2 == 1, tin.z(p[0] - ox, p[1] - oy)])
+        gs = [a_[4] for a_ in ax if a_[4] is not None]
         if not gs:
             log.append(u"canopy %d: no survey ground under it: left out" % n_c)
             continue
-        gz = [g if g is not None else min(gs) for g in gz]
+        for a_ in ax:
+            if a_[4] is None:
+                a_[4] = min(gs)
         floor0 = lambda g: g + CAN_PLINTH_M + CAN_DECK_M
-        low = [max(floor0(g) + CAN_CLEAR_M, (q5 + CAN_Q500_M) if q5 is not None else -1e9) + CAN_LOUVRE_M + CAN_T
-               for g in gz]                                    # skin top at a low vertex
-        hi_ = [k % 2 == 1 for k in range(len(H))]
-        if len(H) % 2 == 1:
-            hi_[-1] = False                                    # odd count: two low vertices meet at the start
-        zv = [low[k] + (CAN_RISE_M if hi_[k] else 0.0) for k in range(len(H))]
-        CANOPY_REC.append(dict(ring=[[round(p[0], 2), round(p[1], 2)] for p in H0], ground=round(min(gs), 3),
-                               floor=round(min(floor0(g) for g in gz), 3),
-                               under=round(min(low) - CAN_T - CAN_LOUVRE_M, 3), top=round(max(zv), 3)))
-        for t3 in _ears(H):
-            P3 = [H[k] for k in t3]
-            if abs(area(P3)) < 0.3:
-                continue
-            roofs.append(dict(level=0.0, polygonCoordinates=[dict(xy(H[k]), z=round(zv[k] - z0, 3)) for k in t3]))
-            louvres.append(dict(level=0.0, polygonCoordinates=[dict(xy(H[k]), z=round(zv[k] - z0 - CAN_T - CAN_LOUVRE_M, 3))
-                                                               for k in t3]))
-        # Y columns: under the low vertices, pulled inside; then under high vertices left too far from any column
-        cols = []
+        val = [max(floor0(a_[4]) + CAN_CLEAR_M, (q5 + CAN_Q500_M) if q5 is not None else -1e9) + CAN_LOUVRE_M + CAN_T
+               for a_ in ax]                                   # valley top of the skin at each axis point
+        zax = [val[k] + (CAN_RISE_M if ax[k][3] else 0.0) for k in range(len(ax))]
+        CANOPY_REC.append(dict(ring=[[round(p[0], 2), round(p[1], 2)] for p in H], ground=round(min(gs), 3),
+                               floor=round(min(floor0(a_[4]) for a_ in ax), 3),
+                               under=round(min(val) - CAN_T - CAN_LOUVRE_M, 3), top=round(max(zax), 3)))
 
-        def pull_in(k):
-            a, b, c = H[k - 1], H[k], H[(k + 1) % len(H)]
-            n1 = (-(b[1] - a[1]), b[0] - a[0]); n2 = (-(c[1] - b[1]), c[0] - b[0])   # inward normals (CCW ring)
-            l1, l2 = math.hypot(*n1) or 1.0, math.hypot(*n2) or 1.0
-            d = (n1[0] / l1 + n2[0] / l2, n1[1] / l1 + n2[1] / l2)
-            ld = math.hypot(*d)
-            if ld < 1e-6:
-                return None
-            p = (b[0] + d[0] / ld * CAN_COL_IN, b[1] + d[1] / ld * CAN_COL_IN)
-            return p if _inpoly(p, H) else None
-        for want_hi in (False, True):
-            for k in range(len(H)):
-                if hi_[k] != want_hi:
-                    continue
-                p = pull_in(k)
-                if p is None:
-                    continue
-                dmin = min([math.hypot(p[0] - c[1][0], p[1] - c[1][1]) for c in cols] or [1e9])
-                if (not want_hi and dmin >= CAN_COL_MIN) or (want_hi and dmin > CAN_COL_MAX):
-                    cols.append((k, p))
-        for k, base in cols:
-            g = tin.z(base[0] - ox, base[1] - oy)
-            g = gz[k] if g is None else g
-            fl = floor0(g)
-            under = zv[k] - CAN_T - CAN_LOUVRE_M
+        def z_at_t(t):                                         # valley line interpolated along the axis
+            if t <= ax[0][0]:
+                return val[0]
+            for k in range(1, len(ax)):
+                if t <= ax[k][0]:
+                    f = (t - ax[k - 1][0]) / max(ax[k][0] - ax[k - 1][0], 1e-6)
+                    return val[k - 1] + (val[k] - val[k - 1]) * f
+            return val[-1]
+        # outline sides, sorted along the axis, each side triangulated as a strip against the axis chain
+        i_f = max(range(len(H)), key=lambda i: math.hypot(H[i][0] - H[0][0], H[i][1] - H[0][1]))
+        Hs = (_dp(H[:i_f + 1], 1.2)[:-1] + _dp(H[i_f:] + [H[0]], 1.2)[:-1]) if len(H) > 4 else H   # closed ring
+        tips = [min(Hs, key=T), max(Hs, key=T)]
+
+        def zax_t(t):                                          # the axis fold line (ridges and valleys) at t
+            if t <= ax[0][0]:
+                return zax[0]
+            for k in range(1, len(ax)):
+                if t <= ax[k][0]:
+                    f = (t - ax[k - 1][0]) / max(ax[k][0] - ax[k - 1][0], 1e-6)
+                    return zax[k - 1] + (zax[k] - zax[k - 1]) * f
+            return zax[-1]
+
+        def edge_z(t):                                         # the outline: 60 % of the fold, out to knife edges
+            return z_at_t(t) + CAN_EAVE_F * (zax_t(t) - z_at_t(t))
+
+        def side_w(t, sg):                                     # the outline across the axis at t, on side sg
+            ws = []
+            for a, b in zip(Hs, Hs[1:] + Hs[:1]):
+                ta_, tb_ = T(a), T(b)
+                if (ta_ - t) * (tb_ - t) <= 0 and ta_ != tb_:
+                    ws.append(W(a) + (W(b) - W(a)) * (t - ta_) / (tb_ - ta_))
+            return (max(ws) if sg > 0 else min(ws)) if ws else None
+        side = {1: [], -1: []}
+        for p in Hs:
+            if p in tips:
+                continue
+            a_w = mid_w(T(p))[0]
+            side[1 if W(p) >= a_w else -1].append(p)
+        for sg in (1, -1):                                     # a point of the outline across every axis point
+            for a_ in ax:
+                w_ = side_w(a_[0], sg)
+                if w_ is not None and all(abs(T(q) - a_[0]) > 0.8 for q in side[sg]):
+                    side[sg].append(P(a_[0], w_))
+        A3 = [(P(a_[0], a_[1]), zax[k]) for k, a_ in enumerate(ax)]
+        tri = []
+        for sg in (1, -1):
+            S_ = [(tips[0], z_at_t(T(tips[0])))] + [(p, edge_z(T(p))) for p in sorted(side[sg], key=T)] + \
+                 [(tips[1], z_at_t(T(tips[1])))]
+            i = j = 0
+            while i < len(S_) - 1 or j < len(A3) - 1:
+                adv_s = j >= len(A3) - 1 or (i < len(S_) - 1 and T(S_[i + 1][0]) <= T(A3[j + 1][0]))
+                if adv_s:
+                    tri.append((S_[i], S_[i + 1], A3[j]))
+                    i += 1
+                else:
+                    tri.append((S_[i], A3[j + 1], A3[j]))
+                    j += 1
+        for t3 in tri:
+            if abs(area([p for p, z in t3])) < 0.3:
+                continue
+            roofs.append(dict(level=0.0, polygonCoordinates=[dict(xy(p), z=round(z - z0, 3)) for p, z in t3]))
+            louvres.append(dict(level=0.0, polygonCoordinates=[dict(xy(p), z=round(z - z0 - CAN_T - CAN_LOUVRE_M, 3))
+                                                               for p, z in t3]))
+        # Y columns under the valleys (axis points 0, 2, 4 ...), trunk to the fork, two arms along the axis
+        for k in range(0, len(ax), 2):
+            t, w = ax[k][0], ax[k][1]
+            base = P(t, w)
+            fl = floor0(ax[k][4])
+            under = val[k] - CAN_T - CAN_LOUVRE_M
             hgt = under - fl
             if hgt < 1.0:
                 continue
             fork = fl + CAN_Y_FORK * hgt
             trunks.append(dict(coordinates=dict(xy(base), z=round(fl - z0, 3)), height=round(fork - fl, 3),
                                circleBased=True, width=0.30))
-            for nb_ in (H[k - 1], H[(k + 1) % len(H)]):        # arms toward the two neighbouring vertices
-                dx, dy = nb_[0] - base[0], nb_[1] - base[1]
-                L = math.hypot(dx, dy)
-                if L < 0.5:
+            for sg in (1.0, -1.0):
+                tt = t + sg * min(CAN_Y_ARM_M, 0.35 * (e1 - e0) / nb)
+                tt = max(e0, min(e1, tt))
+                if abs(tt - t) < 0.3:
                     continue
-                r_ = min(CAN_Y_ARM_M, 0.45 * L)
-                end = (base[0] + dx / L * r_, base[1] + dy / L * r_)
-                zz = under - 0.05
+                zz = z_at_t(tt) - CAN_T - CAN_LOUVRE_M
+                end = P(tt, mid_w(tt)[0])
+                run = math.hypot(end[0] - base[0], end[1] - base[1])
                 arms.append(dict(begCoordinate=xy(base), endCoordinate=xy(end), zCoordinate=round(fork - z0, 3),
-                                 slantAngle=round(math.atan2(zz - fork, r_), 4), width=0.22, height=0.22))
-        # bays between the columns along the long axis: plinth + deck = the outline cut there
-        ts = sorted(T(p) for _k, p in cols)
-        cuts = []
-        for t in ts:
-            if not cuts or t - cuts[-1] >= 3.0:
-                cuts.append(t)
-        ta, tb = min(T(p) for p in H), max(T(p) for p in H)
-        edges = [ta - 1.0] + [t for t in cuts if ta + 2.0 < t < tb - 2.0] + [tb + 1.0]
-        HT = [(T(p), W(p)) for p in H]
-        for b_ in range(len(edges) - 1):
-            poly = _clip(HT, (1.0, 0.0), edges[b_], edges[b_ + 1])
+                                 slantAngle=round(math.atan2(zz - fork, run), 4), width=0.22, height=0.22))
+        # deck on the plinth, bay by bay (follows the ground in steps); rooms and planters
+        for b_ in range(nb):
+            t0_, t1_ = ax[2 * b_][0], ax[2 * b_ + 2][0]
+            poly = _clip([(T(p), W(p)) for p in Hs], (1.0, 0.0), t0_ - (1e9 if b_ == 0 else 0.0),
+                         t1_ + (1e9 if b_ == nb - 1 else 0.0))
             if len(poly) < 3:
                 continue
-            ring = [(cx + u[0] * t_ + v[0] * w_, cy + u[1] * t_ + v[1] * w_) for t_, w_ in poly]
+            gpts = [ax[2 * b_][4], ax[2 * b_ + 1][4], ax[2 * b_ + 2][4]]
+            g = max(gpts)
+            if wet_at(cx, cy, g):
+                continue                                       # in the water: no deck (Sections: plinth only where dry)
+            ring = [P(t_, w_) for t_, w_ in poly]
             if area(ring) < 0:
                 ring = ring[::-1]
-            bx, by = sum(p[0] for p in ring) / len(ring), sum(p[1] for p in ring) / len(ring)
-            gb = [tin.z(p[0] - ox, p[1] - oy) for p in ring]
-            g = max([x for x in gb if x is not None] or gs)
-            if wet_at(bx, by, g):
-                continue                                       # in the water: no deck (Sections: plinth only where dry)
             pc = [xy(p) for p in clean(ring)]
             if len(pc) < 3:
                 continue
             plinths.append(dict(level=round(g + CAN_PLINTH_M - z0, 3), thickness=CAN_PLINTH_M + 0.5, polygonCoordinates=pc))
             decks.append(dict(level=round(g + CAN_PLINTH_M + CAN_DECK_M - z0, 3), thickness=CAN_DECK_M, polygonCoordinates=pc))
             fl = floor0(g)
-            t0_, t1_ = max(edges[b_], ta), min(edges[b_ + 1], tb)
-            tm, wm = T((bx, by)), W((bx, by))
-            P_ = lambda t, w: (cx + u[0] * t + v[0] * w, cy + u[1] * t + v[1] * w)
-            hw = 0.0
-            for s_ in (2.0, 1.6, 1.2, 0.8):                    # the widest room / planter that fits inside
-                C4 = [P_(tm - 0.3 * (t1_ - t0_), wm - s_), P_(tm + 0.3 * (t1_ - t0_), wm - s_),
-                      P_(tm + 0.3 * (t1_ - t0_), wm + s_), P_(tm - 0.3 * (t1_ - t0_), wm + s_)]
-                if all(_inpoly(c, H) for c in C4):
-                    hw = s_
-                    break
-            under_b = min(zv) - CAN_T - CAN_LOUVRE_M - 0.05
-            if b_ % 2 == 0 and q5 is not None and fl >= q5 + CAN_Q500_M and t1_ - t0_ > 4.0 and hw >= 1.6:
-                for a, c in zip(C4, C4[1:] + C4[:1]):          # glazed room: every other bay, above Q500 + 0.60
+            tm, (wm, hw) = ax[2 * b_ + 1][0], mid_w(ax[2 * b_ + 1][0])
+            hw = min(hw, mid_w(t0_ + 0.6)[1], mid_w(t1_ - 0.6)[1])
+            if b_ % 2 == 0 and q5 is not None and fl >= q5 + CAN_Q500_M and t1_ - t0_ > 4.0 and hw > 2.0:
+                r0, r1 = t0_ + 0.8, t1_ - 0.8                 # glazed room: every other bay, above Q500 + 0.60
+                hr = 0.6 * hw
+                C4 = [P(r0, wm - hr), P(r1, wm - hr), P(r1, wm + hr), P(r0, wm + hr)]
+                top = min(val[2 * b_], val[2 * b_ + 2]) - CAN_T - CAN_LOUVRE_M - 0.05
+                for a, c in zip(C4, C4[1:] + C4[:1]):
                     walls.append(dict(begCoordinate=xy(a), endCoordinate=xy(c), zCoordinate=round(fl - z0, 3),
-                                      height=round(under_b - fl, 3), thickness=0.08, referenceLineLocation="Center"))
-                    rooms.append((math.hypot(c[0] - a[0], c[1] - a[1]), under_b - fl))
-            elif hw >= 0.8:                                    # timber planter in the open bay
+                                      height=round(top - fl, 3), thickness=0.08, referenceLineLocation="Center"))
+                    rooms.append((math.hypot(c[0] - a[0], c[1] - a[1]), top - fl))
+            elif hw > 1.2:                                     # timber planter in the open bay
                 L_p = min(CAN_PLANTER_M, 0.4 * (t1_ - t0_))
-                C4 = [P_(tm - L_p / 2, wm - 0.5), P_(tm + L_p / 2, wm - 0.5), P_(tm + L_p / 2, wm + 0.5), P_(tm - L_p / 2, wm + 0.5)]
-                if all(_inpoly(c, H) for c in C4):
-                    planters.append(dict(level=round(fl + 0.6 - z0, 3), thickness=0.6, polygonCoordinates=[xy(p) for p in C4]))
-    if n_dev:
-        log.append(u"canopy top view = his kanopi outlines: %d canopies, the built outline is at most %.2f m off his "
-                   u"drawn line (simplified to %.2f m)" % (len(n_dev), max(n_dev), CAN_OUT_TOL))
+                C4 = [P(tm - L_p / 2, wm - 0.5), P(tm + L_p / 2, wm - 0.5), P(tm + L_p / 2, wm + 0.5), P(tm - L_p / 2, wm + 0.5)]
+                planters.append(dict(level=round(fl + 0.6 - z0, 3), thickness=0.6, polygonCoordinates=[xy(p) for p in C4]))
     if not n_c:
         log.append(u"canopies: none inside the cut rectangles")
         return made
@@ -567,7 +542,7 @@ def build_canopies(ac, miss, log, rects, inside, tin, ox, oy, z0, xy, q500_at, w
         if wins and "CreateWindows" not in miss:
             made += [g for g in ac.create("CreateWindows", "windowsData", wins, u"canopy glazing") if g]
     log.append(u"canopies built: %d (%d facets, %d Y columns, %d deck bays, %d glazed rooms, %d planters); valley "
-               u"underside >= deck + %.2f m (DfT) and >= Q500 + %.2f m (EA), ridge + %.1f m ASSUMED; bay %.0f m (0 = by shape), "
+               u"underside >= deck + %.2f m (DfT) and >= Q500 + %.2f m (EA), ridge + %.1f m ASSUMED; bay %.0f m, "
                u"plinth %.2f m, deck %.2f m (design intent)" % (n_c, len(roofs), len(trunks), len(decks),
                                                                  len(walls) // 4, len(planters), CAN_CLEAR_M,
                                                                  CAN_Q500_M, CAN_RISE_M, CAN_BAY_M, CAN_PLINTH_M,
@@ -1067,7 +1042,8 @@ def main():
     published = False
     try:
         sets = [p.get("name") for p in ac.t("GetPublisherSets").get("publisherSets", [])]
-        dw = [os.path.basename(x) for x in glob.glob(os.path.join(DWG_DIR, "**", "*.dwg"), recursive=True)]
+        dw = [os.path.basename(x)[:-4] + ".dwg" for e_ in ("dwg", "pdf")      # v1.13: a PDF set counts too
+              for x in glob.glob(os.path.join(DWG_DIR, "**", "*." + e_), recursive=True)]
         if reuse and not old.get("remade") and old.get("published") and old.get("sec_sig") == SEC_SIG and \
                 all(any(x.startswith(nm + " ") or x == nm + ".dwg" for x in dw) for nm in secs):
             published = True
