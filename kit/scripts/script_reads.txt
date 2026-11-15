@@ -230,3 +230,14 @@ bergama_page05_access: scripts/bergama_page_transit_v2_17.py  # hand, 15 Nov
 bergama_page05_access: scripts/bergama_page_transit_v2_18.py  # hand, 15 Nov
 bergama_page01_free: Data/section_lines.json  # hand, 15 Nov
 bergama_page05_access: scripts/bergama_page_transit_v2_19.py  # hand, 15 Nov
+bergama_slide04_systems: Data/bergama_nodes_common.py  # hand, 15 Nov
+bergama_slide04_systems: Data/bergama_pages_common.py  # hand, 15 Nov
+bergama_slide04_systems: Data/section_lines.json  # hand, 15 Nov
+bergama_slide04_systems: Data/bergama_access_heritage.json  # hand, 15 Nov
+bergama_slide04_systems: Data/selinos_centreline.json  # hand, 15 Nov
+bergama_slide04_systems: Data/assets/plan/master.svg  # hand, 15 Nov
+bergama_slide04_systems: Data/water_balance_results_default.json  # hand, 15 Nov
+bergama_slide04_systems: Data/water_balance_key_figures.json  # hand, 15 Nov
+bergama_slide04_systems: cached/bergama_masterplanbase/masterplan.json  # hand, 15 Nov
+bergama_slide04_systems: cached/bergama_basemap/basemap_layers.json  # hand, 15 Nov
+bergama_slide04_systems: cached/Bergama_water_balance_analysis/water_balance_results.json  # hand, 15 Nov

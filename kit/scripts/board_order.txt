@@ -39,3 +39,4 @@ solo: bergama_node_n3 = NodeN3
 solo: bergama_node_n4 = NodeN4
 solo: bergama_node_n5 = NodeN5
 solo: bergama_node_n6 = NodeN6
+solo: bergama_slide04_systems = Slide04
