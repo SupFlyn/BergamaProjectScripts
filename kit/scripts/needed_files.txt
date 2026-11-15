@@ -20,6 +20,7 @@ scripts/bergama_water_balance_v14.py
 scripts/bergama_water_board_v20_3.py
 scripts/bergama_section_from_line_v1_1.py
 scripts/bergama_sections_v1_6.py
+scripts/bergama_12sectionsRhino_v1.py
 scripts/bergama_acbuild_v1_40.py
 scripts/bergama_sections_ac_v1_19.py
 scripts/bergama_basemap_v14.py
@@ -79,6 +80,7 @@ Data/bergama_palette.py
 Data/bergama_places.geojson
 Data/bergama_plan_to_rhino_data.py
 Data/bergama_proposal_sections_data.py
+Data/bergama_12sectionsRhino_data.py
 Data/bergama_water_balance_data.py
 Data/bergama_water_board_data.py
 Data/bergama_zone_base_data.py

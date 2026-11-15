@@ -26,6 +26,7 @@ solo: bergama_masterplan_ai = MasterplanAI
 solo: bergama_masterplanbase = MasterplanBase
 solo: bergama_plan_base = PlanBase
 solo: bergama_sections = Sections
+solo: bergama_12sectionsRhino = 12sectionsRhino
 solo: bergama_page05_access = Page05
 solo: bergama_page_spine = PageSpine
 solo: bergama_page_seasons = PageSeasons
