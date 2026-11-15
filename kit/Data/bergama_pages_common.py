@@ -862,10 +862,8 @@ def wrap(s, size, width, tw, bold=False):
 # ================================================================ outputs: PDF, SVG, review PNGs
 def pc_layer_of(it):
     """v3.29: the layer of a Basemap-writer item (line: index 5, poly: 6, text: 8), else None"""
-    try:
-        return {"line": it[5], "poly": it[6], "text": it[8]}.get(it[0])
-    except Exception:
-        return None
+    i = {"line": 5, "poly": 6, "text": 8}.get(it[0] if it else None)
+    return it[i] if i is not None and len(it) > i else None
 
 
 def pc_study_top(items, log=None, layer="study_area"):
