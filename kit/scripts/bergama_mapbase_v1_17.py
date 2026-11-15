@@ -1,0 +1,1639 @@
+# -*- coding: utf-8 -*-
+"""Bergama Group 6: MAPBASE v1.2 (14 Nov 2026; v1.2 = the cache also keeps every building's floors and its OSM building / amenity tag, "bld_x", read by the slide-1 axonometric: Aras 12:38 UTC "don't ever do the same job twice in two scripts ... cache it"). v1: ONE base map for every map of the set. Rules: scripts/_template/SCRIPT_STANDARD.md.
+
+What Aras asked (14 Nov 2026, 12:16-12:18 UTC): "please update all maps to include every detail, and top of the map,
+data is missing please fill in that"; "create one script for base map"; "that base map should provide us the most up
+to date satallite and whatever data we have"; "like you have done that before comparison with satallite imagery and
+so on"; "create one map from that (outlines and etc.) and every map should use that"; "newer maps can keep how they
+do look".
+
+What it does: pressed once (after Basemap), it builds the whole context of the survey's extent ONCE and writes it to
+cached/bergama_mapbase/mapbase.json in SURVEY metres. Every map script then loads this script as a library (the code
+above "# ==== main") and draws the context with mb_draw() through its own page transform, in the default look
+(MB_STYLE, the look of Page02) or its own (a style dict: "newer maps can keep how they do look").
+
+The data (nothing invented; every shape is the survey, a data file of the kit or OpenStreetMap):
+  BUILDINGS  survey closed outlines + heritage, OpenStreetMap footprints and 2023 satellite bodies behind the survey's
+             open fronts (Basemap osm_houses, sat_houses), the by-eye check against the 1 Mar 2023 satellite image
+             (Data/buildings_image_check.json: added / not drawn; PARTIAL, 22 of 36 pieces read on 13 Nov), the
+             town-street trims; OpenStreetMap beyond the survey and wherever no drawn building overlaps a footprint.
+             Each building carries its URBAN FABRIC type (fabric(): heritage, mosques, civic & industrial, blocks,
+             old town, planned low-rise, small irregular, under construction) and a SHOP flag (an OSM shop, office,
+             craft or trade amenity point inside it or within COM_NEAR m; OSM does not record the floor).
+  GROUND     ESA WorldCover 2021 (10 m), the 2023 satellite land cover (Data/veg2023.json, 0.5 m: trees, grass, bare,
+             in the image's box), OpenStreetMap areas (parks, sports grounds, school / hospital / mosque grounds, car
+             parks, archaeological sites, cemeteries, grass, woods, fields, land-use zones, water), each with its name.
+  STREETS    survey road surfaces (roads_survey.json) and town streets (streets_town.json) with their edge lines;
+             OpenStreetMap streets and paths wherever the survey has no road line within MB_ROAD_CELL m.
+  WATER      the Selinos (Basemap build_river), survey stream banks and ponds, OpenStreetMap waterways and water.
+  WALLS      survey walls and heritage walls; OpenStreetMap walls, retaining walls and city walls where the survey has
+             none near (the Acropolis hill).
+  POINTS     OpenStreetMap trees and taxi stands.
+  CONTOURS   Copernicus GLO-30 (a SURFACE model: roofs and tree tops included), 3 x 3 smoothed, every MB_CONTOUR m with
+             an index line every MB_INDEX m; lattice points taken back to lon/lat by the file's linear fit and placed by
+             the Basemap's to_survey (the fit alone is about 7 m off).
+  roads_design.json is the PROPOSAL (Aras's design roads) and is not part of the existing base.
+
+v1.1 (14 Nov 2026, Aras 12:26 UTC "yes finish them"): the 2023 satellite check is COMPLETE (all 36 pieces of
+buildings_image_check.json read); its "remove" outlines now also drop the OpenStreetMap footprints MapBase adds itself
+(beyond the survey and where nothing is drawn), not only the Basemap's.
+
+Library entry points (exec the code above the main line; see Page02 v2.5 for a caller):
+  mb_load(log)                                -> C (the cache + WorldCover + satellite land cover), or None + FLAG
+  mb_draw(C, items, T, k, lim, cid, style=None, layers=None)
+        T(p) = page mm of a survey point; k = page mm per metre; lim = page box (x0, y0, x1, y1) to cull by;
+        cid = the clip id the caller registers (clips[cid] = [[frame ring]]) so nothing passes the frame line.
+        Appends Basemap-format items; returns {layer: count}.
+  mb_legend(C, style=None, used=None)         -> [("box"|"line", hex, text)] of the ground and green drawn
+  MB_STYLE                                    the default look (copy it, change entries, pass it as style)
+
+Component: Rhino 8 > Grasshopper > Python 3 Script (the board builder places it from the cloud kit).
+  input  run     Button (or the previous script's done text)
+  output log / done   as every Bergama script
+Reads  ~/Downloads/Bergama/scripts/bergama_basemap_v*.py              (the newest: the drawing code)
+       ~/Downloads/Bergama/cached/bergama_basemap/basemap_layers.json  (the survey, written by Basemap: press it first)
+       ~/Downloads/Bergama/Data/: bergama_osm.osm, bergama_landcover_worldcover2021.json, veg2023.json,
+       bergama_dem_glo30.json, roads_survey.json, streets_town.json, houses_sat2023.json, buildings_image_check.json,
+       selinos_centreline.json, bergama_style.json
+Writes ~/Downloads/Bergama/cached/bergama_mapbase/mapbase.json (+ its OSM house caches)
+       ~/Downloads/Bergama/logs/bergama_mapbase_log.txt
+"""
+import os, time, json, math, re, glob
+
+# ---- SETTINGS ----
+VERSION = "v1.17"  # v1.17 (15 Nov, Aras 14:38 UTC "dont do hatches to river", standing for every drawing): the water is a flat fill, MB_STYLE water_hatch None (mb_draw skips the hatch); cache unchanged (no need to press MapBase again); v1.16 (15 Nov, Aras 13:40 "not like sharp corners make it more roadlike"): CACHE CHANGED (press MapBase again): the one street region keeps its straight, parallel edges (traced without rounding, steps straightened to STREET_TOL m) and every corner gets a small kerb radius: a round of STREET_KERB_M m (less on short edges), not the old corner cutting by a quarter of each edge (the blobs); edges on the frame stay; v1.15 (15 Nov, Aras 13:38 "what is this stray line underneath the road ?also roads are too blobby. like they need to be a little bit more cornery"): CACHE CHANGED (press MapBase again): (a) the stray line was an OpenStreetMap footpath drawn across the road and the block: in the A05 look the OSM paths are no longer drawn; (b) the one street region is traced without corner cutting (smooth 0, was 2 rounds of rounding): the mask steps are straightened to STREET_TOL m, so corners stay sharp; v1.14 (15 Nov, Aras chose "Close with a straight line" at 13:24 UTC for the 11 park outlines no survey line closes): CACHE CHANGED (press MapBase again): such a chain (3+ points) is closed by a straight edge across its gap and filled; the log names each one "closed with a straight line across X m (not in the survey)"; v1.13 (15 Nov, the v1.12 run: a ~640 m2 piece "joined over 0.1-0.3 m" in every pass yet still a separate region: the 0.5 m overlap of the join band did not reach into the network fill): CACHE CHANGED (press MapBase again): the join band runs STREET_JOIN_IN m into both the piece and the network (was 0.5 m) and is STREET_JOIN_W m wide; a piece left within STREET_TOUCH_M m of the network after the passes reads as joined on the page and is logged, not flagged; v1.12 (15 Nov, the v1.11 run: two pieces joined in v1.10 (651 m2 over 0.2 m, 1229 m2 over 10.4 m) were left apart because they touch the frame edge): CACHE CHANGED (press MapBase again): every loose piece within STREET_JOIN_MAX m of the main network is joined, frame edge or not; joining repeats up to 3 passes until nothing more joins; only a piece that runs to the frame edge AND is beyond reach is left as it is (it continues outside the frame) and it does not count against the one-network check; the FLAG names the regions inside the frame only; park chains may also close along a stream bank, an ancient wall, a shed or the river edge; v1.11 (15 Nov, the v1.10 laptop run: 2 street pieces over 60 m from any street, a 639 m2 piece joined to another loose piece instead of the network; 16 park chains still open): CACHE CHANGED (press MapBase again): (a) a loose street piece is joined to the MAIN network (not to another loose piece); a piece whose outline runs to the map frame edge continues outside the frame, so it is left as it is (log, not FLAG); a piece over STREET_JOIN_MAX m from the network inside the frame stays a FLAG with its place; (b) an open park chain is closed along ANY one survey line its two ends lie on (within PARK_NET_M m): the street network outline, a building outline, a wall, a road edge or kerb; still open: FLAG; open crumbs under PARK_CRUMB_M m long are dropped with a count (log); v1.10 (15 Nov, Aras 09:58 "fix these": the 6 street pieces not joined to the network and the 23 survey park outlines that do not close): CACHE CHANGED (press MapBase again): (a) every street region apart from the main one is joined to its nearest other region by a STREET_JOIN_W m band over the shortest gap, then the union is redone (log "street piece ... joined over ... m"; FLAG for a gap over STREET_JOIN_MAX m, left apart); (b) an open park chain is first chained again with the other open ones at PARK_JOIN2_M m, then closed ALONG THE STREET NETWORK OUTLINE (survey road data) when both its ends lie within PARK_NET_M m of the same outline ring: the shorter way round that ring between the two ends; any chain still open is a FLAG line (no edge invented); v1.9 (15 Nov, Aras 08:06 STANDING RULE "all streets should one connected closed polyline so these kinda mistakes shouldnt happen. Close at the dead ends"): CACHE CHANGED (press MapBase again): every street surface (the OSM street bands, the survey road surfaces road_net, the town streets town_net, the OSM-only street pieces as bands) is unioned into ONE closed region (Basemap join_rings mask: seams closed, every dead end capped by the band end) and cached as street_net; that one region is the only road fill and its closed outline the only road edge (the separate streets / streets_town / OSM street strokes are no longer drawn). Log "street network: ... region(s)": FLAG when the network is more than one region (each listed by area) or when the union fails; v1.8.1 (runner, MapBase v1.8 press: "parks: 0 of 477 curves cached as fills", every park curve 2 points: the survey park layer ORMAN_PARK_BAHCE is drawn as 2-point pieces, so the parks were never filled in any version): the pieces are chained end to end (mb_chain, ends within PARK_JOIN_M) and the chains that close become park fills; CACHE CHANGED (press MapBase again); v1.8 (15 Nov, Aras 07:44-07:45 "basemap roads are still not fixed" + two screenshots: roads read as pairs of grey edge strokes with white between, edges broken at junctions, hairpin squiggles, stray thin lines over the ground, white roads not told apart from white houses): CACHE CHANGED (press MapBase again): Aras 07:46 "check the fills aswell" / "you might be skipping somewhere in the fills": (a) the survey road surfaces (road_net) and the town streets (town_net), each an even-odd set, were painted as ONE even-odd item, so wherever the two overlap the road fill cancelled to a hole: now cached apart (polys streets_town) and painted as two items; (b) open park curves were left out of the cache unlogged: a curve whose ends lie within PARK_CLOSE_M m is closed and kept, any other is a FLAG line with its length; (c) mb_draw counts every fill ring read and drawn per layer, and FLAGs rings of under 3 points (log line "fills"). Aras 07:45:58 "road fills looks fine however it seems like we missing outlines and etc. and lines are on top of each other adn not cleaned enoguh stray lines": in the A05 look (style a05) the fills stay; the road edge is ONE continuous outline, the outline of the joined street network drawn once on top of all road fills (no survey edge / kerb strokes on top of each other, no OSM street casing), and no survey wall / OSM wall strokes (the stray lines; heritage and city walls stay); v1.7 (15 Nov, every-tile check of MapBaseCheck run 1 at 1:2,000: survey kerb and road lines wandered INSIDE the white street network (plazas, wide junctions) as stray lines): CACHE CHANGED (press MapBase again): the street-edge lines are also cached cut to the network (lines_net: the parts deep inside the street network surface, over MB_NET_KEEP m from its edge, left out; edges outside the network kept as surveyed); the A05 look (style a05) draws those; v1.6 (15 Nov, Aras 06:03-06:05 "too many stray lines ... houses fills are overlapping ... Roads are not clear", "thousand times better as house designs" (the 13 Nov A05 house look), "update the base map"): mb_draw gives every house a crisp grey shadow 1.2 m to the lower left (all shadows under all houses), drops wall and street-edge pieces under 3 m, draws street edges stronger and walls thinner; style key "a05": False = the v1.5 look. CACHE CHANGED (press MapBase again): Aras 06:06 "remember the streets being a network idea": the Basemap's street network (build_streets + join_streets: every OSM street as a band, all joined into one surface, junctions meeting) is cached as polys "street_net" and painted in the street fill under the survey road surfaces, so the streets read as one connected network; its outline is not drawn (the survey road lines stay the edges, 13 Nov rule); v1.5 (overnight review; Aras dislikes purple): industrial / commercial zones a neutral warm grey (was lilac D8D3DF); v1.4  # v1.4 (14 Nov, standing rule "WATER: textured hatches, no wave strokes"): the water surface gets a fine diagonal hatch over its grain fill in every map (mb_draw); cache unchanged
+GH_LABEL = "MapBase"
+OUT_FOLDER = "bergama_mapbase"
+LOG_NAME = "bergama_mapbase_log.txt"
+GH_INPUTS = {}
+LIB_GLOB = os.path.join("scripts", "bergama_basemap_v*.py")
+LIB_END = "# ================================================================ main"
+LC_FILE = os.path.join("Data", "bergama_landcover_worldcover2021.json")
+VEG_FILE = os.path.join("Data", "veg2023.json")
+DEM_FILE = os.path.join("Data", "bergama_dem_glo30.json")
+MB_FILE = "mapbase.json"
+MARGIN_M = 15.0                    # m of paper round the survey's extent (as the site board's whole_frame)
+BEYOND_CELL = 50.0                 # m: OSM buildings beyond the survey: no survey line in the cell or the 8 round it
+MB_ROAD_CELL = 25.0                # m: an OSM street is drawn where no survey road line lies in its cell or the 8 round
+MB_WALL_CELL = 25.0                # m: the same for OSM walls against survey walls
+BEYOND_W = {"motorway": 10.0, "trunk": 9.0, "primary": 8.0, "secondary": 7.0, "tertiary": 6.0, "unclassified": 5.0,
+            "residential": 5.0, "living_street": 4.0, "service": 3.5, "pedestrian": 4.0}   # m drawn (ours: OSM has none)
+PATH_TAGS = ("track", "footway", "path", "steps", "cycleway", "bridleway")
+MB_CONTOUR, MB_INDEX = 10.0, 50.0  # m: contour step and index step (the transit thread's ask, 14 Nov 12:18 UTC)
+P02_HAIR = 0.09                    # mm: building outline and wall pen of the default look (Page02 v2.4)
+P02_EDGE_DARK = 0.5                # a building outline = its fill mixed this far toward the ink
+
+# colours (the round 9 hue table of the board set; FAB = building fabric, in its rank order)
+INK = "2C2219"
+PAPER = "F7F5EF"
+# MapBase v1.3 (Aras 14 Nov 15:20-15:21 UTC: "purple looks awful"; "match the colours of the .svg masterplan in the
+# urban fabric"; "have all the colours that masterplan has at least"; "and shade those"): THE one fabric palette of the
+# set (Page02, the axo and the node pages read it from here). Taken from B19_setB_layers259.svg: heritage B8483A /
+# E4877A (its heritage fills), buildings its stone greys 5E5D5A / 7B7770 / 989991 / B1B2AB / D9D6CF, civic & industrial
+# its slate 6B7A80; shops = the masterplan's bike-lane terracotta B56D61 mixed 60 % into each grey and the heritage reds
+# darkened (L -0.12, S +0.15), civic & industrial shops its navy 304168; the map ground its lightest stone E7E5DF.
+FAB = {"monument": "B8483A", "sacred": "E4877A", "traditional": "5E5D5A", "block": "7B7770", "regular": "989991",
+       "selfbuilt": "B1B2AB", "large": "6B7A80", "construction": "D9D6CF"}
+FAB_COM = {"monument": "972B1E", "sacred": "EA4D37", "traditional": "91574B", "block": "9F6052", "regular": "AD6C5B",
+           "selfbuilt": "B77667", "large": "304168", "construction": "C68576"}
+GROUND_C = "E7E5DF"                # the map ground where WorldCover has no vegetation (built-up, bare)
+COM_NEAR = 5.0                     # m: a shop point this close to an outline belongs to it (OSM vs survey offset; ours)
+COM_SHOP_AMENITY = ("restaurant", "cafe", "bank", "pharmacy", "fast_food", "bar", "pub", "marketplace", "fuel",
+                    "ice_cream", "bureau_de_change", "money_transfer")
+FAB_ORDER = ["monument", "sacred", "traditional", "block", "regular", "selfbuilt", "large", "construction"]
+FAB_WORDS = {"monument": u"Monuments, historic", "sacred": u"Mosques & sacred", "traditional": u"Old town fabric",
+             "block": u"Apartment blocks", "regular": u"Planned low-rise", "selfbuilt": u"Small irregular",
+             "large": u"Civic & industrial", "construction": u"Under construction"}
+FAB_RULE = {"monument": u"survey heritage layers, heritage names, OSM historic tags",
+            "sacred": u"mosque names, OSM places of worship",
+            "traditional": u"dense, attached, irregular grain",
+            "block": u"3+ surveyed floors on regular footprints",
+            "regular": u"regular, aligned footprints",
+            "selfbuilt": u"under 130 m2, irregular, loose grain",
+            "large": u"public uses (OSM) or 1,000 m2+",
+            "construction": u"OSM construction"}
+LC = {"trees": ("74804F", u"Woods & tree cover"), "orchard": ("8F966A", u"Orchards (inferred)"),
+      "shrub": ("A7AC86", u"Shrubs"), "grass": ("ABB287", u"Grass"), "farmland": ("BDB57A", u"Fields")}
+LC_ORDER = ("farmland", "grass", "shrub", "orchard", "trees")
+LC_LIGHT = 0.25                    # land cover mixed this far toward the paper on the map (the buildings read first)
+STREET_C, STREET_EDGE = "F1EEE6", "8F8A7A"   # v2.4: more contrast (was E9E6DE, B0AC9C)
+WALL_C = "B0AC9C"
+WATER_C, WATER_LINE = "6B9FB8", "3F6F86"   # v2.4: stronger (was 91ADB4, 5D7F8D)
+HER_WALL = "B08870"
+BRIDGE_C, CLASH_C = "84573E", "8B3A3F"
+STUDY_C = "6A4C93"
+NODE_C, CUT_C = "4A3F35", "C0392B"   # v2.1: node frames (ink) and section cuts (the key-map cut red)
+
+HERITAGE_WORDS = (u"tarihi", u"harabe", u"harap", u"kalıntı", u"kalinti", u"hamam", u" han ", u"bedesten", u"arasta",
+                  u"türbe", u"turbe", u"medrese", u"kızıl avlu", u"kizil avlu", u"tapınağı", u"tapinagi", u"kilise",
+                  u"sinagog", u"çeşme", u"cesme", u"sebil", u"kervansaray", u"müze", u"muze")
+SACRED_WORDS = (u"cami", u"mescit", u"mescid", u"cemevi", u"tekke", u"zaviye")
+LARGE_BUILDING = ("school", "hospital", "public", "civic", "government", "industrial", "warehouse", "commercial",
+                  "retail", "kindergarten", "university", "college", "stadium", "sports_hall", "train_station",
+                  "transportation", "office", "hotel", "supermarket", "factory", "hangar")
+LARGE_AMENITY = ("school", "hospital", "college", "university", "kindergarten", "townhall", "courthouse", "police",
+                 "fire_station", "clinic", "library", "marketplace", "bus_station", "community_centre")
+SACRED_TAGS = ("mosque", "church", "synagogue", "temple", "chapel", "cathedral", "shrine")
+
+# bridges (survey coordinates, the concept record table 2.1, as the site board BRIDGES_K) in stream order, upstream
+
+# ---- folders (same in every script) ----
+BERGAMA_ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
+OUT_DIR = os.path.join(BERGAMA_ROOT, "output", OUT_FOLDER)
+CACHE_DIR = os.path.join(BERGAMA_ROOT, "cached", OUT_FOLDER)
+LOG_DIR = os.path.join(BERGAMA_ROOT, "logs")
+
+
+
+def load_lib(log):
+    """the drawing code of the newest Basemap script (everything above its main) as a dict of names"""
+    found = glob.glob(os.path.join(BERGAMA_ROOT, LIB_GLOB))
+    if not found:
+        raise RuntimeError(u"no %s: run Bergama.bat once (the kit copies the Basemap script), then press again"
+                           % os.path.join(BERGAMA_ROOT, LIB_GLOB))
+    src_ = max(found, key=lambda p: [int(n) for n in re.findall(r"\d+", os.path.basename(p))])
+    with open(src_, encoding="utf-8") as f:
+        code = f.read()
+    if LIB_END not in code:
+        raise RuntimeError(u"%s has no line %r: it is older than Basemap v4" % (src_, LIB_END))
+    ns = {"__name__": "bergama_basemap_lib"}
+    exec(compile(code[:code.index(LIB_END)], src_, "exec"), ns)
+    for need in ("write_pdf", "write_svg", "localise", "osm_houses", "image_check", "town_streets", "build_river",
+                 "build_streets", "join_streets", "join_rings", "stroke_rings",
+                 "clip_ring", "clip_line", "corner_block", "text_w", "to_survey"):
+        if need not in ns:
+            raise RuntimeError(u"%s has no %s: update the kit (Bergama.bat), then press again" % (src_, need))
+    ns["BERGAMA_ROOT"] = BERGAMA_ROOT
+    os.makedirs(CACHE_DIR, exist_ok=True)
+    ns["HOUSE_FILE"] = os.path.join(CACHE_DIR, "osm_houses_whole.json")   # never the Basemap's own caches
+    ns["STREET_FILE"] = os.path.join(CACHE_DIR, "streets_whole.json")
+    log.append(u"drawing code: %s (%s %s)" % (src_, ns.get("GH_LABEL"), ns.get("VERSION")))
+    return ns
+
+
+# ================================================================ small geometry
+def mixh(a, b, t):
+    """two hex colours mixed: t = share of b"""
+    pa = [int(a[i:i + 2], 16) for i in (0, 2, 4)]
+    pb = [int(b[i:i + 2], 16) for i in (0, 2, 4)]
+    return "".join("%02X" % int(round(pa[i] + (pb[i] - pa[i]) * t)) for i in range(3))
+
+
+def area(P):
+    return 0.5 * sum(P[i - 1][0] * P[i][1] - P[i][0] * P[i - 1][1] for i in range(len(P)))
+
+
+def pip(x, y, P):
+    c = False
+    n = len(P)
+    for i in range(n):
+        a, b = P[i - 1], P[i]
+        if (a[1] > y) != (b[1] > y) and x < a[0] + (y - a[1]) * (b[0] - a[0]) / (b[1] - a[1]):
+            c = not c
+    return c
+
+
+def hull(pts):
+    p = sorted(set((round(q[0], 3), round(q[1], 3)) for q in pts))
+    if len(p) < 3:
+        return p
+
+    def cr(o, a, b):
+        return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+    lo, up = [], []
+    for q in p:
+        while len(lo) >= 2 and cr(lo[-2], lo[-1], q) <= 0:
+            lo.pop()
+        lo.append(q)
+    for q in reversed(p):
+        while len(up) >= 2 and cr(up[-2], up[-1], q) <= 0:
+            up.pop()
+        up.append(q)
+    return lo[:-1] + up[:-1]
+
+
+def min_rect(P):
+    """(area, angle of its long side) of the smallest rectangle round P"""
+    H = hull(P)
+    if len(H) < 3:
+        return None
+    best = None
+    for i in range(len(H)):
+        a, b = H[i - 1], H[i]
+        ang = math.atan2(b[1] - a[1], b[0] - a[0])
+        c, s = math.cos(ang), math.sin(ang)
+        us = [q[0] * c + q[1] * s for q in H]
+        vs = [-q[0] * s + q[1] * c for q in H]
+        A = (max(us) - min(us)) * (max(vs) - min(vs))
+        if best is None or A < best[0]:
+            best = (A, ang if (max(us) - min(us)) >= (max(vs) - min(vs)) else ang + math.pi / 2.0)
+    return best
+
+
+def seg_d(px, py, a, b):
+    dx, dy = b[0] - a[0], b[1] - a[1]
+    L2 = dx * dx + dy * dy
+    t = 0.0 if L2 <= 0 else max(0.0, min(1.0, ((px - a[0]) * dx + (py - a[1]) * dy) / L2))
+    return math.hypot(px - a[0] - t * dx, py - a[1] - t * dy)
+
+
+# ================================================================ the whole map's frame
+def whole_frame(B, D):
+    """the survey's whole extent on the site frame's axes (long side of site_alan flat), MARGIN_M m round it"""
+    FS = B["Frame"]([tuple(p) for p in D["frame"]])
+    us, vs = [], []
+    for key, items in D["layers"].items():
+        for cl, P in items:
+            for p in P:
+                q = FS.raw(p)
+                us.append(q[0])
+                vs.append(q[1])
+    u0, u1, v0, v1 = min(us) - MARGIN_M, max(us) + MARGIN_M, min(vs) - MARGIN_M, max(vs) + MARGIN_M
+
+    def back(qx, qy):                                     # raw -> survey (the inverse turn)
+        return (FS.ca * qx + FS.sa * qy, -FS.sa * qx + FS.ca * qy)
+    FW = B["Frame"]([back(u0, v0), back(u1, v0), back(u1, v1), back(u0, v1)])
+    return FS, FW
+
+
+# ================================================================ OpenStreetMap
+def read_osm(B, log):
+    """{"bld": [(survey ring, tags)], "ways": [(survey points, tags)], "nodes": [(x, y, tags)]} of the kit's OSM file"""
+    import xml.etree.ElementTree as ET
+    src = os.path.join(BERGAMA_ROOT, B["OSM_FILE"])
+    out = {"bld": [], "ways": [], "nodes": [], "shops": [], "pts": []}   # v2.3: shops = (x, y) of shop / office / craft points
+    if not os.path.isfile(src):
+        log.append(u"FLAG OpenStreetMap: %s not found: nothing drawn beyond the survey, no OSM tags for the fabric" % src)
+        return out
+    root = ET.parse(src).getroot()
+    nodes = {}
+    for n in root.iter("node"):
+        try:
+            ll = (float(n.get("lon")), float(n.get("lat")))
+        except (TypeError, ValueError):
+            continue
+        nodes[n.get("id")] = ll
+        tg = dict((t.get("k"), t.get("v")) for t in n.findall("tag"))
+        if tg.get("amenity") or tg.get("building") or tg.get("historic"):
+            x, y = B["to_survey"](*ll)
+            out["nodes"].append((x, y, tg))
+        if tg.get("natural") == "tree" or tg.get("amenity") == "taxi":   # MapBase: trees and taxi stands
+            out["pts"].append(B["to_survey"](*ll) + (tg,))
+        if _is_shop(tg):
+            out["shops"].append(B["to_survey"](*ll))
+    for w in root.iter("way"):
+        tg = dict((t.get("k"), t.get("v")) for t in w.findall("tag"))
+        refs = [nd.get("ref") for nd in w.findall("nd")]
+        P = [B["to_survey"](*nodes[r]) for r in refs if r in nodes]
+        if len(P) < 2:
+            continue
+        if _is_shop(tg) and refs[0] == refs[-1]:          # v2.3: a shop footprint: its centre
+            out["shops"].append((sum(q[0] for q in P[:-1]) / max(1, len(P) - 1), sum(q[1] for q in P[:-1]) / max(1, len(P) - 1)))
+        if "building" in tg:
+            if len(refs) >= 4 and refs[0] == refs[-1] and len(P) >= 4:
+                out["bld"].append((P[:-1], tg))
+            continue
+        out["ways"].append((P, tg))
+    log.append(u"OpenStreetMap: %d building footprints, %d other ways, %d tagged points, %d shop / office / craft places" % (
+        len(out["bld"]), len(out["ways"]), len(out["nodes"]), len(out["shops"])))
+    return out
+
+
+def _is_shop(tg):
+    """v2.3: an OSM tag set of a shop, office, workshop or trade amenity (the commercial uses OSM records)"""
+    return bool(tg.get("shop") or tg.get("office") or tg.get("craft") or tg.get("amenity") in COM_SHOP_AMENITY or
+                tg.get("building") in ("commercial", "retail"))
+
+
+# ================================================================ urban fabric
+def fabric(units, log):
+    """u["fab"] for every unit: the rules of the site board's fabric_types (survey layer -> heritage, names, OSM tags,
+    floors, footprint regularity, shared walls, the grain of the 40 m round it). Shared walls: two outlines within
+    0.5 m of each other (OSM and satellite bodies never share an edge to the centimetre as survey faces do)."""
+    t0 = time.time()
+    g = {}
+    for k, u in enumerate(units):
+        u["bb"] = (min(q[0] for q in u["P"]), min(q[1] for q in u["P"]), max(q[0] for q in u["P"]), max(q[1] for q in u["P"]))
+        u["cx"], u["cy"] = sum(q[0] for q in u["P"]) / len(u["P"]), sum(q[1] for q in u["P"]) / len(u["P"])
+        r = min_rect(u["P"])
+        u["rect"] = u["A"] / max(r[0], 1e-6) if r else 1.0
+        u["ang"] = r[1] if r else 0.0
+        for i in range(int(u["bb"][0] // 20.0), int(u["bb"][2] // 20.0) + 1):
+            for j in range(int(u["bb"][1] // 20.0), int(u["bb"][3] // 20.0) + 1):
+                g.setdefault((i, j), []).append(k)
+    for k, u in enumerate(units):                         # attached: another outline within 0.5 m of a corner
+        att = False
+        near = set()
+        for i in range(int((u["bb"][0] - 1) // 20.0), int((u["bb"][2] + 1) // 20.0) + 1):
+            for j in range(int((u["bb"][1] - 1) // 20.0), int((u["bb"][3] + 1) // 20.0) + 1):
+                near.update(g.get((i, j), ()))
+        near.discard(k)
+        for m in near:
+            v = units[m]
+            if v["bb"][0] > u["bb"][2] + 0.5 or v["bb"][2] < u["bb"][0] - 0.5 or v["bb"][1] > u["bb"][3] + 0.5 or \
+                    v["bb"][3] < u["bb"][1] - 0.5:
+                continue
+            Q = v["P"]
+            for p in u["P"]:
+                if any(seg_d(p[0], p[1], Q[i - 1], Q[i]) <= 0.5 for i in range(len(Q))):
+                    att = True
+                    break
+            if att:
+                break
+        u["att"] = att
+    R = 40.0
+    for k, u in enumerate(units):
+        nb = set()
+        for i in range(int((u["cx"] - R) // 20.0), int((u["cx"] + R) // 20.0) + 1):
+            for j in range(int((u["cy"] - R) // 20.0), int((u["cy"] + R) // 20.0) + 1):
+                nb.update(m for m in g.get((i, j), ()) if math.hypot(units[m]["cx"] - u["cx"], units[m]["cy"] - u["cy"]) <= R)
+        mains = [units[m] for m in nb]
+        w = sum(v["A"] for v in mains) or 1.0
+        zx = sum(math.cos(4.0 * v["ang"]) * v["A"] for v in mains)
+        zy = sum(math.sin(4.0 * v["ang"]) * v["A"] for v in mains)
+        u["cov"] = sum(v["A"] for v in mains) / (math.pi * R * R)
+        u["coh"] = math.hypot(zx, zy) / w
+        u["attsh"] = sum(1 for v in mains if v["att"]) / float(max(1, len(mains)))
+    for u in units:
+        nm = u" " + (u.get("name") or u"").lower() + u" "
+        tg = u.get("tags") or {}
+        if u.get("her") or any(w_ in nm for w_ in HERITAGE_WORDS) or tg.get("historic") or tg.get("heritage") or \
+                tg.get("building") in ("ruins", "historic"):
+            t = "monument"
+        elif any(w_ in nm for w_ in SACRED_WORDS) or tg.get("building") in SACRED_TAGS or \
+                tg.get("amenity") == "place_of_worship":
+            t = "sacred"
+        elif tg.get("building") == "construction":
+            t = "construction"
+        elif tg.get("building") in LARGE_BUILDING or tg.get("amenity") in LARGE_AMENITY or u["A"] >= 1000.0:
+            t = "large"
+        elif u["fl"] >= 4 or (u["fl"] >= 3 and u["rect"] >= 0.75):
+            t = "block"
+        elif u["cov"] >= 0.35 and u["attsh"] >= 0.55 and (u["coh"] < 0.8 or u["rect"] < 0.85):
+            t = "traditional"
+        elif u["A"] < 130.0 and (u["rect"] < 0.8 or u["coh"] < 0.6) and u["attsh"] < 0.5:
+            t = "selfbuilt"
+        elif u["rect"] >= 0.8 and u["coh"] >= 0.6:
+            t = "regular"
+        elif u["cov"] >= 0.35:
+            t = "traditional"
+        else:
+            t = "selfbuilt" if (u["rect"] < 0.8 and u["A"] < 130.0) else "regular"
+        u["fab"] = t
+    n = dict((f_, sum(1 for u in units if u["fab"] == f_)) for f_ in FAB_ORDER)
+    log.append(u"urban fabric of %d buildings (%.1f s): %s" % (len(units), time.time() - t0, u", ".join(
+        u"%s %d" % (FAB_WORDS[f_], n[f_]) for f_ in FAB_ORDER)))
+
+
+
+def _survey_key(F, q):
+    """the survey point (rounded to the cm, as the floor table's key) of a frame point"""
+    qx, qy = q[0] + F.u0, q[1] + F.v0
+    return (round(F.ca * qx + F.sa * qy, 2), round(-F.sa * qx + F.ca * qy, 2))
+
+
+
+
+# ================================================================ OpenStreetMap areas, walls, points (MapBase v1)
+OSM_AREA_ORDER = ("landuse", "farm", "wood", "green", "cemetery", "archaeo", "grounds", "worship", "parking", "sport",
+                  "park", "water")
+
+
+def osm_area_class(tg):
+    """(class, sub) of a closed OSM way that is an area, else None"""
+    lu, le, am, na, hi = tg.get("landuse"), tg.get("leisure"), tg.get("amenity"), tg.get("natural"), tg.get("historic")
+    if na == "water" or lu in ("reservoir", "basin") or tg.get("water"):
+        return ("water", na or lu)
+    if le in ("park", "garden"):
+        return ("park", le)
+    if le in ("pitch", "playground", "sports_centre", "stadium", "track", "swimming_pool"):
+        return ("sport", le)
+    if am in ("school", "college", "university", "kindergarten", "hospital", "clinic"):
+        return ("grounds", am)
+    if am == "place_of_worship":
+        return ("worship", am)
+    if am == "parking":
+        return ("parking", am)
+    if hi == "archaeological_site":
+        return ("archaeo", hi)
+    if lu == "cemetery" or am == "grave_yard":
+        return ("cemetery", lu or am)
+    if lu in ("grass", "flowerbed", "meadow", "village_green", "recreation_ground"):
+        return ("green", lu)
+    if lu == "forest" or na in ("wood", "scrub"):
+        return ("wood", lu or na)
+    if lu in ("farmland", "orchard", "vineyard", "farmyard", "allotments"):
+        return ("farm", lu)
+    if lu in ("residential", "commercial", "retail", "industrial", "military", "construction", "quarry", "railway"):
+        return ("landuse", lu)
+    return None
+
+
+def _cells(L, keys, c):
+    out = set()
+    for key in keys:
+        for cl, Q, a, b in L.get(key, []):
+            for i in range(len(Q)):
+                q = Q[i]
+                out.add((int(q[0] // c), int(q[1] // c)))
+                if i:                                     # long segments: their midpoints too
+                    p = Q[i - 1]
+                    n = int(math.hypot(q[0] - p[0], q[1] - p[1]) // c)
+                    for t in range(1, n + 1):
+                        out.add((int((p[0] + (q[0] - p[0]) * t / (n + 1.0)) // c),
+                                 int((p[1] + (q[1] - p[1]) * t / (n + 1.0)) // c)))
+    return out
+
+
+def _runs(Q, ok):
+    """the pieces of a polyline whose points pass ok()"""
+    out, run = [], []
+    for q in list(Q) + [None]:
+        if q is not None and ok(q):
+            run.append(q)
+            continue
+        if len(run) >= 2:
+            out.append(run)
+        run = []
+    return out
+
+
+# ================================================================ contours of the DEM
+def contours(B, log):
+    """[(points survey m, z, is_index)] of DEM_FILE: 3 x 3 mean, marching squares, joined into polylines"""
+    src = os.path.join(BERGAMA_ROOT, DEM_FILE)
+    if not os.path.isfile(src):
+        log.append(u"FLAG contours: %s not found: no contours" % src)
+        return []
+    t0 = time.time()
+    with open(src, encoding="utf-8") as f:
+        J = json.load(f)
+    nr, nc = int(J["rows"]), int(J["cols"])
+    P = J["pts"]
+    if len(P) != nr * nc:
+        log.append(u"FLAG contours: %d points for %d x %d: not read" % (len(P), nr, nc))
+        return []
+    Z = [[P[r * nc + c][2] for c in range(nc)] for r in range(nr)]
+    S = [[0.0] * nc for _ in range(nr)]
+    for r in range(nr):
+        for c in range(nc):
+            v = [Z[rr][cc] for rr in (r - 1, r, r + 1) for cc in (c - 1, c, c + 1) if 0 <= rr < nr and 0 <= cc < nc]
+            S[r][c] = sum(v) / len(v)
+    x0, y0 = P[0][0], P[0][1]
+    dx = (P[nc - 1][0] - x0) / float(nc - 1)
+    dy = (P[(nr - 1) * nc][1] - y0) / float(nr - 1)
+    m = re.search(r"x = ([\d.]+) \+ \(lon - ([\d.]+)\) \* (\d+), y = ([\d.]+) \+ \(lat - ([\d.]+)\) \* (\d+)", J.get("transform", ""))
+    fx = (float(m.group(1)), float(m.group(2)), float(m.group(3)), float(m.group(4)), float(m.group(5)),
+          float(m.group(6))) if m else None
+    if fx is None:
+        log.append(u"FLAG contours: the file's lon/lat fit not found: placed by the fit-free lattice (about 7 m off)")
+
+    def place(rc):
+        x, y = x0 + rc[1] * dx, y0 + rc[0] * dy
+        if fx is None:
+            return (x, y)
+        lon = fx[1] + (x - fx[0]) / fx[2]
+        lat = fx[4] + (y - fx[3]) / fx[5]
+        return B["to_survey"](lon, lat)
+    seg = {}
+    for r in range(nr - 1):
+        for c in range(nc - 1):
+            a, b_, c_, d = S[r][c], S[r][c + 1], S[r + 1][c + 1], S[r + 1][c]
+            lo, hi = min(a, b_, c_, d), max(a, b_, c_, d)
+            lv = math.ceil(lo / MB_CONTOUR) * MB_CONTOUR
+            while lv <= hi:
+                l_ = lv + 1e-6
+                pts = []
+                for (p, zp), (q, zq) in ((((r, c), a), ((r, c + 1), b_)), (((r, c + 1), b_), ((r + 1, c + 1), c_)),
+                                         (((r + 1, c + 1), c_), ((r + 1, c), d)), (((r + 1, c), d), ((r, c), a))):
+                    if (zp - l_) * (zq - l_) < 0:
+                        t = (l_ - zp) / (zq - zp)
+                        pts.append((round(p[0] + (q[0] - p[0]) * t, 4), round(p[1] + (q[1] - p[1]) * t, 4)))
+                if len(pts) == 2:
+                    seg.setdefault(lv, []).append((pts[0], pts[1]))
+                elif len(pts) == 4:
+                    seg.setdefault(lv, []).extend([(pts[0], pts[1]), (pts[2], pts[3])])
+                lv += MB_CONTOUR
+    out = []
+    for lv, S_ in seg.items():                            # join the cell pieces into polylines
+        ends = {}
+        for i, (p, q) in enumerate(S_):
+            ends.setdefault(p, []).append(i)
+            ends.setdefault(q, []).append(i)
+        used = [False] * len(S_)
+        for i in range(len(S_)):
+            if used[i]:
+                continue
+            used[i] = True
+            line = [S_[i][0], S_[i][1]]
+            for end in (1, 0):
+                while True:
+                    tip = line[-1] if end else line[0]
+                    nxt = next((j for j in ends.get(tip, ()) if not used[j]), None)
+                    if nxt is None:
+                        break
+                    used[nxt] = True
+                    p, q = S_[nxt]
+                    new = q if p == tip else p
+                    if end:
+                        line.append(new)
+                    else:
+                        line.insert(0, new)
+            out.append(([tuple(round(v, 1) for v in place(rc)) for rc in line], lv,
+                        abs(lv / MB_INDEX - round(lv / MB_INDEX)) < 1e-6))
+    log.append(u"contours: %d lines, %d index (every %.0f / %.0f m, Copernicus GLO-30 DSM, %.1f s)" % (
+        len(out), sum(1 for o in out if o[2]), MB_CONTOUR, MB_INDEX, time.time() - t0))
+    return out
+
+
+# ================================================================ build (pressed once)
+def build():
+    t0 = time.time()
+    log = []
+    B = load_lib(log)
+    if not os.path.isfile(B["CACHE_FILE"]):
+        raise RuntimeError(u"%s not found: press Basemap once first (it reads the survey and writes this cache)"
+                           % B["CACHE_FILE"])
+    with open(B["CACHE_FILE"], encoding="utf-8") as f:
+        D = json.load(f)
+    FS, F = whole_frame(B, D)
+    fl_of = {}
+    fls = (D.get("floors") or {}).get("buildings") or []
+    j_ = 0
+    for cl, P in D["layers"].get("buildings", []):
+        if cl and len(P) >= 3:
+            if j_ < len(fls):
+                fl_of[(round(P[0][0], 2), round(P[0][1], 2))] = fls[j_]
+            j_ += 1
+    try:                                                  # v1.6: the street network (Aras 06:06 "streets being a network")
+        D["layers"].update(B["build_streets"](D, F, log))
+    except Exception as e:
+        log.append(u"FLAG street network: not built (%s: %s)" % (type(e).__name__, e))
+    D["layers"].update(B["osm_houses"](D, F, log))        # houses behind the survey's open fronts (whole map)
+    D["layers"].update(B["sat_houses"](D, F, log))
+    L = B["localise"](D, F)
+    B["image_check"](L, F, log)                           # the 2023 satellite check (buildings_image_check.json)
+    B["road_surface"](L, F, log)
+    B["town_streets"](L, F, log)
+    try:
+        B["build_river"](L, F, log)
+    except Exception as e:
+        L["river"] = []
+        log.append(u"FLAG river: not built (%s: %s): the stream is its survey lines only" % (type(e).__name__, e))
+    try:
+        B["join_streets"](L, F, log)                      # v1.6: all bands as one surface, junctions joined
+    except Exception as e:
+        L["street_net"] = []
+        log.append(u"FLAG street network: not joined (%s: %s)" % (type(e).__name__, e))
+    try:
+        net_lines = mb_net_edges(L, log)                  # v1.7: the street-edge lines without the parts deep inside
+    except Exception as e:
+        net_lines = None
+        log.append(u"FLAG street edges not cut to the network (%s: %s): all survey edges drawn" % (type(e).__name__, e))
+    park_rings, park_open = [], []                        # v1.8: open park curves closed when their ends meet
+    for cl, Q, a_, b_ in mb_chain(L.get("parks", []), PARK_JOIN_M):   # v1.8.1: the survey's 2-point pieces chained
+        if len(Q) < 2:
+            log.append(u"FLAG park curve of %d point(s) left out" % len(Q))
+        elif cl or (len(Q) >= 3 and math.hypot(Q[0][0] - Q[-1][0], Q[0][1] - Q[-1][1]) <= PARK_CLOSE_M):
+            park_rings.append(Q)
+        else:
+            park_open.append((False, Q, 0.0, 0.0))        # v1.10: closed along the street outline after the union
+    O = read_osm(B, log)
+    sv = lambda q: _to_survey(F, q)
+    # ---- buildings (as Page02 v2.4)
+    names = [(F.local((x, y)), t) for t, x, y, a_, kind in D.get("labels") or [] if kind != "street"]
+    units = []
+    for key in ("buildings", "heritage", "osm_houses", "sat_houses"):
+        for cl, Q, a, b in L.get(key, []):
+            if not (cl and len(Q) >= 3):
+                continue
+            A = abs(area(Q))
+            if A < 2.0:
+                continue
+            fl = fl_of.get(_survey_key(F, Q[0]), 0) if key == "buildings" else 0
+            units.append({"P": Q, "A": A, "fl": fl, "her": key == "heritage", "src": key})
+    cov = set()
+    c_ = BEYOND_CELL
+    for key in ("buildings", "heritage", "walls", "road_edges", "kerbs", "sheds"):
+        for cl, Q, a, b in L.get(key, []):
+            for q in Q:
+                cov.add((int(q[0] // c_), int(q[1] // c_)))
+
+    def free(q):
+        i, j = int(q[0] // c_), int(q[1] // c_)
+        return not any((i + di, j + dj) in cov for di in (-1, 0, 1) for dj in (-1, 0, 1))
+    inside = lambda q: 0 <= q[0] <= F.w and 0 <= q[1] <= F.h
+    rem = []                                              # v1.1: the satellite check's "remove" outlines (frame m)
+    try:
+        with open(os.path.join(BERGAMA_ROOT, B["CHECK_FILE"]), encoding="utf-8") as f:
+            rem = [[F.local(p) for p in R_] for R_ in json.load(f).get("remove", []) if len(R_) >= 3]
+    except Exception as e:
+        log.append(u"FLAG satellite check: removals not read for the OSM footprints (%s: %s)" % (type(e).__name__, e))
+    gone = lambda Q: any(all(pip(q[0], q[1], R_) for q in Q) for R_ in rem)
+    n_beyond = n_gone = 0
+    for P, tg in O["bld"]:
+        Q = [F.local(p) for p in P]
+        if not all(inside(q) for q in Q) or not all(free(q) for q in Q):
+            continue
+        if gone(Q):
+            n_gone += 1
+            continue
+        A = abs(area(Q))
+        if A < 2.0:
+            continue
+        units.append({"P": Q, "A": A, "fl": _levels(tg), "her": bool(tg.get("historic")), "src": "osm_beyond", "tags": tg})
+        n_beyond += 1
+    gU = {}
+    for i_, u in enumerate(units):
+        _grid_add(gU, i_, u["P"])
+
+    def owner(q):
+        for i_ in gU.get((int(q[0] // 25.0), int(q[1] // 25.0)), ()):
+            if pip(q[0], q[1], units[i_]["P"]):
+                return units[i_]
+        return None
+    n_nm = n_tg = 0
+    for q, t in names:
+        u = owner(q)
+        if u is not None and not u.get("name"):
+            u["name"] = t
+            n_nm += 1
+    for x, y, tg in O["nodes"]:
+        u = owner(F.local((x, y)))
+        if u is not None and not u.get("tags"):
+            u["tags"] = tg
+            n_tg += 1
+    for P, tg in O["bld"]:
+        if len(tg) <= 1 and tg.get("building") in ("yes", None):
+            continue
+        Q = [F.local(p) for p in P]
+        u = owner((sum(q[0] for q in Q) / len(Q), sum(q[1] for q in Q) / len(Q)))
+        if u is not None and not u.get("tags"):
+            u["tags"] = tg
+            n_tg += 1
+    n_fill = 0                                            # OSM footprints that overlap no drawn building
+    for P, tg in O["bld"]:
+        Q = [F.local(p) for p in P]
+        if not all(inside(q) for q in Q):
+            continue
+        A = abs(area(Q))
+        if A < 2.0:
+            continue
+        if gone(Q):
+            n_gone += 1
+            continue
+        cq = (sum(q[0] for q in Q) / len(Q), sum(q[1] for q in Q) / len(Q))
+        if owner(cq) is not None or any(owner(q) is not None for q in Q):
+            continue
+        bb = (min(q[0] for q in Q), min(q[1] for q in Q), max(q[0] for q in Q), max(q[1] for q in Q))
+        near = set()
+        for i in range(int(bb[0] // 25.0), int(bb[2] // 25.0) + 1):
+            for j in range(int(bb[1] // 25.0), int(bb[3] // 25.0) + 1):
+                near.update(gU.get((i, j), ()))
+        if any(bb[0] <= v[0] <= bb[2] and bb[1] <= v[1] <= bb[3] and pip(v[0], v[1], Q) for i_ in near
+               for v in units[i_]["P"]):
+            continue
+        units.append({"P": Q, "A": A, "fl": _levels(tg), "her": bool(tg.get("historic")), "src": "osm_fill", "tags": tg})
+        _grid_add(gU, len(units) - 1, Q)
+        n_fill += 1
+    log.append(u"buildings: %s; OpenStreetMap beyond the survey %d, where no drawn building overlaps %d, left out "
+               u"by the satellite check %d; %d with a name text, %d with OSM tags" % (u", ".join(u"%s %d" % (s_, sum(1 for u in units if u["src"] == s_))
+                                                            for s_ in ("buildings", "heritage", "osm_houses",
+                                                                       "sat_houses")), n_beyond, n_fill, n_gone, n_nm,
+                                                            n_tg))
+    fabric(units, log)
+    n_in = n_near = n_none = 0                            # shops
+    for x, y in O["shops"]:
+        q = F.local((x, y))
+        if not inside(q):
+            continue
+        u = owner(q)
+        if u is not None:
+            u["com"] = True
+            n_in += 1
+            continue
+        best, bd = None, COM_NEAR
+        for i in range(int((q[0] - COM_NEAR) // 25.0), int((q[0] + COM_NEAR) // 25.0) + 1):
+            for j in range(int((q[1] - COM_NEAR) // 25.0), int((q[1] + COM_NEAR) // 25.0) + 1):
+                for i_ in gU.get((i, j), ()):
+                    V = units[i_]["P"]
+                    d = min(seg_d(q[0], q[1], V[m - 1], V[m]) for m in range(len(V)))
+                    if d <= bd:
+                        best, bd = units[i_], d
+        if best is not None:
+            best["com"] = True
+            n_near += 1
+        else:
+            n_none += 1
+    log.append(u"shops (OSM shop / office / craft places): %d inside a building, %d within %.0f m of one, %d with no "
+               u"building near; buildings marked: %s" % (n_in, n_near, COM_NEAR, n_none, u", ".join(
+                   u"%s %d" % (FAB_WORDS[f_], sum(1 for u in units if u["fab"] == f_ and u.get("com")))
+                   for f_ in FAB_ORDER)))
+    # ---- OSM streets, paths, waterways, walls where the survey has none near; OSM areas; points
+    roads = _cells(L, ("road_edges", "kerbs", "town_edges", "road_net", "town_net"), MB_ROAD_CELL)
+    walls = _cells(L, ("walls", "heritage_walls"), MB_WALL_CELL)
+    rfree = lambda q: inside(q) and not any((int(q[0] // MB_ROAD_CELL) + di, int(q[1] // MB_ROAD_CELL) + dj) in roads
+                                            for di in (-1, 0, 1) for dj in (-1, 0, 1))
+    wfree = lambda q: inside(q) and not any((int(q[0] // MB_WALL_CELL) + di, int(q[1] // MB_WALL_CELL) + dj) in walls
+                                            for di in (-1, 0, 1) for dj in (-1, 0, 1))
+    ost, opa, owa, owl, ocw, areas = [], [], [], [], [], []
+    for P, tg in O["ways"]:
+        Q = [F.local(p) for p in P]
+        hw = tg.get("highway")
+        if hw and tg.get("area") != "yes" and (hw in BEYOND_W or hw in PATH_TAGS):
+            for run in _runs(Q, rfree):
+                (ost if hw in BEYOND_W else opa).append(([sv(q) for q in run], BEYOND_W.get(hw, 0.0), hw,
+                                                          tg.get("name") or u""))
+            continue
+        if tg.get("waterway") in ("river", "stream", "canal", "ditch", "drain"):
+            for run in _runs(Q, free):
+                owa.append([sv(q) for q in run])
+            continue
+        if tg.get("historic") == "citywalls" or tg.get("barrier") == "city_wall":
+            for run in _runs(Q, wfree):
+                ocw.append([sv(q) for q in run])
+            continue
+        if tg.get("barrier") in ("wall", "retaining_wall"):
+            for run in _runs(Q, wfree):
+                owl.append([sv(q) for q in run])
+            continue
+        if len(P) >= 4 and P[0] == P[-1]:
+            ac = osm_area_class(tg)
+            if ac and any(inside(q) for q in Q):
+                areas.append(([sv(q) for q in Q[:-1]], ac[0], ac[1], tg.get("name") or u""))
+    trees, taxi = [], []
+    for x, y, tg in O["pts"]:
+        if not inside(F.local((x, y))):
+            continue
+        if tg.get("natural") == "tree":
+            trees.append((round(x, 1), round(y, 1)))
+        elif tg.get("amenity") == "taxi":
+            taxi.append((round(x, 1), round(y, 1), tg.get("name") or u""))
+    log.append(u"OpenStreetMap where the survey has none near: %d street pieces, %d paths, %d waterways, %d walls, "
+               u"%d city-wall pieces; %d areas (%s); %d trees, %d taxi stands" % (
+                   len(ost), len(opa), len(owa), len(owl), len(ocw), len(areas), u", ".join(
+                       u"%s %d" % (c, sum(1 for a in areas if a[1] == c)) for c in OSM_AREA_ORDER), len(trees), len(taxi)))
+    # ---- v1.9: ALL street surfaces as ONE closed region (Aras 08:06 standing rule)
+    union_ok = False
+    try:
+        shapes = [[Q] for cl, Q, a_, b_ in L.get("streets", []) if len(Q) >= 3]
+        for key in ("road_net", "town_net"):              # each an even-odd set: one shape, its holes stay holes
+            rr = [Q for cl, Q, a_, b_ in L.get(key, []) if len(Q) >= 3]
+            if rr:
+                shapes.append(rr)
+        for P, w, hw, nm in ost:                          # OSM-only street pieces as bands of their width
+            Q = [F.local(q) for q in P]
+            if len(Q) >= 2 and w > 0:
+                shapes += [[R] for R in B["stroke_rings"](Q, w / 2.0)]
+        rings, _ = B["join_rings"](shapes, F, B["STREET_CLOSE_M"], B["STREET_MIN_M2"], STREET_TOL, smooth=0)
+        rings = [mb_kerb(R, F) for R in rings]            # v1.16: small kerb radii on straight edges
+        L["street_net"] = [(True, R, min(q[0] for q in R), max(q[0] for q in R)) for R in rings]
+        union_ok = bool(rings)
+        regs = mb_regions(rings)
+        log.append(u"street network: %d surfaces (%d street bands, survey road and town surfaces, %d OSM pieces) -> "
+                   u"ONE closed outline set of %d ring(s), %d region(s)" % (
+                       len(shapes), len(L.get("streets", [])), len(ost), len(rings), len(regs)))
+        edge, touch = [], []
+        for pass_ in range(3):                            # v1.12: join every piece within reach, up to 3 passes
+            if len(regs) < 2:
+                break
+            joins, edge = mb_join_regions(rings, log, (F.w, F.h), quiet=True)
+            if not joins:
+                break
+            for pa, pb in joins:
+                shapes += [[R] for R in B["stroke_rings"]([pa, pb], STREET_JOIN_W / 2.0)]
+            rings, _ = B["join_rings"](shapes, F, B["STREET_CLOSE_M"], B["STREET_MIN_M2"], STREET_TOL, smooth=0)
+            rings = [mb_kerb(R, F) for R in rings]
+            L["street_net"] = [(True, R, min(q[0] for q in R), max(q[0] for q in R)) for R in rings]
+            regs = mb_regions(rings)
+            log.append(u"street network after join pass %d: %d ring(s), %d region(s)" % (pass_ + 1, len(rings),
+                                                                                          len(regs)))
+        if len(regs) > 1:                                 # v1.13: what is left, said once
+            joins, edge = mb_join_regions(rings, log, (F.w, F.h), touch=touch, report=True)
+        inner = len(regs) - len(edge) - len(touch)                     # pieces that leave the frame join outside it
+        if inner > 1:
+            log.append(u"FLAG street network: %d separate regions inside the frame, not one (all regions, largest "
+                       u"first, m2): %s" % (inner, u", ".join(u"%.0f" % a_ for a_ in regs[:12])))
+        else:
+            log.append(u"street network: ONE region inside the frame (%d piece(s) at the frame edge join outside it)"
+                       % len(edge))
+    except Exception as e:
+        log.append(u"FLAG street network: the union failed (%s: %s): the street bands alone are the network" % (
+            type(e).__name__, e))
+    # ---- v1.10: open park chains closed along survey data (chained again, then along the street outline)
+    if park_open:
+        n0, n_crumb = len(park_open), 0
+        guides = [(True, R_, u"the street edge") for cl_, R_, a2, b2 in L.get("street_net", [])]   # v1.11
+        for key, word in (("buildings", u"a building outline"), ("heritage", u"a heritage outline"),
+                          ("walls", u"a wall"), ("road_edges", u"a road edge"), ("kerbs", u"a kerb"),
+                          ("town_edges", u"a street edge"), ("stream_banks", u"a stream bank"),
+                          ("heritage_walls", u"an ancient wall"), ("sheds", u"a shed outline"), ("river", u"the river edge")):
+            guides += [(bool(cl_), R_, word) for cl_, R_, a2, b2 in L.get(key, []) if len(R_) >= 2]
+        for cl, Q, a_, b_ in mb_chain(park_open, PARK_JOIN2_M):
+            gap = math.hypot(Q[0][0] - Q[-1][0], Q[0][1] - Q[-1][1])
+            if (cl or gap <= PARK_CLOSE_M) and len(Q) >= 3:
+                park_rings.append(Q)
+                continue
+            ln_ = sum(math.hypot(b[0] - a[0], b[1] - a[1]) for a, b in zip(Q, Q[1:]))
+            if ln_ < PARK_CRUMB_M:
+                n_crumb += 1
+                continue
+            R, what = (None, None) if len(Q) < 3 else mb_close_along(guides, Q, PARK_NET_M)
+            if R:
+                park_rings.append(R)
+                log.append(u"park outline closed along %s (its ends %.1f m apart)" % (what, gap))
+            elif len(Q) >= 3:                             # v1.14: Aras 13:24 "Close with a straight line"
+                park_rings.append(list(Q))
+                log.append(u"park outline closed with a straight line across %.1f m (not in the survey; Aras 15 Nov "
+                           u"13:24), %.0f m long" % (gap, ln_))
+            else:
+                log.append(u"FLAG park outline left open, not filled: ends %.1f m apart, %.0f m long, no survey line "
+                           u"joins them" % (gap, ln_))
+        log.append(u"parks: %d open chain(s) after the first pass; %d crumb(s) under %.0f m dropped" % (
+            n0, n_crumb, PARK_CRUMB_M))
+    log.append(u"parks: %d of %d curves cached as fills" % (len(park_rings), len(L.get("parks", []))))
+    # ---- the cache, in survey m
+    rd = lambda Q: [(round(p[0], 2), round(p[1], 2)) for p in (sv(q) for q in Q)]
+    lay = lambda key: [[cl, rd(Q)] for cl, Q, a, b in L.get(key, [])]
+    C = {"version": VERSION, "made": time.strftime("%Y-%m-%d %H:%M"), "frame": D.get("frame"),
+         "extent": [rd([(0.0, 0.0), (F.w, 0.0), (F.w, F.h), (0.0, F.h)])],
+         "bld": [[rd(u["P"]), u["fab"], 1 if u.get("com") else 0, u["src"], u.get("name") or u""] for u in units],
+         "bld_x": [[u["fl"] or _levels(u.get("tags") or {}), (u.get("tags") or {}).get("building") or u"",
+                    (u.get("tags") or {}).get("amenity") or u""] for u in units],   # v1.2: floors (survey, else OSM levels; 0 = not recorded), OSM building, amenity
+         "polys": {"streets": [] if union_ok else [rd(Q) for cl, Q, a, b in L.get("road_net", [])],   # v1.9: in the union
+                   "streets_town": [] if union_ok else [rd(Q) for cl, Q, a, b in L.get("town_net", [])],
+                   "street_net": [rd(Q) for cl, Q, a, b in L.get("street_net", [])],
+                   "river": [rd(Q) for cl, Q, a, b in L.get("river", [])],
+                   "parks": [rd(Q) for Q in park_rings]},
+         "lines": dict([(key, lay(key)) for key in ("road_edges", "kerbs", "town_edges", "walls", "heritage_walls",
+                                                    "stream_banks", "ponds", "bridges")]),
+         "lines_net": None if net_lines is None else dict(
+             (key, [[0, rd(Q)] for Q in runs]) for key, runs in net_lines.items()),
+         "osm_streets": [] if union_ok else ost, "osm_paths": opa, "osm_waterways": owa, "osm_walls": owl, "osm_citywalls": ocw,
+         "areas": areas, "trees": trees, "taxi": taxi, "contours": contours(B, log),
+         "calisma": D.get("calisma") or []}
+    os.makedirs(CACHE_DIR, exist_ok=True)
+    p = os.path.join(CACHE_DIR, MB_FILE)
+    with open(p, "w", encoding="utf-8") as f:
+        json.dump(C, f, ensure_ascii=False, separators=(",", ":"))
+    log.append(u"%s  %.1f MB, %s" % (p, os.path.getsize(p) / 1e6, time.strftime("%H:%M:%S")))
+    flags = [l for l in log if l.startswith(u"FLAG")]
+    return u"%s\n%s %s, %d FLAG line(s), %.1f s" % (u"\n".join(log), GH_LABEL, VERSION, len(flags), time.time() - t0)
+
+
+MB_NET_KEEP = 1.5      # m: a street-edge vertex inside the network surface further than this from its edge is left out
+MB_NET_STEP = 2.0      # m: the edge lines are tested every MB_NET_STEP m
+MB_NET_CELL = 5.0      # m: grid cell of the network outline
+
+
+def mb_net_edges(L, log):
+    """v1.7: {key: [runs]} of road_edges / kerbs / town_edges (local m) without the parts deep inside the joined street
+    network (L["street_net"]): stray kerb and plaza lines inside the white surface; edges outside it kept as they are"""
+    rings = [Q for cl, Q, a, b in L.get("street_net", []) if len(Q) >= 3]
+    if not rings:
+        log.append(u"street edges: no street network, all kept")
+        return None
+    t0 = time.time()
+    cs = MB_NET_CELL
+    grid, rows = {}, {}
+    for R in rings:
+        for j in range(len(R)):
+            a, b = R[j - 1], R[j]
+            x0, x1 = min(a[0], b[0]), max(a[0], b[0])
+            y0, y1 = min(a[1], b[1]), max(a[1], b[1])
+            for gx in range(int(math.floor(x0 / cs)), int(math.floor(x1 / cs)) + 1):
+                for gy in range(int(math.floor(y0 / cs)), int(math.floor(y1 / cs)) + 1):
+                    grid.setdefault((gx, gy), []).append((a, b))
+            if y0 != y1:
+                for gy in range(int(math.floor(y0 / cs)), int(math.floor(y1 / cs)) + 1):
+                    rows.setdefault(gy, []).append((a, b, x1))
+    memo = {}
+
+    def inside(p):
+        gy = int(math.floor(p[1] / cs))
+        n = 0
+        for a, b, xm in rows.get(gy, ()):
+            if xm < p[0] or (a[1] > p[1]) == (b[1] > p[1]):
+                continue
+            if a[0] + (p[1] - a[1]) * (b[0] - a[0]) / (b[1] - a[1]) > p[0]:
+                n += 1
+        return n % 2 == 1
+
+    def deep(p):
+        gx, gy = int(math.floor(p[0] / cs)), int(math.floor(p[1] / cs))
+        r = int(math.ceil(MB_NET_KEEP / cs))
+        near = False
+        for i in range(gx - r, gx + r + 1):
+            for j in range(gy - r, gy + r + 1):
+                for a, b in grid.get((i, j), ()):
+                    dx, dy = b[0] - a[0], b[1] - a[1]
+                    L2 = dx * dx + dy * dy
+                    t = 0.0 if L2 == 0 else max(0.0, min(1.0, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / L2))
+                    if math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy) <= MB_NET_KEEP:
+                        near = True
+                        break
+                if near:
+                    break
+            if near:
+                break
+        if near:
+            return False
+        if not any((i, j) in grid for i in (gx - 1, gx, gx + 1) for j in (gy - 1, gy, gy + 1)):
+            key = (gx, gy)                                # a cell far from the outline: all in or all out
+            if key not in memo:
+                memo[key] = inside(p)
+            return memo[key]
+        return inside(p)
+    out, n_in, n_out = {}, 0, 0
+    for key in ("road_edges", "kerbs", "town_edges"):
+        runs = []
+        for cl, Q, a_, b_ in L.get(key, []):
+            P = list(Q) + ([Q[0]] if cl else [])
+            cur = []
+            for i in range(len(P)):
+                seg = [P[i]]
+                if i + 1 < len(P):
+                    d = math.hypot(P[i + 1][0] - P[i][0], P[i + 1][1] - P[i][1])
+                    m = int(d // MB_NET_STEP)
+                    seg += [(P[i][0] + (P[i + 1][0] - P[i][0]) * s_ / (m + 1.0),
+                             P[i][1] + (P[i + 1][1] - P[i][1]) * s_ / (m + 1.0)) for s_ in range(1, m + 1)]
+                for q in seg:
+                    if deep(q):
+                        n_in += 1
+                        if len(cur) >= 2:
+                            runs.append(cur)
+                        cur = []
+                    else:
+                        n_out += 1
+                        cur.append(q)
+            if len(cur) >= 2:
+                runs.append(cur)
+        out[key] = runs
+    log.append(u"street edges cut to the network: %d of %d tested points deep inside (over %.1f m) left out; "
+               u"%d runs kept, %.1f s" % (n_in, n_in + n_out, MB_NET_KEEP, sum(len(v) for v in out.values()),
+                                         time.time() - t0))
+    return out
+
+
+def _levels(tg):
+    try:
+        return int(float(tg.get("building:levels") or 0))
+    except ValueError:
+        return 0
+
+
+def _grid_add(g, i_, P):
+    bb = (min(q[0] for q in P), min(q[1] for q in P), max(q[0] for q in P), max(q[1] for q in P))
+    for i in range(int(bb[0] // 25.0), int(bb[2] // 25.0) + 1):
+        for j in range(int(bb[1] // 25.0), int(bb[3] // 25.0) + 1):
+            g.setdefault((i, j), []).append(i_)
+
+
+def _to_survey(F, q):
+    """the survey point of a frame point (the inverse of Frame.local)"""
+    qx, qy = q[0] + F.u0, q[1] + F.v0
+    return (F.ca * qx + F.sa * qy, -F.sa * qx + F.ca * qy)
+
+
+# ================================================================ library: load and draw
+MB_STYLE = {
+    "ground": GROUND_C, "lc": dict((k_, v[0]) for k_, v in LC.items()), "lc_light": LC_LIGHT,
+    "veg": {"trees": LC["trees"][0], "grass": LC["grass"][0], "bare": "D6C7A6"},
+    "areas": {"landuse": None, "farm": "C9C08A", "wood": "7F8C5A", "green": "B2BC8E", "cemetery": "A9B194",
+              "archaeo": "E0C7A3", "grounds": "E8DEC8", "worship": "E6D2CB", "parking": "E3E0D8", "sport": "BCC896",
+              "park": "9DB37A", "water": WATER_C},
+    "landuse": {"industrial": "D9D5CC", "commercial": "EADFCF", "retail": "EADFCF", "military": "D6D3CB"},
+    "street": STREET_C, "street_edge": STREET_EDGE, "path": STREET_EDGE, "water": WATER_C, "water_line": WATER_LINE,
+    "wall": WALL_C, "her_wall": HER_WALL, "osm_wall": WALL_C, "bridge": INK, "tree": "5F6E3F",
+    "contour": "9C927E", "contour_index": "7E7462",
+    "fab": dict(FAB), "fab_com": dict(FAB_COM), "edge_dark": P02_EDGE_DARK, "ink": INK,
+    "lw": {"hair": P02_HAIR, "edge": P02_HAIR, "path": P02_HAIR, "water": 0.25, "osm_water": 0.22, "wall": P02_HAIR,
+           "her_wall": 0.3, "osm_wall": 0.07, "bridge": 0.3, "contour": 0.06, "contour_index": 0.13, "tree_r": 0.25},
+    "grain": True, "a05": True,
+    "water_hatch": None}   # v1.17: flat water, no hatch (Aras 14:38 UTC); v1.4 was (0.7, 45.0, mixh(WATER_C, WATER_LINE, 0.55), 0.06)
+MB_WORDS = {"ground": u"Built-up and bare ground (no WorldCover vegetation)", "farm": u"Fields & orchards (OSM)",
+            "wood": u"Woods (OSM)", "green": u"Grass (OSM)", "cemetery": u"Cemeteries (OSM)",
+            "archaeo": u"Archaeological sites (OSM)", "grounds": u"School & hospital grounds (OSM)",
+            "worship": u"Mosque & church grounds (OSM)", "parking": u"Car parks (OSM)", "sport": u"Sports grounds (OSM)",
+            "park": u"Parks & gardens (OSM)", "water": u"Water (OSM)", "veg_trees": u"Trees (2023 image)",
+            "veg_grass": u"Grass (2023 image)", "veg_bare": u"Bare ground (2023 image)",
+            "parks": u"Parks (survey)", "contour": u"Contours %.0f m, index %.0f m (GLO-30 surface)" % (MB_CONTOUR, MB_INDEX)}
+
+
+def mb_load(log):
+    """the MapBase cache + WorldCover + the 2023 satellite land cover (all survey m), or None (FLAG)"""
+    p = os.path.join(BERGAMA_ROOT, "cached", "bergama_mapbase", MB_FILE)
+    if not os.path.isfile(p):
+        log.append(u"FLAG MapBase: %s not found: press MapBase once first; the map has no context" % p)
+        return None
+    with open(p, encoding="utf-8") as f:
+        C = json.load(f)
+    C["lc"], C["veg"] = {}, {}
+    for key, fn in (("lc", LC_FILE), ("veg", VEG_FILE)):
+        src = os.path.join(BERGAMA_ROOT, fn)
+        if not os.path.isfile(src):
+            log.append(u"FLAG MapBase: %s not found: drawn without it" % src)
+            continue
+        try:
+            with open(src, encoding="utf-8") as f:
+                J = json.load(f)
+            C[key] = dict((k_, [R for R in v if len(R) >= 3]) for k_, v in (J.get("rings") or {}).items())
+        except Exception as e:
+            log.append(u"FLAG MapBase: %s not read (%s: %s)" % (src, type(e).__name__, e))
+    log.append(u"MapBase %s of %s: %d buildings, %d OSM areas, %d contour lines" % (
+        C.get("version"), C.get("made"), len(C["bld"]), len(C["areas"]), len(C["contours"])))
+    return C
+
+
+def mb_hatch(rr, step, ang_deg):
+    """v1.4: parallel hatch segments (page mm) inside the rings rr (even-odd), every step mm at ang_deg"""
+    a = math.radians(ang_deg)
+    ca, sa = math.cos(a), math.sin(a)
+    rot = [[(x * ca + y * sa, -x * sa + y * ca) for x, y in R] for R in rr]   # hatch lines run along u
+    vs = [q[1] for R in rot for q in R]
+    out = []
+    v = (math.floor(min(vs) / step) + 0.5) * step
+    while v < max(vs):
+        us = []
+        for R in rot:
+            for i in range(len(R)):
+                (u0, v0), (u1, v1) = R[i - 1], R[i]
+                if (v0 <= v) != (v1 <= v):
+                    us.append(u0 + (v - v0) * (u1 - u0) / (v1 - v0))
+        us.sort()
+        for j in range(0, len(us) - 1, 2):
+            if us[j + 1] - us[j] > 0.05:
+                out.append(((us[j] * ca - v * sa, us[j] * sa + v * ca), (us[j + 1] * ca - v * sa, us[j + 1] * sa + v * ca)))
+        v += step
+    return out
+
+
+def mb_draw(C, items, T, k, lim, cid, style=None, layers=None):
+    """the base map into items: survey m -> page mm by T, cut to lim (page box) and to the caller's clip cid.
+    layers = None (all) or a set of: ground, lc, veg, areas, parks, contours, streets, water, walls, buildings,
+    bridges, trees. Returns {layer: items added}"""
+    st = dict(MB_STYLE)
+    st.update(style or {})
+    lw = dict(MB_STYLE["lw"])
+    if st.get("a05"):                                     # v1.6: stronger street edges, thinner walls
+        lw.update({"edge": 0.12, "wall": 0.05, "osm_wall": 0.05})
+    lw.update((style or {}).get("lw") or {})
+    i_start = len(items)
+    on = lambda key: layers is None or key in layers
+    g = "~" if st.get("grain") else ""
+    cnt = {}
+
+    def pbox(Pp):
+        return (min(q[0] for q in Pp), min(q[1] for q in Pp), max(q[0] for q in Pp), max(q[1] for q in Pp))
+
+    def seen(b):
+        return b[2] >= lim[0] and b[0] <= lim[2] and b[3] >= lim[1] and b[1] <= lim[3]
+
+    fills = {}                                            # v1.8: layer -> [read, drawn, under 3 points]
+
+    def rings(Rs, layer=u"?"):
+        out = []
+        f_ = fills.setdefault(layer, [0, 0, 0])
+        for R in Rs:
+            f_[0] += 1
+            if len(R) < 3:
+                f_[2] += 1
+                continue
+            Pp = [T(p) for p in R]
+            if seen(pbox(Pp)):
+                out.append(Pp)
+        f_[1] += len(out)
+        return out
+
+    def poly(Rs, fill, layer):
+        rr = rings(Rs, layer)
+        if rr and fill:
+            items.append(("poly", rr, fill, None, 0.0, None, layer, 1, "eo", cid))
+            cnt[layer] = cnt.get(layer, 0) + len(rr)
+
+    def line(P, col, w, layer):
+        Pp = [T(p) for p in P]
+        if len(Pp) >= 2 and seen(pbox(Pp)):
+            items.append(("line", Pp, col, w, cid, layer, 1))
+            cnt[layer] = cnt.get(layer, 0) + 1
+    light = lambda c: mixh(c, PAPER, st["lc_light"])
+    if on("ground"):
+        items.append(("poly", [[(lim[0], lim[1]), (lim[2], lim[1]), (lim[2], lim[3]), (lim[0], lim[3])]], st["ground"],
+                      None, 0.0, None, "ground", 1, None, cid))
+    if on("lc"):
+        for k_ in LC_ORDER:
+            poly(C["lc"].get(k_, []), g + light(st["lc"][k_]), "landcover_" + k_)
+    if on("veg"):
+        for k_ in ("bare", "grass", "trees"):
+            poly(C["veg"].get(k_, []), g + light(st["veg"][k_]), "satellite_" + k_)
+    if on("areas"):
+        for c_ in OSM_AREA_ORDER:
+            for R, cl, sub, nm in C["areas"]:
+                if cl != c_:
+                    continue
+                col = st["landuse"].get(sub) if cl == "landuse" else st["areas"].get(cl)
+                if col:
+                    poly([R], col, "osm_" + cl)
+    if on("parks"):
+        poly(C["polys"].get("parks", []), g + light(st["areas"]["park"]), "parks")
+    if on("contours"):
+        for P, z, ix in C["contours"]:
+            line(P, st["contour_index"] if ix else st["contour"], lw["contour_index"] if ix else lw["contour"],
+                 "contours")
+    if on("streets"):
+        poly(C["polys"].get("street_net", []), st["street"], "streets_network")   # v1.6: one connected network
+        poly(C["polys"].get("streets", []), st["street"], "streets")
+        poly(C["polys"].get("streets_town", []), st["street"], "streets_town")   # v1.8: its own even-odd item
+        src_ = C.get("lines_net") if st.get("a05") and C.get("lines_net") else C["lines"]   # v1.7
+        for key in (() if st.get("a05") else ("road_edges", "kerbs", "town_edges")):   # v1.8: no edge strokes
+            for cl, P in src_.get(key, []):
+                line(P + ([P[0]] if cl else []), st["street_edge"], lw["edge"], "street_edges")
+        for P, w, hw, nm in ([] if st.get("a05") else C["osm_streets"]):   # v1.8: a band, no casing
+            line(P, st["street_edge"], w * k + 2 * lw["edge"], "streets_osm")
+        for P, w, hw, nm in C["osm_streets"]:
+            line(P, st["street"], w * k, "streets_osm")
+        for P, w, hw, nm in ([] if st.get("a05") else C["osm_paths"]):   # v1.15: no footpath strokes over roads
+            line(P, st["path"], lw["path"], "paths_osm")
+        if st.get("a05"):                                 # v1.8: one continuous outline of the network, on top
+            for R in C["polys"].get("street_net", []):
+                if len(R) >= 3 and sum(math.hypot(b[0] - a[0], b[1] - a[1])
+                                       for a, b in zip(R, R[1:] + R[:1])) >= A05_OUTLINE_MIN:
+                    line(list(R) + [R[0]], st["street_edge"], lw["edge"], "street_outline")
+    if on("water"):
+        poly(C["polys"].get("river", []), g + st["water"], "water")
+        rr = rings(C["polys"].get("river", []))
+        if rr and st.get("water_hatch"):                  # v1.4: textured hatch on the water (no wave strokes)
+            hs, ha, hc, hw = st["water_hatch"]
+            for a_, b_ in mb_hatch(rr, hs, ha):
+                items.append(("line", [a_, b_], hc, hw, cid, "water_hatch", 1))
+                cnt["water_hatch"] = cnt.get("water_hatch", 0) + 1
+        for key, w_ in (("stream_banks", lw["water"]), ("ponds", lw["water"] * 0.7)):
+            for cl, P in C["lines"].get(key, []):
+                line(P + ([P[0]] if cl else []), st["water_line"], w_, "water")
+        for P in C["osm_waterways"]:
+            line(P, st["water_line"], lw["osm_water"], "water")
+    if on("walls"):
+        for cl, P in ([] if st.get("a05") else C["lines"].get("walls", [])):   # v1.8: no wall strokes in A05
+            line(P, st["wall"], lw["wall"], "walls")
+        for P in ([] if st.get("a05") else C["osm_walls"]):
+            line(P, st["osm_wall"], lw["osm_wall"], "walls_osm")
+        for cl, P in C["lines"].get("heritage_walls", []):
+            line(P, st["her_wall"], lw["her_wall"], "heritage_walls")
+        for P in C["osm_citywalls"]:
+            line(P, st["her_wall"], lw["her_wall"], "heritage_walls")
+    if on("buildings"):                                   # outlines at twice the pen, then fills (shared walls hidden)
+        groups = {}
+        for R, fab_, com, src, nm in C["bld"]:
+            Pp = [T(p) for p in R]
+            if len(Pp) < 3 or not seen(pbox(Pp)):
+                continue
+            col = (st["fab_com"] if com else st["fab"]).get(fab_, st["fab"].get("regular"))
+            items.append(("line", Pp + [Pp[0]], mixh(col, st["ink"], st["edge_dark"]), 2 * lw["hair"], cid,
+                          "buildings_outline", 1))
+            groups.setdefault((fab_, com, col), []).append(Pp)
+        for f_ in FAB_ORDER:
+            for (fab_, com, col), rr in sorted(groups.items()):
+                if fab_ != f_:
+                    continue
+                for i0 in range(0, len(rr), 400):
+                    items.append(("poly", rr[i0:i0 + 400], col, None, 0.0, None,
+                                  "buildings_" + fab_ + ("_shops" if com else ""), 1, None, cid))
+                cnt["buildings"] = cnt.get("buildings", 0) + len(rr)
+    if on("bridges"):
+        for cl, P in C["lines"].get("bridges", []):
+            line(P + ([P[0]] if cl else []), st["bridge"], lw["bridge"], "bridges")
+    if on("trees"):
+        r = lw["tree_r"]
+        for x, y in C["trees"]:
+            p = T((x, y))
+            if lim[0] <= p[0] <= lim[2] and lim[1] <= p[1] <= lim[3]:
+                items.append(("poly", [[(p[0] + r * math.cos(a * math.pi / 6.0), p[1] + r * math.sin(a * math.pi / 6.0))
+                                        for a in range(12)]], st["tree"], None, 0.0, None, "trees_osm", 1, None, cid))
+                cnt["trees_osm"] = cnt.get("trees_osm", 0) + 1
+    if st.get("a05"):
+        items[i_start:] = mb_a05(items[i_start:], k, cnt)
+    MB_FILLS.clear()
+    MB_FILLS.update(fills)                                # v1.8: read by mb_fill_log (pages_common logs it)
+    return cnt
+
+
+A05_SHADOW_M, A05_SHADOW_MIN, A05_SHADOW_C = 1.2, 0.22, "707070"   # PlanBase v11.1 (Masterplan_A0): 1.2 m to the lower left, style building_shadow 707070; mm at least
+A05_SHORT_M = 3.0
+PARK_JOIN_M = 0.5       # m: v1.8.1, park pieces whose ends lie this close are chained into one curve
+PARK_CLOSE_M = 5.0
+PARK_JOIN2_M = 3.0      # m: v1.10, open park chains chained again with ends this close
+PARK_CRUMB_M = 2.0      # m: v1.11, an open park chain shorter than this is a crumb, dropped
+PARK_NET_M = 6.0        # m: v1.10, a park chain end this close to the street outline is closed along it
+STREET_KERB_M = 2.5     # m: v1.16, the kerb radius at every street corner (at most 40 % of either edge)
+STREET_TOL = 0.7        # m: v1.15, how far the traced street outline may leave the 0.5 m mask steps (no rounding)
+STREET_JOIN_IN = 3.0    # m: v1.13, the join band runs this far into the piece and into the network
+STREET_TOUCH_M = 0.5    # m: v1.13, a piece this close to the network reads as joined
+STREET_JOIN_W = 4.0     # m: v1.10, width of the band that joins a loose street piece to the network
+STREET_JOIN_MAX = 60.0  # m: v1.10, a loose street piece further than this from the network is left apart (FLAG)      # m: v1.8, an open park curve whose ends lie this close is closed
+A05_OUTLINE_MIN = 8.0   # m: v1.8, street-network rings shorter round than this are crumbs, not outlined                                    # m: a wall or street-edge piece shorter than this is not drawn
+
+
+def mb_a05(items, k, cnt):
+    """v1.6: every house fill gets a shadow copy moved A05_SHADOW_M m (at least A05_SHADOW_MIN mm) to the lower left,
+    all shadows before the first house (a shadow never lies on a house); wall / street-edge pieces under A05_SHORT_M m
+    (stray lines) dropped"""
+    s_ = max(A05_SHADOW_M * k, A05_SHADOW_MIN)
+    out, sh, first, n_short = [], [], None, 0
+    for it in items:
+        if it[0] == "line" and it[5] in ("walls", "walls_osm", "street_edges"):
+            P = it[1]
+            if sum(math.hypot(b[0] - a[0], b[1] - a[1]) for a, b in zip(P, P[1:])) < A05_SHORT_M * k:
+                n_short += 1
+                continue
+        if it[0] == "poly" and str(it[6]).startswith("buildings_"):   # PlanBase look_items: the sides facing the
+            quads = []                                                # shadow extruded (a crisp vector shadow)
+            for R in it[1]:
+                a2 = sum(R[j - 1][0] * R[j][1] - R[j][0] * R[j - 1][1] for j in range(len(R)))
+                for j in range(len(R)):
+                    a, b = (R[j - 1], R[j]) if a2 >= 0 else (R[j], R[j - 1])
+                    if (b[1] - a[1]) * -s_ - (b[0] - a[0]) * -s_ > 1e-9:
+                        quads.append([a, b, (b[0] - s_, b[1] - s_), (a[0] - s_, a[1] - s_)])
+            if quads:
+                sh.append(("poly", quads, A05_SHADOW_C, None, 0.0, None, "building_shadows", 1, None, it[9]))
+        if first is None and ((it[0] == "line" and it[5] == "buildings_outline") or
+                              (it[0] == "poly" and str(it[6]).startswith("buildings_"))):
+            first = len(out)
+        out.append(it)
+    if first is not None:
+        out[first:first] = sh
+    cnt["building_shadows"] = sum(len(t[1]) for t in sh)
+    cnt["stray_pieces_left_out"] = n_short
+    return out
+
+
+MB_SRC_RX = re.compile(r"\s*\([^()]*(WorldCover|OSM|OpenStreetMap|image|survey|satellite|GLO-30|Copernicus|ESA|"
+                       r"_alan|\.json|\.3dm)[^()]*\)", re.I)
+
+
+def mb_clean(txt):
+    """v1.3 (Aras 14 Nov 15:23 UTC "dont give sources in the brackets dont give sources in the drawings at all"): a
+    legend or label text without its source brackets; parts joined by " · " that end up the same are kept once"""
+    out = []
+    for part in MB_SRC_RX.sub(u"", txt).split(u" · "):
+        if part.strip() and part.strip() not in out:
+            out.append(part.strip())
+    return u" · ".join(out)
+
+
+MB_FILLS = {}
+
+
+def mb_kerb(R, F, r=None):
+    """v1.16: ring R with every corner rounded by a small kerb radius: the corner is cut back d = min(r, 40 % of each
+    edge) along both edges and a quadratic curve (control = the corner) put in; points on the frame edge stay"""
+    r = STREET_KERB_M if r is None else r
+    n = len(R)
+    if n < 3:
+        return R
+    on = lambda q: q[0] <= 0.01 or q[1] <= 0.01 or q[0] >= F.w - 0.01 or q[1] >= F.h - 0.01
+    out = []
+    for i in range(n):
+        a, v, b = R[i - 1], R[i], R[(i + 1) % n]
+        la, lb = math.hypot(v[0] - a[0], v[1] - a[1]), math.hypot(b[0] - v[0], b[1] - v[1])
+        if on(v) or la < 1e-6 or lb < 1e-6:
+            out.append(v)
+            continue
+        ua, ub = ((v[0] - a[0]) / la, (v[1] - a[1]) / la), ((b[0] - v[0]) / lb, (b[1] - v[1]) / lb)
+        if ua[0] * ub[0] + ua[1] * ub[1] > 0.985:          # under ~10 degrees: a straight edge, no round
+            out.append(v)
+            continue
+        d = min(r, 0.4 * la, 0.4 * lb)
+        p0 = (v[0] - ua[0] * d, v[1] - ua[1] * d)
+        p2 = (v[0] + ub[0] * d, v[1] + ub[1] * d)
+        for t in (0.0, 0.25, 0.5, 0.75, 1.0):
+            out.append(((1 - t) ** 2 * p0[0] + 2 * (1 - t) * t * v[0] + t * t * p2[0],
+                        (1 - t) ** 2 * p0[1] + 2 * (1 - t) * t * v[1] + t * t * p2[1]))
+    return out
+
+
+def mb_region_ids(rings):
+    """v1.10: (region id per ring = the index of its outer ring, {region id: area m2}) of an even-odd ring set"""
+    def area(R):
+        return abs(sum(R[j - 1][0] * R[j][1] - R[j][0] * R[j - 1][1] for j in range(len(R)))) / 2.0
+
+    def inside(p, R):
+        n, j = False, len(R) - 1
+        for i in range(len(R)):
+            a, b = R[i], R[j]
+            if (a[1] > p[1]) != (b[1] > p[1]) and p[0] < (b[0] - a[0]) * (p[1] - a[1]) / (b[1] - a[1]) + a[0]:
+                n = not n
+            j = i
+        return n
+    bx = [(min(q[0] for q in R), min(q[1] for q in R), max(q[0] for q in R), max(q[1] for q in R)) for R in rings]
+    ar = [area(R) for R in rings]
+    enc = []
+    for i, R in enumerate(rings):
+        p = R[0]
+        enc.append([j for j, S in enumerate(rings) if j != i and bx[j][0] <= p[0] <= bx[j][2] and
+                    bx[j][1] <= p[1] <= bx[j][3] and inside(p, S)])
+    rid, areas = [], {}
+    for i in range(len(rings)):
+        if len(enc[i]) % 2 == 0:
+            rid.append(i)
+        else:                                             # a hole: the smallest ring round it is its outer edge
+            rid.append(min(enc[i], key=lambda j: ar[j]))
+    for i in range(len(rings)):
+        areas[rid[i]] = areas.get(rid[i], 0.0) + (ar[i] if rid[i] == i else -ar[i])
+    return rid, areas
+
+
+def mb_join_regions(rings, log, frame=None, quiet=False, touch=None, report=False):
+    """v1.10: for every street region but the largest, the shortest join [(a, b)] (frame m) from its outline to the
+    outline of another region, when under STREET_JOIN_MAX m (FLAG otherwise)"""
+    rid, areas = mb_region_ids(rings)
+    edge = []
+    if len(areas) < 2:
+        return [], edge
+    main = max(areas, key=lambda r: areas[r])
+    cs = 10.0
+    grid = {}
+    for i, R in enumerate(rings):
+        for j in range(len(R)):
+            a, b = R[j - 1], R[j]
+            for gx in range(int(math.floor(min(a[0], b[0]) / cs)), int(math.floor(max(a[0], b[0]) / cs)) + 1):
+                for gy in range(int(math.floor(min(a[1], b[1]) / cs)), int(math.floor(max(a[1], b[1]) / cs)) + 1):
+                    grid.setdefault((gx, gy), []).append((a, b, rid[i]))
+    reach = int(math.ceil(STREET_JOIN_MAX / cs))
+    out = []
+    for r in sorted(areas, key=lambda r_: areas[r_]):
+        if r == main:
+            continue
+        R0 = rings[r]
+        at_edge = bool(frame) and any(q[0] <= 1.0 or q[1] <= 1.0 or q[0] >= frame[0] - 1.0 or q[1] >= frame[1] - 1.0
+                                      for q in R0)
+        best = None
+        for p in rings[r]:
+            gx, gy = int(math.floor(p[0] / cs)), int(math.floor(p[1] / cs))
+            for i in range(gx - reach, gx + reach + 1):
+                for j in range(gy - reach, gy + reach + 1):
+                    for a, b, r2 in grid.get((i, j), ()):
+                        if r2 != main:                    # v1.11: to the main network only
+                            continue
+                        dx, dy = b[0] - a[0], b[1] - a[1]
+                        L2 = dx * dx + dy * dy
+                        t = 0.0 if L2 == 0 else max(0.0, min(1.0, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / L2))
+                        q = (a[0] + t * dx, a[1] + t * dy)
+                        d = math.hypot(p[0] - q[0], p[1] - q[1])
+                        if best is None or d < best[0]:
+                            best = (d, p, q)
+        if best and best[0] <= STREET_TOUCH_M and touch is not None:   # v1.13: last pass, still apart by a hair
+            touch.append(areas[r])
+            log.append(u"street piece of %.0f m2 lies %.1f m from the network: it reads as joined" % (areas[r], best[0]))
+        elif best and best[0] <= STREET_JOIN_MAX:
+            ex = ((best[2][0] - best[1][0]) / max(best[0], 1e-9), (best[2][1] - best[1][1]) / max(best[0], 1e-9))
+            a_ = (best[1][0] - ex[0] * STREET_JOIN_IN, best[1][1] - ex[1] * STREET_JOIN_IN)   # v1.13: well into
+            b_ = (best[2][0] + ex[0] * STREET_JOIN_IN, best[2][1] + ex[1] * STREET_JOIN_IN)   # both fills
+            out.append((a_, b_))
+            log.append((u"FLAG street piece of %.0f m2 still apart after the joins (%.1f m)" if report else
+                        u"street piece of %.0f m2 joined to the network over %.1f m") % (areas[r], best[0]))
+        elif at_edge:                                     # v1.12: beyond reach, but it leaves the frame
+            edge.append(areas[r])
+            if not quiet:
+                log.append(u"street piece of %.0f m2 runs to the map frame edge and the network is over %.0f m away "
+                           u"inside the frame: it joins outside the frame, left as it is" % (areas[r], STREET_JOIN_MAX))
+        else:
+            cx, cy = sum(q[0] for q in R0) / len(R0), sum(q[1] for q in R0) / len(R0)
+            if quiet:
+                continue
+            log.append(u"FLAG street piece of %.0f m2 left apart: the network is over %.0f m away (its middle %.0f m "
+                       u"along, %.0f m up the frame)" % (areas[r], STREET_JOIN_MAX, cx, cy))
+    return out, edge
+
+
+def mb_close_along(guides, Q, near):
+    """v1.11: the open chain Q closed along ONE survey line [(closed, points, word)] that both its ends lie on (within
+    near m): from the end's foot along that line to the start's foot (a closed line: the shorter way round).
+    Returns (ring, word) or (None, None)"""
+    best = None
+    ln = lambda P: sum(math.hypot(b[0] - a[0], b[1] - a[1]) for a, b in zip(P, P[1:]))
+    for cl, R, word in guides:
+        n = len(R)
+        if n < 2:
+            continue
+        bx = (min(q[0] for q in R) - near, min(q[1] for q in R) - near, max(q[0] for q in R) + near,
+              max(q[1] for q in R) + near)
+        if not all(bx[0] <= e[0] <= bx[2] and bx[1] <= e[1] <= bx[3] for e in (Q[0], Q[-1])):
+            continue
+        m = n if cl else n - 1
+
+        def foot(p):
+            res = None
+            for j in range(m):
+                a, b = R[j], R[(j + 1) % n]
+                dx, dy = b[0] - a[0], b[1] - a[1]
+                L2 = dx * dx + dy * dy
+                t = 0.0 if L2 == 0 else max(0.0, min(1.0, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / L2))
+                q = (a[0] + t * dx, a[1] + t * dy)
+                d = math.hypot(p[0] - q[0], p[1] - q[1])
+                if res is None or d < res[0]:
+                    res = (d, j, q)
+            return res
+        fa, fb = foot(Q[0]), foot(Q[-1])
+        if fa[0] > near or fb[0] > near:
+            continue
+        if cl:
+            fwd = [fb[2]] + [R[(fb[1] + 1 + i) % n] for i in range((fa[1] - fb[1]) % n)] + [fa[2]]
+            bwd = [fb[2]] + [R[(fb[1] - i) % n] for i in range((fb[1] - fa[1]) % n)] + [fa[2]]
+            arc = min((fwd, bwd), key=ln)
+        elif fb[1] <= fa[1]:
+            arc = [fb[2]] + [R[i] for i in range(fb[1] + 1, fa[1] + 1)] + [fa[2]]
+        else:
+            arc = [fb[2]] + [R[i] for i in range(fb[1], fa[1], -1)] + [fa[2]]
+        if ln(arc) > 3.0 * ln(Q) + 20.0:                  # a detour far longer than the park itself: not its edge
+            continue
+        if best is None or ln(arc) < best[0]:
+            best = (ln(arc), list(Q) + arc, word)
+    return (best[1], best[2]) if best else (None, None)
+
+
+def mb_regions(rings):
+    """v1.9: the areas (m2, largest first) of the separate regions of an even-odd ring set: a ring inside an even number
+    of others is an outer edge; its region = its area less its direct holes"""
+    def area(R):
+        return abs(sum(R[j - 1][0] * R[j][1] - R[j][0] * R[j - 1][1] for j in range(len(R)))) / 2.0
+
+    def box(R):
+        return (min(q[0] for q in R), min(q[1] for q in R), max(q[0] for q in R), max(q[1] for q in R))
+
+    def inside(p, R):
+        n, j = False, len(R) - 1
+        for i in range(len(R)):
+            a, b = R[i], R[j]
+            if (a[1] > p[1]) != (b[1] > p[1]) and p[0] < (b[0] - a[0]) * (p[1] - a[1]) / (b[1] - a[1]) + a[0]:
+                n = not n
+            j = i
+        return n
+    bx = [box(R) for R in rings]
+    depth, parent = [], []
+    for i, R in enumerate(rings):
+        p = R[0]
+        enc = [j for j, S in enumerate(rings) if j != i and bx[j][0] <= p[0] <= bx[j][2] and bx[j][1] <= p[1] <= bx[j][3]
+               and inside(p, S)]
+        depth.append(len(enc))
+        parent.append(min(enc, key=lambda j: area(rings[j])) if enc else None)
+    regs = {}
+    for i, R in enumerate(rings):
+        if depth[i] % 2 == 0:
+            regs[i] = regs.get(i, 0.0) + area(R)
+        elif parent[i] is not None:
+            regs[parent[i]] = regs.get(parent[i], 0.0) - area(R)
+    return sorted(regs.values(), reverse=True)
+
+
+def mb_chain(lines, tol):
+    """v1.8.1: survey curves [(cl, Q, a, b)] with open pieces chained end to end (ends within tol m) into longer curves;
+    a chain that comes back to its start is closed. The survey's park layer is drawn as 2-point pieces"""
+    out = [(cl, list(Q), a_, b_) for cl, Q, a_, b_ in lines if cl]
+    segs = [list(Q) for cl, Q, a_, b_ in lines if not cl and len(Q) >= 2]
+    key = lambda p: (int(round(p[0] / tol)), int(round(p[1] / tol)))
+    ends = {}
+    for i, Q in enumerate(segs):
+        for e in (0, -1):
+            ends.setdefault(key(Q[e]), []).append(i)
+    used = [False] * len(segs)
+
+    def nxt(p):
+        kx, ky = key(p)
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                for j in ends.get((kx + dx, ky + dy), ()):
+                    if not used[j]:
+                        Q = segs[j]
+                        if math.hypot(Q[0][0] - p[0], Q[0][1] - p[1]) <= tol:
+                            return j, Q
+                        if math.hypot(Q[-1][0] - p[0], Q[-1][1] - p[1]) <= tol:
+                            return j, Q[::-1]
+        return None
+    for i in range(len(segs)):
+        if used[i]:
+            continue
+        used[i] = True
+        P = list(segs[i])
+        for fwd in (True, False):
+            while True:
+                r = nxt(P[-1] if fwd else P[0])
+                if not r:
+                    break
+                used[r[0]] = True
+                P = P + r[1][1:] if fwd else r[1][::-1][:-1] + P
+        closed = len(P) >= 4 and math.hypot(P[0][0] - P[-1][0], P[0][1] - P[-1][1]) <= tol
+        out.append((closed, P[:-1] if closed else P, 0.0, 0.0))
+    return out
+
+
+def mb_a05_style(S=None):
+    """v1.8: the A05 page look (white houses, monuments a warm white, pale streets, light ground) as a style for mb_draw,
+    the same keys pages_common pc_mapbase sets, for scripts that call mb_draw themselves (node plans)"""
+    S = S or MB_STYLE
+    fab = dict((k_, "FFFFFF") for k_ in S["fab"])
+    fab_com = dict((k_, "FFFFFF") for k_ in S["fab_com"])
+    for k_ in ("monument", "sacred"):
+        fab[k_] = fab_com[k_] = "F2E6DC"
+    return {"a05": True, "fab": fab, "fab_com": fab_com, "ground": "ECE9E1", "street": "F5F3EE",
+            "street_edge": "9E9889", "edge_dark": 1.0, "ink": "D0D0D0", "wall": "CDC8BC", "osm_wall": "CDC8BC",
+            "bridge": "7A7468", "lw": {"edge": 0.12, "wall": 0.05, "osm_wall": 0.05, "hair": 0.04, "bridge": 0.18}}
+
+
+def mb_fill_log(log):
+    """v1.8: one log line of the fill rings of the last mb_draw (read / in view per layer) and a FLAG per layer with
+    rings of under 3 points (not fillable, left out)"""
+    if not MB_FILLS:
+        return
+    log.append(u"fills (rings read / in view): " + u", ".join(
+        u"%s %d/%d" % (k_, v[0], v[1]) for k_, v in sorted(MB_FILLS.items()) if k_ != u"?"))
+    for k_, v in sorted(MB_FILLS.items()):
+        if v[2]:
+            log.append(u"FLAG fills: %d ring(s) of %s with under 3 points left out" % (v[2], k_))
+
+
+def mb_legend(C, cnt, style=None, raw=False):
+    """legend rows (kind, hex, text) of the ground, green, areas and contours that mb_draw drew (cnt = its return);
+    v1.3: texts without sources (mb_clean) unless raw"""
+    st = dict(MB_STYLE)
+    st.update(style or {})
+    light = lambda c: mixh(c, PAPER, st["lc_light"])
+    rows = [("box", st["ground"], MB_WORDS["ground"])]
+    for k_ in ("trees", "orchard", "shrub", "grass", "farmland"):
+        if cnt.get("landcover_" + k_):
+            rows.append(("box", light(st["lc"][k_]), LC[k_][1] + u" (WorldCover)"))
+    for k_ in ("trees", "grass", "bare"):
+        if cnt.get("satellite_" + k_):
+            rows.append(("box", light(st["veg"][k_]), MB_WORDS["veg_" + k_]))
+    if cnt.get("parks"):
+        rows.append(("box", light(st["areas"]["park"]), MB_WORDS["parks"]))
+    for c_ in OSM_AREA_ORDER:
+        if c_ != "landuse" and cnt.get("osm_" + c_):
+            rows.append(("box", st["areas"][c_], MB_WORDS[c_]))
+    if cnt.get("osm_landuse"):
+        rows.append(("box", st["landuse"]["industrial"], u"Industrial / commercial zones (OSM)"))
+    if cnt.get("contours"):
+        rows.append(("line", st["contour_index"], MB_WORDS["contour"]))
+    return rows if raw else [(k_, c_, mb_clean(t_)) for k_, c_, t_ in rows]
+
+
+# ================================================================ main
+main = build
+
+
+# ---- Grasshopper wiring (same in every script) ----
+def chain_fire(v, key):
+    if isinstance(v, (list, tuple)):
+        v = next((x for x in v if x is not None), None)
+    s = str(v) if v is not None else ""
+    if not s.startswith("done "):
+        return False
+    try:
+        import scriptcontext as _scx
+        try:
+            key = key + ":" + str(ghenv.Component.InstanceGuid)              # noqa: F821
+        except Exception:
+            pass
+        if _scx.sticky.get(key) == s:
+            return False
+        _scx.sticky[key] = s
+        return True
+    except Exception:
+        return False
+
+
+def done_text(ran, ok, secs):
+    return ("done " if ok else "ERROR ") + time.strftime("%H:%M:%S") + ".%02d" % int((time.time() % 1) * 100) + \
+        " · %.0f s" % secs if ran else None
+
+
+def write_log(text):
+    try:
+        os.makedirs(LOG_DIR, exist_ok=True)
+        with open(os.path.join(LOG_DIR, LOG_NAME), "w", encoding="utf-8") as f:
+            f.write(text)
+    except Exception:
+        pass
+    return text
+
+
+if "ghenv" in globals():
+    import scriptcontext as _sc
+    _k = "bergama_" + OUT_FOLDER
+    try:
+        _k += ":" + str(ghenv.Component.InstanceGuid)   # noqa: F821
+    except Exception:
+        pass
+    _pressed = any(v is True for k, v in list(globals().items())
+                   if not k.startswith("_") and isinstance(v, bool) and k not in ("True", "False", "done")) or \
+        any(chain_fire(v, _k + "_chain") for k, v in list(globals().items()) if not k.startswith("_") and k != "done" and isinstance(v, str))
+    if _pressed:
+        _t0 = time.time()
+        try:
+            _res = main()
+        except Exception as _ex:
+            import traceback as _tb
+            _res = "ERROR: %s: %s\n%s" % (type(_ex).__name__, _ex, _tb.format_exc()[-900:])
+        _sc.sticky[_k + "_log"] = write_log(_res)
+        _sc.sticky[_k + "_status"] = ("ERROR" if _res.startswith("ERROR") else
+                                      time.strftime("%H:%M") + " · %.0f s" % (time.time() - _t0))
+        _sc.sticky[_k + "_done"] = done_text(True, not _res.startswith("ERROR"), time.time() - _t0)
