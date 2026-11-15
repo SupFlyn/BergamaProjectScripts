@@ -17,7 +17,7 @@ Reads the newest scripts/bergama_basemap_v*, bergama_p02_what_is_there_v*, berga
 """
 import os, re, glob, json, math, time
 
-NC_VERSION = "v12.1"   # v12.1: why-here blocks in the language of his liked examples (white context, one heavy cut line, his masterplan move laid on the ground in depth, his canopy triangles folded on Y columns, his trees and people as his cutouts, one movement arrow; Aras 12:10 "compare with the examples"); v12: why-here diagrams drawn from the node's A cut in the Sections cache (true ground, bed, all water levels, masterplan move, buildings and bridges in depth; Aras 10:36 "this diagram is just so wrong"); v11.6: N4 canopy: every other bay a glazed room up to the louvres, planters in the open bay (Aras 10:02); v11.5: N4 raised gathering drawn as the designed canopy (folded triangle skin, louvres, Y columns; Sections v1.28 language); v11.4: svg_crop takes css (slide 4 sub-system colours), node plans unchanged; v11.3: MapBase under the plans in the A05 base map look (white houses with shadows, one road outline; MapBase v1.8 mb_a05_style; Aras 15 Nov 07:59 "you need to update other scripts so i can see the change in the basemap aswell"); v11.2: legend colours read from the crop itself, diagram town as gabled rows, moves as tint + accent edge, no arrows from the air, own figures, diagram right under its title, placeholders one system; v11: each node plan is a straight crop of master.svg (rendered by Edge / Chrome on his PC, cached), marks on top; v10: v10: why-here diagrams as section-axo blocks (depth, shaded planes, extruded town, accent move with shadow); MapBase always under the plan, his existing roads/buildings left out; v9.9: v9.9: a heritage stop on a cut line stays in the cropped section (N4-A Red Hall); v9.8: v9.8: Ulu Cami silhouette as built (hall, three domes, minaret on a stone base); v9.7: v9.7: Red Hall drawn as the roofless arched brick hall; diagram levels start at the riser they meet; v9.6: v9.6: program brief under the land-use bar when it fits, perspective the full right half; v9.5: v9.5: diagram levels run to the banks, N5 town band lower and label over its move; cuts packed from the top, why-here block follows, perspective room grows; V1 clear of stops, names and its arrows; v9.4: v9.4: at least 30 % (or 90 m) of a cut in view, so flat cuts get taller; v9.3: v9.3: section fit by the drawing without its sky, at least 55 % (or 150 m) of the cut in view, sky cut to the room; v9.2: v9.2 (fresh review of run 4): sections fill their rooms (cropped round the stream, own scale bar), no intro line, short key words, V1 in ink, land use = 5 classes + other with names on one row, program brief under the story, diagram arrows start at their cause, slots as voids, FLAG count includes carried FLAGs; v9.1: v9.1: diagrams to DIAGRAM_STYLE v2 (Niarchos measured: low ground, names under it, small accent); v9: v9: why-here diagrams redrawn on the shared diagram kit (pc_dg_kit, DIAGRAM_STYLE.md; Aras 21:30 UTC); v8.4: v8.4: scale + north above the plan (off his drawing), intro wording; v8.3: v8.3: B cut subtitle "along the bank", N3 diagram label clear of the dots; v8.2: v8.2: 4-corner picture rectangles of the masterplan left out (no solid green blocks), the river filled as water; v8.1: v8.1: masterplan sheet / texture frames (> 0.1 km2) left out, legend columns balanced, intro without the old levels text; v8: plan = his masterplan drawing; why-here story + one concept diagram per node; water bars and meets line gone; v7.5: v7.5: section_lines v2 (B along the bank: looks at the stream, no water bars); v7.4: v7.4: cut marks = two end arrows, no line between (pages_common v3.14); v7.3: v7.3: scale + north ignore the node frame line; v7.2: v7.2: the proposal from his masterplan SVG (MasterplanBase cache); v7.1: v7.1: R01 cut arrows (pc_cut_mark), no city-square ring, land-use columns >= 45 mm; v7: v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
+NC_VERSION = "v12.4"   # v12.4: every context from MapBase (Aras 13:41): node plan crops hide his ev-yol / builts2 and are see-through over MapBase (opaque crop refused, vector fallback; legend sampler skips see-through pixels); why-here houses, streets, parks, bridges from MapBase (houses raised by survey floors x 3.0 m, sacred 5.0 m, else flat); v12.3: no white box behind plan labels (Aras 15 Nov 13:44 UTC "dont have a opaque background for texts in any single of the drawings"): a letter-shaped white halo instead (pages_common v3.27 pc_halo); v12.2: svg_crop bg=False (transparent, for MapBase under; node plans unchanged); v12.1: why-here blocks in the language of his liked examples (white context, one heavy cut line, his masterplan move laid on the ground in depth, his canopy triangles folded on Y columns, his trees and people as his cutouts, one movement arrow; Aras 12:10 "compare with the examples"); v12: why-here diagrams drawn from the node's A cut in the Sections cache (true ground, bed, all water levels, masterplan move, buildings and bridges in depth; Aras 10:36 "this diagram is just so wrong"); v11.6: N4 canopy: every other bay a glazed room up to the louvres, planters in the open bay (Aras 10:02); v11.5: N4 raised gathering drawn as the designed canopy (folded triangle skin, louvres, Y columns; Sections v1.28 language); v11.4: svg_crop takes css (slide 4 sub-system colours), node plans unchanged; v11.3: MapBase under the plans in the A05 base map look (white houses with shadows, one road outline; MapBase v1.8 mb_a05_style; Aras 15 Nov 07:59 "you need to update other scripts so i can see the change in the basemap aswell"); v11.2: legend colours read from the crop itself, diagram town as gabled rows, moves as tint + accent edge, no arrows from the air, own figures, diagram right under its title, placeholders one system; v11: each node plan is a straight crop of master.svg (rendered by Edge / Chrome on his PC, cached), marks on top; v10: v10: why-here diagrams as section-axo blocks (depth, shaded planes, extruded town, accent move with shadow); MapBase always under the plan, his existing roads/buildings left out; v9.9: v9.9: a heritage stop on a cut line stays in the cropped section (N4-A Red Hall); v9.8: v9.8: Ulu Cami silhouette as built (hall, three domes, minaret on a stone base); v9.7: v9.7: Red Hall drawn as the roofless arched brick hall; diagram levels start at the riser they meet; v9.6: v9.6: program brief under the land-use bar when it fits, perspective the full right half; v9.5: v9.5: diagram levels run to the banks, N5 town band lower and label over its move; cuts packed from the top, why-here block follows, perspective room grows; V1 clear of stops, names and its arrows; v9.4: v9.4: at least 30 % (or 90 m) of a cut in view, so flat cuts get taller; v9.3: v9.3: section fit by the drawing without its sky, at least 55 % (or 150 m) of the cut in view, sky cut to the room; v9.2: v9.2 (fresh review of run 4): sections fill their rooms (cropped round the stream, own scale bar), no intro line, short key words, V1 in ink, land use = 5 classes + other with names on one row, program brief under the story, diagram arrows start at their cause, slots as voids, FLAG count includes carried FLAGs; v9.1: v9.1: diagrams to DIAGRAM_STYLE v2 (Niarchos measured: low ground, names under it, small accent); v9: v9: why-here diagrams redrawn on the shared diagram kit (pc_dg_kit, DIAGRAM_STYLE.md; Aras 21:30 UTC); v8.4: v8.4: scale + north above the plan (off his drawing), intro wording; v8.3: v8.3: B cut subtitle "along the bank", N3 diagram label clear of the dots; v8.2: v8.2: 4-corner picture rectangles of the masterplan left out (no solid green blocks), the river filled as water; v8.1: v8.1: masterplan sheet / texture frames (> 0.1 km2) left out, legend columns balanced, intro without the old levels text; v8: plan = his masterplan drawing; why-here story + one concept diagram per node; water bars and meets line gone; v7.5: v7.5: section_lines v2 (B along the bank: looks at the stream, no water bars); v7.4: v7.4: cut marks = two end arrows, no line between (pages_common v3.14); v7.3: v7.3: scale + north ignore the node frame line; v7.2: v7.2: the proposal from his masterplan SVG (MasterplanBase cache); v7.1: v7.1: R01 cut arrows (pc_cut_mark), no city-square ring, land-use columns >= 45 mm; v7: v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
 ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 PAGE_W, PAGE_H = 420.0, 297.0
 NODE_MARGIN_M = 25.0                       # m of town round the node frame on the plan
@@ -210,8 +210,7 @@ DG_TREE_H_M = {"stone_pine": 20.0, "plane": 32.5, "ash": 17.5, "willow": 22.5, "
 DG_TREE_LAYERS = (("trees_plane", "plane"), ("trees_ash", "ash"), ("trees_stone_pine", "stone_pine"))  # rosemary: a shrub
 DG_MP_GREEN = ("master/kesin_yesil", "master/belki_yesil")
 DG_MP_HARD = ("begum_su_merdiven/outline-2", "bisiklet/yeni", "yuruyus/iskele_kenari", "yuruyus/circulation", "desings")
-DG_MP_HOUSES = "ev-yol/aras/existing_buildings"
-DG_MP_HERITAGE = ("heritage/heritage1",)
+DG_STOREY_M, DG_STOREY_SACRED_M = 3.0, 5.0   # Aras 12 Nov answers: storey 3.0 m, sacred 5.0 m
 DG_KIZIL_H_M = 19.0       # Kızıl Avlu walls (Sections v1.18.1: Wikipedia "Its walls still survive up to a height of 19 metres")
 DG_MP_LINES = ("teras_-_canopy/teras",)
 DG_MP_FRAMES = ("yuruyus/bina_cerceve", "yuruyus/bina_cerceve/outline")
@@ -229,6 +228,17 @@ def _dp_ring(P, tol):
         return P
     i_ = max(range(len(P)), key=lambda i: (P[i][0] - P[0][0]) ** 2 + (P[i][1] - P[0][1]) ** 2)
     return _dp(P[:i_ + 1], tol)[:-1] + _dp(P[i_:] + [P[0]], tol)[:-1]
+
+
+def _dg_inside(q, P):
+    c_ = False
+    j = len(P) - 1
+    for i in range(len(P)):
+        if (P[i][1] > q[1]) != (P[j][1] > q[1]) and \
+                q[0] < (P[j][0] - P[i][0]) * (q[1] - P[i][1]) / (P[j][1] - P[i][1]) + P[i][0]:
+            c_ = not c_
+        j = i
+    return c_
 
 
 def _dg_lerp(a, b, v, i):
@@ -310,7 +320,7 @@ def _dg_aspect(key, n=0):
     return probe[0][3]
 
 
-def concept_cut(node, items, x0, y0, W, H, G, C, D, MPC, log):
+def concept_cut(node, items, x0, y0, W, H, G, C, D, MPC, log, MC=None):
     """the node's A cut across the stream as an open section-axo block in the language of his liked examples: the
     surveyed ground and bed of the Sections cache at true proportions as white planes with hairline folds and one heavy
     cut line, every computed water level, his masterplan move (terraces, water stairs, cycle path, green, building
@@ -402,19 +412,14 @@ def concept_cut(node, items, x0, y0, W, H, G, C, D, MPC, log):
         s_, d_ = sd(xy)
         if not (lo - 20.0 <= s_ <= hi + 20.0 and 0.0 <= d_ <= DG_DEPTH_M + 30.0):
             continue
-        pts = []
-        for kk, recs in LAY.items():
-            if u"kopruler" not in kk.split(u"/"):
-                continue
-            for r_ in recs:
-                P_ = r_[4]
-                cx_, cy_ = sum(p[0] for p in P_) / len(P_), sum(p[1] for p in P_) / len(P_)
-                if math.hypot(cx_ - xy[0], cy_ - xy[1]) <= 40.0 and len(P_) >= 3:
-                    pts += [sd(p) for p in P_]
+        pts = []                                          # v12.2: the bridge lines of MapBase (existing context)
+        for cl_, P_ in ((MC or {}).get("lines") or {}).get("bridges") or []:
+            if len(P_) >= 2 and min(math.hypot(p[0] - xy[0], p[1] - xy[1]) for p in P_) <= 40.0:
+                pts += [sd(p) for p in P_]
         if len(pts) >= 3:
             sa, sb = min(p[0] for p in pts), max(p[0] for p in pts)
             da, db = min(p[1] for p in pts), max(p[1] for p in pts)
-            src = u"masterplan bridge outline"
+            src = u"MapBase bridge lines"
         else:
             sa, sb, da, db = ch[0] - 2.0, ch[1] + 2.0, d_ - 3.0, d_ + 3.0
             src = u"channel width on the cut (no outline found)"
@@ -426,37 +431,40 @@ def concept_cut(node, items, x0, y0, W, H, G, C, D, MPC, log):
                 node, names.get(code, code), da, db, sa, sb, src))
     Dm = max([DG_DEPTH_M] + [min(db, DG_DEPTH_M + 30.0) for da, db, sa, sb, c_, n_ in bridges])
     BOX = (0.0, X(hi), 0.0, Dm)
-    blds = []                                           # only what stands inside the block (white, no far town)
-    for b_ in ([] if flip else (J.get("bld") or [])):
-        a, b = max(lo, b_["s"][0]), min(hi, b_["s"][1])
-        bh = float(b_.get("behind_m") or 0.0)
-        if b - a < 1.0 or (not b_["cut"] and bh > Dm):
-            continue
-        blds.append([a, b, float(b_["h"]), bool(b_["cut"]), bh, None])
-    for s_, d_, nm in her:                              # the building at a heritage place is the heritage one
-        for bb in blds:
-            if bb[0] - 3.0 <= s_ <= bb[1] + 3.0 and abs(bb[4] - max(0.0, d_)) <= 25.0 and bb[5] is None:
-                bb[5] = nm
-
-    # ---- his house footprints inside the block (white context): raised to the cache height where a house of the
-    # Sections cache stands there (survey storeys), else laid flat (height unknown); Kızıl Avlu at its 19 m walls
+    blds = []                                           # v12.2: every house from MapBase (below)
+    # ---- the houses inside the block from MapBase (Aras 15 Nov 13:41 "every 3D, 2D or whatever the drawing is should
+    # use the basemap and it's extruded version"): its survey floors x his storey heights (Aras 12 Nov: 3.0 m, sacred
+    # 5.0 m); no floors recorded = laid flat (height unknown); a heritage place inside a footprint marks it; Kızıl
+    # Avlu roofless at its 19 m walls
     houses, n_flat = [], 0
-    for kk, her_ in [(DG_MP_HOUSES, False)] + [(kk, True) for kk in DG_MP_HERITAGE]:
-        for r_ in LAY.get(kk, []):
-            if r_[0] != "r" or len(r_[4]) < 3 or (her_ and kk != u"kizil_avlu" and r_[1] != "E4877A"):
-                continue
-            P_ = _dg_clip([xd(p) for p in _dp_ring(r_[4], 0.2)], (0.0, X(hi), 0.0, Dm))
-            if len(P_) < 3:
-                continue
-            h = DG_KIZIL_H_M if kk == u"kizil_avlu" else None
-            xa_, xb_, dmin = min(p[0] for p in P_), max(p[0] for p in P_), min(p[1] for p in P_)
-            for bb in blds:
-                if h is None and min(xb_, X(bb[1])) - max(xa_, X(bb[0])) > 0.5 * max(xb_ - xa_, X(bb[1]) - X(bb[0])) and \
-                        abs((0.0 if bb[3] else bb[4]) - dmin) <= 6.0:
-                    h, bb[5] = bb[2], bb[5] or u"(footprint)"
-            houses.append((P_, h, her_ and kk == u"kizil_avlu" and u"roofless" or her_))
-            n_flat += h is None
-    blds = [bb for bb in blds if bb[5] != u"(footprint)"]
+    MB_ = MC or {}
+    for i_, b_ in enumerate(MB_.get("bld") or []):
+        R_ = b_[0]
+        if len(R_) < 3:
+            continue
+        P_ = [xd(p) for p in R_]
+        if max(p[0] for p in P_) < 0.0 or min(p[0] for p in P_) > X(hi) or max(p[1] for p in P_) < 0.0 or \
+                min(p[1] for p in P_) > Dm:
+            continue
+        P_ = _dg_clip([xd(p) for p in _dp_ring(R_, 0.2)], BOX)
+        if len(P_) < 3:
+            continue
+        fab = b_[1]
+        fl = ((MB_.get("bld_x") or [])[i_][0] if i_ < len(MB_.get("bld_x") or []) else 0) or 0
+        nm_ = (b_[4] if len(b_) > 4 else u"") or u""
+        hit = [n_ for s_, d_, n_ in her if _dg_inside((X(s_), d_), P_)]
+        her_ = bool(hit) or fab in (u"monument", u"sacred")
+        kz = any(u"Kızıl" in t_ for t_ in hit + [nm_])
+        try:
+            fl = float(fl)
+        except Exception:
+            fl = 0.0
+        h = DG_KIZIL_H_M if kz else (fl * (DG_STOREY_SACRED_M if fab == u"sacred" else DG_STOREY_M) if fl > 0 else None)
+        ar_ = abs(sum(P_[i][0] * P_[i - 1][1] - P_[i - 1][0] * P_[i][1] for i in range(len(P_)))) / 2.0
+        if h is not None and ar_ < 15.0:                  # a sliver cut by the block edge: laid flat, no tower
+            h = None
+        houses.append((P_, h, u"roofless" if kz else her_))
+        n_flat += h is None
 
     # ---- his canopy triangles (masterplan), lifted: valleys at max(ground + 2.30, Q500 + 0.60), ridges 1.80 higher,
     # valley / ridge alternating along the cut; corners found by simplifying each drawn triangle
@@ -572,6 +580,20 @@ def concept_cut(node, items, x0, y0, W, H, G, C, D, MPC, log):
                     line([on(a, b, r[0]), on(a, b, r[1])], col, w, dash)
     near = lambda P_: not (max(p[0] for p in P_) < 0.0 or min(p[0] for p in P_) > X(hi) or
                            max(p[1] for p in P_) < 0.0 or min(p[1] for p in P_) > Dm)
+    n_mb = {}                                           # v12.2: MapBase streets and parks draped on the ground
+    for key_, fill_, st_ in (("parks", "F1F3EC", "C5CBB5"), ("street_net", "FAFAF8", "D2CDC4"),
+                             ("streets", "FAFAF8", "D2CDC4"), ("streets_town", "FAFAF8", "D2CDC4")):
+        for R_ in ((MC or {}).get("polys") or {}).get(key_) or []:
+            if len(R_) < 3:
+                continue
+            P_ = [xd(p) for p in R_]
+            if not near(P_):
+                continue
+            n_mb[key_] = n_mb.get(key_, 0) + 1
+            lay_ring([xd(p) for p in _dp_ring(R_, 0.25)], fill_, st_, hair * 0.6)
+    for P_, h, her_ in houses:                         # flat house footprints: white with a hairline
+        if h is None:
+            lay_ring(P_, "F4E9E4" if her_ else "F2F0EB", Cc["her"] if her_ else W_LN, hair * (1.6 if her_ else 0.8))
     for kk, fill, stroke, w, ring in [(kk, "EEF1E6", "A3AD8A", hair * 0.8, True) for kk in DG_MP_GREEN] + \
             [(kk, "F6E4CE", M_FR, hair * 1.2, True) for kk in DG_MP_HARD] + \
             [(kk, None, M_FR, hair * 1.2, False) for kk in DG_MP_LINES] + \
@@ -591,9 +613,6 @@ def concept_cut(node, items, x0, y0, W, H, G, C, D, MPC, log):
                 lay_line(P_ + [P_[0]], stroke, w, (1.2, 0.8))
             else:
                 lay_line(P_, stroke, w)
-    for P_, h, her_ in houses:                         # flat house footprints: white with a hairline
-        if h is None:
-            lay_ring(P_, "F4E9E4" if her_ else "F2F0EB", Cc["her"] if her_ else W_LN, hair * (1.6 if her_ else 0.8))
     if not LAY:                                         # no masterplan cache: our ground on the cut tinted instead
         for a, b in dry:
             if any(ha - 0.3 <= a[0] and b[0] <= hb + 0.3 for ha, hb, l_ in hard):
@@ -779,11 +798,12 @@ def concept_cut(node, items, x0, y0, W, H, G, C, D, MPC, log):
         K["bracket"](a, b, 2.2, nm, col)
     log.append(u"diagram %s: cut %s s %.0f-%.0f m at true proportions (1 mm = %.2f m), levels %s, move %s, "
                u"%d buildings, %d house footprints (%d flat: height unknown), %d heritage, %d bridges, %d canopy facets, %d trees, "
-               u"plan pieces %s, seen from %s" % (
+               u"plan pieces %s, MapBase draped %s, seen from %s" % (
                    node, C.name, lo, hi, 1.0 / k, u", ".join(n_ for z_, n_ in lev) or u"none",
                    u", ".join(sorted(set(l_ for a_, b_, l_ in hard))) or u"none", len(blds), len(houses), n_flat, len(her), len(bridges),
                    len(facets), len(trees), u", ".join(u"%s %d" % (kk.split(u"/")[-1], v_) for kk, v_ in
                                                       sorted(n_fp.items())) or u"none",
+                   u", ".join(u"%s %d" % kv for kv in sorted(n_mb.items())) or u"none",
                    u"the far side (mirrored: more of his move there)" if flip else u"the Sections side"))
     return True
 
@@ -1308,6 +1328,7 @@ def node_frame(B, corners):
 CROP_SVG = os.path.join("Data", "assets", "plan", "master.svg")
 CROP_DIR = os.path.join("cached", "bergama_node_crops")
 CROP_DPI = 300.0
+CROP_HIDE_EXISTING = u"<style>#ev-yol,#builts2{display:none}</style>"   # v12.4: his copy of the existing context hidden: MapBase gives it
 BROWSERS = (r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
             r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
             r"C:\Program Files\Google\Chrome\Application\chrome.exe",
@@ -1315,10 +1336,11 @@ BROWSERS = (r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
     glob.glob(r"C:\Program Files (x86)\Microsoft\EdgeCore\*\msedge.exe"), reverse=True))   # v11.1: Windows IoT LTSC has only EdgeCore
 
 
-def svg_crop(node, Wm, pgS, box, log, css=u""):
+def svg_crop(node, Wm, pgS, box, log, css=u"", bg=True):
     """PNG of master.svg mapped onto the page box (x0, y0, x1, y1 mm) by pgS (survey m -> page mm); Wm = the
     MasterplanBase matrix (svg units -> survey m); css = extra <defs>/<style> put before his drawing (v11.4, slide 4
-    colours his layers by sub-system; empty for the node plans). Returns the PNG path or None (FLAG logged)."""
+    colours his layers by sub-system; empty for the node plans); bg=False = transparent paper (v12.2: MapBase shows under
+    it). Returns the PNG path or None (FLAG logged)."""
     import subprocess
     src = os.path.join(ROOT, CROP_SVG)
     if not os.path.exists(src):
@@ -1339,6 +1361,8 @@ def svg_crop(node, Wm, pgS, box, log, css=u""):
     if css:
         import hashlib
         stamp += u"/css" + hashlib.md5(css.encode("utf-8")).hexdigest()[:12]
+    if not bg:
+        stamp += u"/t"
     out_dir = os.path.join(ROOT, CROP_DIR)
     if not os.path.isdir(out_dir):
         os.makedirs(out_dir)
@@ -1360,8 +1384,10 @@ def svg_crop(node, Wm, pgS, box, log, css=u""):
     i1 = txt.index(">", i0) + 1
     j1 = txt.rindex("</svg>")
     head = (u'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="%dpx" '
-            u'height="%dpx" viewBox="0 0 %d %d"><rect width="%d" height="%d" fill="#ffffff"/>'
-            u'%s<g transform="matrix(%.9f %.9f %.9f %.9f %.6f %.6f)">' % ((PW, PH, PW, PH, PW, PH, css or u"") + M))
+            u'height="%dpx" viewBox="0 0 %d %d">%s'
+            u'%s<g transform="matrix(%.9f %.9f %.9f %.9f %.6f %.6f)">' % ((PW, PH, PW, PH, (u'<rect width="%d" height="%d" '
+                                                                         u'fill="#ffffff"/>' % (PW, PH)) if bg else u"",
+                                                                        css or u"") + M))
     wrap = os.path.join(out_dir, node + u"_wrap.svg")
     with open(wrap, "w", encoding="utf-8") as f_:
         f_.write(txt[:i0])
@@ -1372,7 +1398,7 @@ def svg_crop(node, Wm, pgS, box, log, css=u""):
     if os.path.exists(png):
         os.remove(png)
     cmd = [br, "--headless=new", "--disable-gpu", "--hide-scrollbars", "--force-device-scale-factor=1",
-           "--default-background-color=FFFFFFFF", "--virtual-time-budget=120000", "--window-size=%d,%d" % (PW, PH),
+           "--default-background-color=" + ("FFFFFFFF" if bg else "00000000"), "--virtual-time-budget=120000", "--window-size=%d,%d" % (PW, PH),
            "--screenshot=%s" % png, "file:///" + wrap.replace("\\", "/")]
     try:
         subprocess.run(cmd, timeout=280, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -1385,6 +1411,22 @@ def svg_crop(node, Wm, pgS, box, log, css=u""):
     if not os.path.exists(png) or os.path.getsize(png) < 1000:
         log.append(u"FLAG node plan crop: no picture came out of %s" % br)
         return None
+    if not bg:                                            # v12.4: the browser must have left the sheet see-through
+        try:
+            import clr
+            clr.AddReference("System.Drawing")
+            from System.Drawing import Bitmap
+            bm_ = Bitmap(png)
+            n_t = sum(1 for i in range(20) for j in range(20)
+                      if bm_.GetPixel(int((i + 0.5) * bm_.Width / 20.0), int((j + 0.5) * bm_.Height / 20.0)).A < 128)
+            bm_.Dispose()
+        except Exception as ex_:
+            n_t = -1
+            log.append(u"crop: see-through check skipped (%s)" % ex_)
+        if n_t == 0:
+            log.append(u"FLAG crop: %s gave an opaque picture (no see-through pixels); MapBase + his drawing as "
+                       u"vectors instead" % os.path.basename(br))
+            return None
     with open(js, "w", encoding="utf-8") as f_:
         json.dump({"stamp": stamp, "svg": CROP_SVG, "px": [PW, PH], "matrix_px": list(M)}, f_)
     log.append(u"plan = master.svg crop: %s, %d x %d px, %.1f s (%s)" % (png, PW, PH, time.time() - t0,
@@ -1423,6 +1465,8 @@ def crop_sampler(png, box, log):
                 xi, yi = int(x) + dx, int(y) + dy
                 if 0 <= xi < PW and 0 <= yi < PH:
                     c = bm.GetPixel(xi, yi)
+                    if c.A < 128:                         # v12.4: see-through (MapBase under it), not his colour
+                        continue
                     v = (c.R, c.G, c.B)
                     if best is None or sum(v) < sum(best):
                         best = v
@@ -1572,16 +1616,16 @@ def node_page(cfg, log):
         # copy of the existing roads and buildings (ev-yol, builts2), which were fragments
         pgS0 = lambda xy: (X0 + F.local(xy)[0] * k, Y0 + F.local(xy)[1] * k)
         crop_png = svg_crop(node, MPC["matrix"], lambda xy: (X0 + F.local(xy)[0] * k, Y0 + F.local(xy)[1] * k),
-                            (X0, Y0, X0 + F.w * k, Y0 + F.h * k), log)
+                            (X0, Y0, X0 + F.w * k, Y0 + F.h * k), log, css=CROP_HIDE_EXISTING, bg=False)
         if crop_png:                                      # v11: his drawing itself; nothing redrawn
+            items += its_                                 # v12.4: MapBase under it (Aras 13:41-13:42)
             items.append(("image", X0, Y0, F.w * k, F.h * k, crop_png, None, False, None, "masterplan_svg"))
         else:
             items += its_
         mb_in = True
         mp_cnt = MPn["mp_draw"](MPC, items if not crop_png else [], lambda xy: (X0 + F.local(xy)[0] * k, Y0 + F.local(xy)[1] * k), k,
                                 (X0, Y0, X0 + F.w * k, Y0 + F.h * k), None,
-                                layers=set(kk.split("/")[0] for kk in MPC["layers"]) - (set() if crop_png else
-                                                                                        set(MP_EXISTING)),
+                                layers=set(kk.split("/")[0] for kk in MPC["layers"]) - set(MP_EXISTING),
                                 style={"fill": {"su_outline": P["WATER_C"]}})   # v8.2: his river (a picture) as water
         seen = set()
         samp = crop_sampler(crop_png, (X0, Y0, X0 + F.w * k, Y0 + F.h * k), log) if crop_png else None
@@ -1874,14 +1918,11 @@ def node_page(cfg, log):
         items.append(T_(u"V1", qa[0], qa[1] - 0.8, 2.2, "FFFFFF", True, "C", "viewpoints"))
         log.append(u"V1 viewpoint (assumed): %s, looking to the bed of %s" % (
             u"the city square" if sq else u"the bank end of %s" % Cn.name, Cn.name))
-    # v6.5 (run 5: stop and loop labels read poorly over buildings and the spine): a light backing behind plan labels
+    # v6.5 (run 5: stop and loop labels read poorly over buildings and the spine): a light backing behind plan labels; v12.3: a letter-shaped halo, no box
     lab = []
     for it in items:
         if id(it) not in sec_ids and it[0] == "text" and it[8] in LBL_LAYERS and it[5] != "FFFFFF":
-            w_ = B["text_w"](it[1], it[4], it[6])
-            xa = it[2] - (w_ / 2.0 if it[7] == "C" else (w_ if it[7] == "R" else 0.0))
-            lab.append(("poly", [box(xa - 0.5, it[3] - 0.35 * it[4], xa + w_ + 0.5, it[3] + 0.85 * it[4])], "FFFFFF",
-                        None, 0.0, None, it[8], 1, None, 0.75))
+            lab += [h_[:8] + (it[8],) + it[9:] for h_ in G["pc_halo"](it[1], it[2], it[3], it[4], it[6], it[7], it[8])]   # v12.3
         lab.append(it)
     items = lab
     # v4.3 (Aras 12:14 UTC "drawings do flows outside of it"): every plan item cut to the plan frame
@@ -1966,7 +2007,8 @@ def node_page(cfg, log):
         yw = max(95.0, min(cur_top - 1.0, 150.0))
         items.append(T_(u"WHY HERE · %s" % st[0].upper(), 214.0, yw, 2.8, INK, True, "L", "diagrams"))
         CH = 192.0 * 36.0 / 205.0                         # v11.2: the kit's own aspect, no air band (review)
-        if not concept_cut(node, items, 214.0, yw - 2.5 - CH, 192.0, CH, G, cuts[0], D, locals().get("MPC"), log):
+        if not concept_cut(node, items, 214.0, yw - 2.5 - CH, 192.0, CH, G, cuts[0], D, locals().get("MPC"), log,
+                           MC=locals().get("MC")):
             concept(node, items, 214.0, yw - 2.5 - CH, 192.0, CH, G)
         yy = yw - CH - 7.5
         y_story = yy
