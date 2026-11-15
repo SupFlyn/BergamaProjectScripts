@@ -31,8 +31,8 @@ scripts/bergama_page05_access_v1_7.py
 scripts/bergama_page_transit_v2_19.py
 scripts/bergama_page_heritage_v1_8.py
 scripts/bergama_page_spine_v2_42.py
-scripts/bergama_page01_axo_v4_1.py
-scripts/bergama_page01_free_v1_18.py
+scripts/bergama_page01_axo_v4_2.py
+scripts/bergama_page01_free_v1_19.py
 scripts/bergama_page01_move_v1_19.py
 scripts/bergama_slide01_v1_10.py
 Data/bergama_pages_common.py
@@ -45,7 +45,7 @@ scripts/bergama_node_n5_v2.py
 scripts/bergama_node_n6_v2.py
 Data/bergama_nodes_common.py
 scripts/bergama_page_seasons_v1_13.py
-scripts/bergama_p02_what_is_there_v2_16.py
+scripts/bergama_p02_what_is_there_v2_17.py
 Data/bergama_style.json
 scripts/bergama_zone_base_v12.py
 scripts/board_order.txt
