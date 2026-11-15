@@ -25,7 +25,7 @@ Items are the Basemap writer's tuples (page mm, y up):
 """
 import os, re, json, math, time, glob
 
-PC_VERSION = "v3.35"  # v3.35 (Aras 15 Nov 19:48 UTC "much much faster"): pc_fast_load, the MapBase and MasterplanBase caches parsed once a Rhino session (marshal copy in sticky, same values and log lines); v3.34 v3.34 (Aras 15 Nov 17:06-17:07 UTC "pull inside of the working area exactly from .svg like cut and paste" / "Make that for every drawing except slide 1", standing): pc_masterplan pastes master.svg inside the working area only: every layer (his existing ev-yol too), his own colours, cut to the working-area outline (clip PC_CLIP_WA = the map frame AND the working area, even-odd), over a paper-white fill of the working area that hides the base map; outside it each page keeps its own context; M.wa keeps the page rings and pc_write adds the clip; paste=False = the v3.29 behaviour; v3.33 (Aras 15 Nov 15:57 UTC "make these blue and red lines thinner like scale the lines according to the drawing size please across all drawings"): pc_stroke_k(w, h) = the stroke factor of a drawing w x h mm (sqrt of its area over PC_STROKE_REF, 0.35-1.0), pc_stroke(lw, k) applies it; v3.32 v3.32 (Aras 15 Nov 14:46 + his Archicad S-01 screenshot 15:02 UTC): pc_cut_mark in Archicad's section marker look (filled triangle on the cut at each end pointing the view, thin stub + dot + dash inward, name turned along the cut beyond the end, regular weight); v3.31 v3.31 (Aras 15 Nov 14:56 UTC "center the numbers in the boundries", standing): pc_text_c centres a mark's letters by their true Helvetica widths (no 5 % bold estimate); pc_cut_mark names use it; v3.30: pc_photos takes PNGs (SVG mime by extension) and an optional 6th item True = placed UNDER the drawing (PDF overlay off; SVG first in the file), for Page01Axo v4's Rhino 3D capture; v3.29 (Aras 15 Nov 14:45 UTC): pc_write puts the working-area dashes (layer study_area) on top of every other item ("make our working area dashed line as the most foreground line"); pc_masterplan draws master.svg (MasterplanBase cache, vector) on a map, for maps that use his masterplan as their base; v3.28: pc_text_c, a mark letter centred on its glyph box (Helvetica cap height 0.718 em: baseline = centre - 0.359 x size; Aras 15 Nov 13:50 UTC "letters are not centered in the boxes"); the loop badge numbers use it; v3.27: no white box behind any name (Aras 15 Nov 13:44 UTC "dont have a opaque background for texts in any single of the drawings"): Labels.put halo = pc_halo, a thin white text-shaped outline (8 white copies 0.1-0.25 mm round the name), no box; v3.26: pc_mapbase logs the fill rings read / in view per layer (MapBase v1.8 mb_fill_log; Aras 07:46 "you might be skipping somewhere in the fills"); v3.25: pc_mapbase a05 bridges a warm dark grey 7A7468 at 0.18 mm (run 1: black 0.3 mm bridge lines were the heaviest ink on the pale base); v3.24: pc_mapbase a05 streets a pale warm grey F5F3EE (MapBaseCheck run 1: white streets on white houses read as one white mass in the old town; houses stay white), the street-edge lines cut to the network (MapBase v1.7); v3.23: pc_mapbase context make-up (Aras 15 Nov 06:03-06:05 "too many stray lines ... houses fills are overlapping ... Roads are not clear"; "thousand times better as house designs" = the 13 Nov A05 house look): houses white with a pale outline (MapBase v1.6 adds the crisp grey shadow to the lower left and drops wall / edge pieces under 3 m); streets white on a darker ground with darker edges; walls lighter; style key "a05": False keeps the old look; v3.22: pc_dg_kit to DIAGRAM_STYLE v2 (ground 3 x other weights, pale-accent terraces, arches silhouette);  v3.21: v3.21: pc_dg_kit dashes at item[6] (Basemap writer), dash_at=4 for the Sections writer;  v3.20: v3.20: pc_dg_kit, the diagram kit of library/diagram_style/DIAGRAM_STYLE.md (Aras 21:30 UTC "all the diagrams are awful"); v3.19: v3.18 undone (the writer keeps a line's clip at item[4]: those lines were really unclipped); v3.17: SiteMap ring + b (survey box), pc_site_den, pc_north_deg, pc_sheet cols + span (legend columns beside a site_alan strip); v3.16: pc_loop names=True (stop names on the map), every stop outside the frame gets an edge arrow, the stream walk in either loop order (loop numbered from Asklepion, Aras 16:26); v3.15: SiteMap / pc_site_map (the map frame = site_alan turned flat, Aras 16:17 UTC "KEEP EVERY DRAWING STRICTLY IN SITE_ALAN"), pc_loop edge arrows to stops outside it, pc_north_items; v3.14: pc_cut_mark = two end arrows, no line between (Aras 16:05 UTC); v3.13: v3.13: pc_mp_data (MasterplanBase: the masterplan SVG cached in survey m); v3.12: pc_cut_mark, the R01 cut symbol (two arrows, Aras 15:37 UTC); v3.11: pc_loop (the heritage loop, one code for the heritage and the transit map; Aras 15:31) and pc_station_name; v3.10: pc_a3_den / pc_a3 (a map page fitted and centred on A3 or a slide panel, Aras 15:25-15:27 UTC); v3.9: no sources in the drawings (Aras 15:23 UTC): pc_nosrc on MapBase legend rows, empty credit skipped; v3.8: a name with no free place goes where it overlaps least (run 7); v3.7: Labels.block_line / block_items (names keep off lines: run 6 review); v3.6: the outside Python runs hidden (no console window, Aras 14 Nov 12:57 UTC); v3.5: frame check skips items with any clip id; pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
+PC_VERSION = "v3.36"  # v3.36 (Aras 15 Nov 20:45-20:50 UTC "many of the things from masterplan is missing", "river fill is failed ... we lost ground fills", "take chromium svg reader"): pc_masterplan pastes master.svg as the laptop's Chromium (Edge / Chrome headless) prints it to PDF (pc_mp_print, once per master.svg), placed in the page PDF as a form cut to the working area at the masterplan's place in the drawing order (pc_mp_place, PyMuPDF) and as a linked image in the SVG; without a browser or PyMuPDF the vector pieces stay (FLAG); v3.35 (Aras 15 Nov 19:48 UTC "much much faster"): pc_fast_load, the MapBase and MasterplanBase caches parsed once a Rhino session (marshal copy in sticky, same values and log lines); v3.34 v3.34 (Aras 15 Nov 17:06-17:07 UTC "pull inside of the working area exactly from .svg like cut and paste" / "Make that for every drawing except slide 1", standing): pc_masterplan pastes master.svg inside the working area only: every layer (his existing ev-yol too), his own colours, cut to the working-area outline (clip PC_CLIP_WA = the map frame AND the working area, even-odd), over a paper-white fill of the working area that hides the base map; outside it each page keeps its own context; M.wa keeps the page rings and pc_write adds the clip; paste=False = the v3.29 behaviour; v3.33 (Aras 15 Nov 15:57 UTC "make these blue and red lines thinner like scale the lines according to the drawing size please across all drawings"): pc_stroke_k(w, h) = the stroke factor of a drawing w x h mm (sqrt of its area over PC_STROKE_REF, 0.35-1.0), pc_stroke(lw, k) applies it; v3.32 v3.32 (Aras 15 Nov 14:46 + his Archicad S-01 screenshot 15:02 UTC): pc_cut_mark in Archicad's section marker look (filled triangle on the cut at each end pointing the view, thin stub + dot + dash inward, name turned along the cut beyond the end, regular weight); v3.31 v3.31 (Aras 15 Nov 14:56 UTC "center the numbers in the boundries", standing): pc_text_c centres a mark's letters by their true Helvetica widths (no 5 % bold estimate); pc_cut_mark names use it; v3.30: pc_photos takes PNGs (SVG mime by extension) and an optional 6th item True = placed UNDER the drawing (PDF overlay off; SVG first in the file), for Page01Axo v4's Rhino 3D capture; v3.29 (Aras 15 Nov 14:45 UTC): pc_write puts the working-area dashes (layer study_area) on top of every other item ("make our working area dashed line as the most foreground line"); pc_masterplan draws master.svg (MasterplanBase cache, vector) on a map, for maps that use his masterplan as their base; v3.28: pc_text_c, a mark letter centred on its glyph box (Helvetica cap height 0.718 em: baseline = centre - 0.359 x size; Aras 15 Nov 13:50 UTC "letters are not centered in the boxes"); the loop badge numbers use it; v3.27: no white box behind any name (Aras 15 Nov 13:44 UTC "dont have a opaque background for texts in any single of the drawings"): Labels.put halo = pc_halo, a thin white text-shaped outline (8 white copies 0.1-0.25 mm round the name), no box; v3.26: pc_mapbase logs the fill rings read / in view per layer (MapBase v1.8 mb_fill_log; Aras 07:46 "you might be skipping somewhere in the fills"); v3.25: pc_mapbase a05 bridges a warm dark grey 7A7468 at 0.18 mm (run 1: black 0.3 mm bridge lines were the heaviest ink on the pale base); v3.24: pc_mapbase a05 streets a pale warm grey F5F3EE (MapBaseCheck run 1: white streets on white houses read as one white mass in the old town; houses stay white), the street-edge lines cut to the network (MapBase v1.7); v3.23: pc_mapbase context make-up (Aras 15 Nov 06:03-06:05 "too many stray lines ... houses fills are overlapping ... Roads are not clear"; "thousand times better as house designs" = the 13 Nov A05 house look): houses white with a pale outline (MapBase v1.6 adds the crisp grey shadow to the lower left and drops wall / edge pieces under 3 m); streets white on a darker ground with darker edges; walls lighter; style key "a05": False keeps the old look; v3.22: pc_dg_kit to DIAGRAM_STYLE v2 (ground 3 x other weights, pale-accent terraces, arches silhouette);  v3.21: v3.21: pc_dg_kit dashes at item[6] (Basemap writer), dash_at=4 for the Sections writer;  v3.20: v3.20: pc_dg_kit, the diagram kit of library/diagram_style/DIAGRAM_STYLE.md (Aras 21:30 UTC "all the diagrams are awful"); v3.19: v3.18 undone (the writer keeps a line's clip at item[4]: those lines were really unclipped); v3.17: SiteMap ring + b (survey box), pc_site_den, pc_north_deg, pc_sheet cols + span (legend columns beside a site_alan strip); v3.16: pc_loop names=True (stop names on the map), every stop outside the frame gets an edge arrow, the stream walk in either loop order (loop numbered from Asklepion, Aras 16:26); v3.15: SiteMap / pc_site_map (the map frame = site_alan turned flat, Aras 16:17 UTC "KEEP EVERY DRAWING STRICTLY IN SITE_ALAN"), pc_loop edge arrows to stops outside it, pc_north_items; v3.14: pc_cut_mark = two end arrows, no line between (Aras 16:05 UTC); v3.13: v3.13: pc_mp_data (MasterplanBase: the masterplan SVG cached in survey m); v3.12: pc_cut_mark, the R01 cut symbol (two arrows, Aras 15:37 UTC); v3.11: pc_loop (the heritage loop, one code for the heritage and the transit map; Aras 15:31) and pc_station_name; v3.10: pc_a3_den / pc_a3 (a map page fitted and centred on A3 or a slide panel, Aras 15:25-15:27 UTC); v3.9: no sources in the drawings (Aras 15:23 UTC): pc_nosrc on MapBase legend rows, empty credit skipped; v3.8: a name with no free place goes where it overlaps least (run 7); v3.7: Labels.block_line / block_items (names keep off lines: run 6 review); v3.6: the outside Python runs hidden (no console window, Aras 14 Nov 12:57 UTC); v3.5: frame check skips items with any clip id; pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
 PC_NOWIN = 0x08000000 if os.name == "nt" else 0   # v3.6: CREATE_NO_WINDOW for the review-PNG / photo subprocesses
 PC_DATA = os.path.join("Data", "bergama_access_heritage.json")
 PC_CENTRE = os.path.join("Data", "selinos_centreline.json")
@@ -993,6 +993,142 @@ def pc_wa_rings(M, log=None):
     return [[tuple(M.T(q)) for q in R] for R in cal]
 
 
+PC_MP_MARK = "010305"          # v3.36: the stand-in fill where the browser-printed masterplan goes in the PDF
+
+
+def pc_mp_print(MPn, log):
+    """v3.36 (Aras 15 Nov 20:45-20:50 UTC "many of the things from masterplan is missing", "use one from open source
+    browsers ... really good svg reading engine", "yeah take chromium svg reader"): master.svg as the laptop's Chromium
+    (Edge / Chrome) prints it to a vector PDF, made ONCE per master.svg by scripts/bergama_master_print_v*.py (outside
+    Rhino: it can take many minutes); a page only reads it. Returns (pdf, viewBox (x, y, w, h)) or None (FLAG)"""
+    svg = os.path.join(pc_root(), MPn["MP_SVG"])
+    cdir = os.path.join(pc_root(), "cached", MPn["OUT_FOLDER"])
+    pdf, stp = os.path.join(cdir, "master_print.pdf"), os.path.join(cdir, "master_print.stamp")
+    if not (os.path.isfile(svg) and os.path.isfile(pdf) and os.path.isfile(stp)):
+        log.append(u"FLAG masterplan print missing: run scripts/bergama_master_print_v1.py once (py -3): masterplan "
+                   u"drawn as vector pieces (no pictures, no river texture)")
+        return None
+    try:
+        with open(stp, encoding="utf-8") as f:
+            st = json.load(f)
+    except Exception:
+        st = {}
+    if st.get("stamp") != u"%d/%d" % (os.path.getsize(svg), int(os.path.getmtime(svg))):
+        log.append(u"FLAG masterplan print is older than master.svg: run scripts/bergama_master_print_v1.py again: "
+                   u"masterplan drawn as vector pieces")
+        return None
+    return pdf, st["viewbox"]
+
+
+def pc_mp_affine(M, MPC, vb, log):
+    """v3.36: the matrix (a, b, c, d, e, f) from the printed page's points (y up) to this page's mm (y up): print
+    point -> SVG user unit (viewBox, 0.75 pt a px) -> survey m (MasterplanBase matrix) -> page mm (M.T, checked affine)"""
+    a, b, c, d, e, f = MPC["matrix"]
+    Hpt = vb[3] * 0.75
+
+    def chain(xs, ys):
+        u, v = vb[0] + xs / 0.75, vb[1] + (Hpt - ys) / 0.75
+        return M.T((a * u + c * v + e, b * u + d * v + f))
+    p0, px, py = chain(0.0, 0.0), chain(1000.0, 0.0), chain(0.0, 1000.0)
+    A = ((px[0] - p0[0]) / 1000.0, (px[1] - p0[1]) / 1000.0, (py[0] - p0[0]) / 1000.0, (py[1] - p0[1]) / 1000.0,
+         p0[0], p0[1])
+    q = chain(3000.0, 600.0)
+    err = math.hypot(A[0] * 3000 + A[2] * 600 + A[4] - q[0], A[1] * 3000 + A[3] * 600 + A[5] - q[1])
+    if err > 0.2:
+        log.append(u"FLAG masterplan print: the map transform is not affine (%.2f mm off): vector pieces used" % err)
+        return None
+    return A
+
+
+PC_MP_PLACE = r"""
+import sys, re, json
+try:
+    import pymupdf as fitz
+except ImportError:
+    import fitz
+pdf, spec = sys.argv[1], json.load(open(sys.argv[2]))
+MARK = re.compile(rb"q\n(?:[-0-9. ]+ [ml]\n|h\n)+%s rg\nf\*?\nQ\n" % spec["mark"].encode())
+d = fitz.open(pdf)
+pg = d[0]
+s = fitz.open(spec["src"])
+old = [(x, d.xref_stream(x)) for x in pg.get_contents()]
+pg.show_pdf_page(pg.rect, s, 0, keep_proportion=False, overlay=True)
+fx, name = [(x[0], x[1]) for x in pg.get_xobjects() if x[2] == 0][-1]
+sr = s[0].rect
+A = spec["A"]
+ux, uy = sr.width / pg.rect.width, sr.height / pg.rect.height
+A = (A[0] * ux, A[1] * ux, A[2] * uy, A[3] * uy, A[4], A[5])
+keep = set(x for x, _ in old)
+for x in pg.get_contents():
+    if x not in keep:
+        d.update_stream(x, b"")
+n = 0
+for x, st in old:
+    st2, k = MARK.subn(lambda m: b"q %s cm /%s Do Q\n" % (" ".join("%.6f" % v for v in A).encode(), name.encode()), st)
+    d.update_stream(x, st2)
+    n += k
+d.save(pdf + ".tmp", garbage=3, deflate=True)
+d.close()
+import os
+os.replace(pdf + ".tmp", pdf)
+print("masterplan print placed %d time(s) (%s)" % (n, name))
+"""
+
+
+def pc_mp_place(paths, M, log):
+    """v3.36: the browser-printed masterplan put where pc_masterplan left its stand-in (PDF: as a form, under every
+    later item, cut to the working area; SVG: a linked image of master.svg at the same place)"""
+    import subprocess, sys as _sys
+    pdf_, A, vb, svg = M.mp_place
+    for p in paths:
+        try:
+            if p.lower().endswith(".svg"):
+                with open(p, encoding="utf-8") as f:
+                    s_ = f.read()
+                H = M.h
+                # image units: SVG user units minus the viewBox origin -> print pt -> page mm (y up) -> SVG page (y down)
+                a, b, c, d, e, f = A
+                Hpt = vb[3] * 0.75                       # image unit (x, y) = print point (0.75 x, Hpt - 0.75 y)
+                ma, mb = a * 0.75, -(b * 0.75)
+                mc, md = -(c * 0.75), (d * 0.75)
+                me, mf = c * Hpt + e, H - (d * Hpt + f)
+                img = (u'<image x="0" y="0" width="%.4f" height="%.4f" preserveAspectRatio="none" '
+                       u'transform="matrix(%.6f %.6f %.6f %.6f %.4f %.4f)" xlink:href="%s"/>'
+                       % (vb[2], vb[3], ma, mb, mc, md, me, mf, u"file:///" + svg.replace(u"\\", u"/")))
+                s2, n_ = re.subn(r'<path d="[^"]*" fill="#%s"/>' % PC_MP_MARK, lambda m: img, s_)
+                with open(p, "w", encoding="utf-8") as f:
+                    f.write(s2)
+                log.append(u"masterplan: linked master.svg placed %d time(s) in %s" % (n_, p))
+                continue
+            cdir = os.path.join(pc_root(), PC_CACHE_DIR)
+            os.makedirs(cdir, exist_ok=True)
+            tp, sp = os.path.join(cdir, "mp_place_v1.py"), os.path.join(cdir, "mp_place_spec.json")
+            with open(tp, "w", encoding="utf-8") as f:
+                f.write(PC_MP_PLACE)
+            with open(sp, "w") as f:
+                json.dump({"src": pdf_, "A": list(A), "mark": "%.3f %.3f %.3f" % tuple(
+                    int(PC_MP_MARK[i:i + 2], 16) / 255.0 for i in (0, 2, 4))}, f)
+            cmds = [["py", "-3"], ["python"]]
+            if os.path.basename(_sys.executable or "").lower().startswith("python"):
+                cmds.insert(0, [_sys.executable])
+            env = dict((k, v) for k, v in os.environ.items() if not k.upper().startswith("PYTHON"))
+            ok = False
+            for cmd in cmds:
+                try:
+                    r_ = subprocess.run(cmd + ["-I", tp, p, sp], capture_output=True, text=True, timeout=900, env=env,
+                                        creationflags=PC_NOWIN)
+                except Exception:
+                    continue
+                if r_.returncode == 0:
+                    log.append(r_.stdout.strip() + u" in " + p)
+                    ok = "placed 0 time" not in r_.stdout
+                    break
+            if not ok:
+                log.append(u"FLAG masterplan print not placed in %s: the map shows paper there" % p)
+        except Exception as ex:
+            log.append(u"FLAG masterplan print not placed in %s (%s: %s)" % (p, type(ex).__name__, ex))
+
+
 def pc_masterplan(M, log, lim=None, paste=True):
     """v3.29 (Aras 15 Nov 14:45 UTC "we gonna use masterplan svg as the base of the maps"): his masterplan
     (master.svg via the MasterplanBase cache) as vector pieces through the map transform, cut to clip PC_CLIP; his own
@@ -1010,6 +1146,16 @@ def pc_masterplan(M, log, lim=None, paste=True):
     if wa:                                                    # v3.34: cut-and-paste inside the working area
         M.wa = wa
         items.append(("poly", [list(R) for R in wa], "FFFFFF", None, 0.0, None, "wa_paper", 1, "eo", PC_CLIP))
+        pr_ = pc_mp_print(MPn, log)                           # v3.36: his file as Chromium draws it
+        A_ = pc_mp_affine(M, MPC, pr_[1], log) if pr_ else None
+        if A_:
+            b_ = M.box
+            items.append(("poly", [[(b_[0], b_[1]), (b_[2], b_[1]), (b_[2], b_[3]), (b_[0], b_[3])]], PC_MP_MARK, None,
+                          0.0, None, "mp/master_print", 1, None, PC_CLIP_WA))
+            M.mp_place = (pr_[0], A_, pr_[1], os.path.join(pc_root(), MPn["MP_SVG"]))
+            log.append(u"masterplan (master.svg) pasted inside the working area (%d ring(s)) as Chromium prints it: "
+                       u"every picture, texture, gradient and clip of his file, base map hidden under it" % len(wa))
+            return items
         keys = set(kk.split("/")[0] for kk in MPC["layers"])   # every layer, his existing ev-yol included
         cnt = MPn["mp_draw"](MPC, items, M.T, M.k, lim or M.box, PC_CLIP_WA, keys)
         log.append(u"masterplan (master.svg) pasted inside the working area (%d ring(s)): %d pieces in %d layer(s), "
@@ -1048,6 +1194,8 @@ def pc_write(lib, M, items, out_dir, name, title, log, photos=None, clips=None):
     for p in paths:
         log.append(u"%s  %s (%.0f x %.0f mm, 1:%s, %d objects)" % (p, time.strftime("%H:%M:%S"), M.w, M.h,
                                                                    format(int(M.den), ",d"), len(items)))
+    if getattr(M, "mp_place", None):                      # v3.36: the browser-printed masterplan in place
+        pc_mp_place(paths, M, log)
     if photos:
         pc_photos(paths, photos, M.h, log)
     pdfs = [p_ for p_ in paths if p_.lower().endswith(".pdf")]
