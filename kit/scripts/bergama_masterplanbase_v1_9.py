@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Bergama Group 6: MASTERPLANBASE v1 (14 Nov 2026): Aras's masterplan SVG read ONCE into a cache in survey metres,
+"""Bergama Group 6: MASTERPLANBASE v1 (14 Nov 2026; v1.7 15 Nov: the 70 % look only on his painted plants, not on his planting-plan tree symbols PLANTING_v13_1 (Aras 17:16 UTC "i just wanted the trees that i have attached in the screenshot"); v1.6 15 Nov: master.svg = his newest masterplan as MasterplanAI v1 writes it (Aras 16:15 UTC "here is the newest and latest masterplan svg use it and replace it where needed"): his renamed layers answer to the keys every page already reads (KEY_ALIAS), our working_area layer is not cached (pages draw it from the Basemap cache, pc_study), trees + bushes drawn at 70 % (Aras 16:20 UTC "reduce these trees and bushes opacity to %70"; the writer has no transparency: their colours mixed 30 % to the paper); v1.5 15 Nov: the source is master.svg, Aras 06:19 UTC "this is the latest masterplan ... use this masterplan for node slides"; v1.4 15 Nov: mp_draw skips picture-area outlines over 0.2 km2, which covered every map in grey): Aras's masterplan SVG read ONCE into a cache in survey metres,
 for every slide that shows the proposal.
 
 Aras 14 Nov 15:38 UTC: "please take these from the masterplan that i have given you anything that concerns
@@ -7,7 +7,7 @@ masterplans that should use it" (the masterplan = B19_setB_layers259.svg); 12:38
 in two scripts if one scripts does that job cache it and make it usable by the next script" + "we can chain all the
 scripts". Chained after MapBase (it reads MapBase's cache for its check).
 
-What it does: reads Data/assets/plan/B19_setB_layers259.svg (MP_SVG; v1.1: no fallback, a plain stop when it is missing),
+What it does: reads Data/assets/plan/master.svg (v1.5; before: B19_setB_layers259.svg) (MP_SVG; v1.1: no fallback, a plain stop when it is missing),
 walks every group with its transforms (SVG code copied from PlanToRhino v2.1: transforms, paths, arcs, shapes) and
 writes cached/bergama_masterplanbase/masterplan.json in SURVEY metres:
   layers   {key: [[kind, fill, stroke, width m, [[x, y], ...]], ...]}; key = the chain of named group ids from the top,
@@ -27,7 +27,7 @@ The cache is rebuilt only when the SVG changes (its size + time), or when the in
 """
 import os, re, json, math, time, glob
 
-VERSION = "v1.1"
+VERSION = "v1.9"   # v1.9 (AcBuild v1.18 run 15 Nov: no bridge was built): his bridge outlines (kopruler/path-2 polygons, drawn with no fill and no stroke) kept as closed rings without paint (they draw nothing; AcBuild builds the bridges on them); v1.8   # v1.8 (Aras 15 Nov 18:56 UTC masterplan2.svg): his layer yol_kenar is now yol_kenari, aliased back;
 GH_LABEL = "MasterplanBase"
 OUT_FOLDER = "bergama_masterplanbase"
 LOG_NAME = "bergama_masterplanbase_log.txt"
@@ -37,11 +37,13 @@ OUT_DIR = os.path.join(BERGAMA_ROOT, "output", OUT_FOLDER)
 CACHE_DIR = os.path.join(BERGAMA_ROOT, "cached", OUT_FOLDER)
 LOG_DIR = os.path.join(BERGAMA_ROOT, "logs")
 MP_FILE = "masterplan.json"
-MP_SVG = os.path.join("Data", "assets", "plan", "B19_setB_layers259.svg")
+MP_SVG = os.path.join("Data", "assets", "plan", "master.svg")   # v1.5 (was B19_setB_layers259.svg)
 MP_SVG_GLOB = os.path.join("Data", "assets", "plan", "B19_setB_layers*.svg")
 BASEMAP_CACHE = os.path.join("cached", "bergama_basemap", "basemap_layers.json")
 PLACE_GROUP = "ev-yol"                       # his existing roads + buildings: their box = site_alan turned flat
 CHECK_GROUP = "existing_buildings"
+MAX_A_M2 = 200000.0                          # v1.4: a picture-area outline bigger than this (survey m2) is not drawn
+MAX_PIECES = 400000                          # v1.2: run 1 read 42,255; more means the SVG loops (memory guard)
 CURVE_STEP_M = 0.5                           # m between points on a flattened curve (at most 24 per piece)
 SKIP_TAGS = ("defs", "clipPath", "symbol", "style", "metadata", "title", "desc", "mask", "pattern", "linearGradient",
              "radialGradient", "filter")
@@ -50,6 +52,14 @@ SKIP_TAGS = ("defs", "clipPath", "symbol", "style", "metadata", "title", "desc",
 AREA_FILL = {"teras": "CDBFA3", "iskele_kenari": "BFAE92", "kesin_yesil": "A9B98A", "belki_yesil": "C4CFA8",
              "ana_su": "A2B6B5", "su": "A2B6B5", "bitki2": "9EAF85", "kanopi": "D8D6D2"}
 AREA_DEFAULT = "D6D0C4"
+# v1.6: his 15 Nov 16:15 file renamed or moved some layers; each new key answers to the key the pages read (the
+# first matching row wins, whole key or its start up to a "/"); "master/path" is his unnamed Layer_49 (a pale green
+# piece called "path", which the Sections script would take for a bridge): it keeps the layer's own id
+KEY_ALIAS = (("teras", "teras_-_canopy/teras"), ("kanopi", "teras_-_canopy/kanopi"), ("kopruler/path-2", "kopruler/path"),
+             ("agaclar", "agaclar-2"), ("circulation", "yuruyus/circulation"), ("master/path", "master/Layer_49"),
+             ("master/yol_kenari", "master/yol_kenar"))   # v1.8: his 18:56 file renamed yol_kenar to yol_kenari
+SKIP_IDS = ("working_area",)                 # v1.6: our own dashed line in master.svg (MasterplanAI); pages draw it
+SOFT_KEYS, SOFT_MIX = ("agaclar-2", "assets"), 0.3   # v1.6: trees + bushes at 70 %: colour mixed 30 % to white
 
 _NUM = re.compile(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?")
 SVGNS = "{http://www.w3.org/2000/svg}"
@@ -389,19 +399,31 @@ def read_svg(path, log):
         return bool(i_) and not re.match(r"^(Layer_\d+|g\d*|_?x?\d.*)$", i_)
 
     def add(key, rec, m):
+        key = alias(key)
+        tot[0] += 1
+        if tot[0] > MAX_PIECES:                         # v1.2: a hard stop instead of filling the PC's memory
+            raise RuntimeError(u"more than %d pieces read: the SVG repeats itself (a <use> loop?); stopped" % MAX_PIECES)
         layers.setdefault(key, []).append(rec)
         if key.split("/")[0] == PLACE_GROUP:
             for p in rec[4]:
                 box[0], box[1] = min(box[0], p[0]), min(box[1], p[1])
                 box[2], box[3] = max(box[2], p[0]), max(box[3], p[1])
 
+    def alias(key):
+        for new, old in KEY_ALIAS:
+            if key == new or key.startswith(new + "/"):
+                return old + key[len(new):]
+        return key
+
     def quad(m, w, h):
         return [mat_pt(m, q) for q in ((0, 0), (w, 0), (w, h), (0, h))]
 
-    def walk(el, m, chain, st, clipped, depth=0):
+    tot = [0]
+
+    def walk(el, m, chain, st, clipped, depth=0, via=()):
         for ch in el:
             tag = local(ch.tag)
-            if tag in SKIP_TAGS or depth > 60:
+            if tag in SKIP_TAGS or depth > 60 or ch.get("id") in SKIP_IDS:
                 continue
             s = style_of(ch, st)
             if s.get("display") == "none" or s.get("visibility") == "hidden":
@@ -423,7 +445,7 @@ def read_svg(path, log):
                             add(k2, ["a", None, None, 0.0, flat(m2, sp, UPM[0])], m2)
                             n["areas"] += 1
                     cl2 = True
-                walk(ch, mm, c2, s, cl2, depth + 1)
+                walk(ch, mm, c2, s, cl2, depth + 1, via)
             elif tag in ("use", "image"):
                 x, y = float(ch.get("x") or 0), float(ch.get("y") or 0)
                 m2 = mat_mul(mm, (1.0, 0.0, 0.0, 1.0, x, y))
@@ -431,12 +453,12 @@ def read_svg(path, log):
                 if tag == "use":
                     href = ch.get(XLINK) or ch.get("href") or ""
                     tgt = ids.get(href.lstrip("#"))
-                    if tgt is None:
+                    if tgt is None or href in via:      # v1.2: a <use> that leads back to itself is skipped
                         continue
                     if local(tgt.tag) != "image":       # a group / shape: drawn in place
                         wrap_ = ET.Element("g")
                         wrap_.append(tgt)
-                        walk(wrap_, m2, chain, s, clipped, depth + 1)
+                        walk(wrap_, m2, chain, s, clipped, depth + 1, via + (href,))
                         continue
                 if not clipped:
                     w_, h_ = float(tgt.get("width") or 0), float(tgt.get("height") or 0)
@@ -455,7 +477,7 @@ def read_svg(path, log):
                 subs = path_segments(ch.get("d")) if tag == "path" else shape_subpaths(tag, ch)
                 fill = hex_of(s.get("fill", "#000000"))
                 stroke = hex_of(s.get("stroke"))
-                if fill is None and stroke is None:
+                if fill is None and stroke is None and "kopruler" not in chain:   # v1.9: bridge outlines kept
                     continue
                 sw = float((_NUM.findall(s.get("stroke-width", "1") or "1") or [1])[0]) * mat_scale(mm)
                 for cl_, sp in subs:
@@ -484,12 +506,12 @@ def site_alan(log):
 
 
 def svg_file(log):
-    """only Aras's masterplan (B19_setB_layers259.svg); no fallback to another SVG"""
+    """only Aras's masterplan (master.svg since v1.5); no fallback to another SVG"""
     p = os.path.join(BERGAMA_ROOT, MP_SVG)
     if not os.path.isfile(p):
         others = sorted(os.path.basename(f) for f in glob.glob(os.path.join(BERGAMA_ROOT, MP_SVG_GLOB)))
-        raise RuntimeError(u"Aras's masterplan SVG is missing: copy B19_setB_layers259.svg (about 134 MB) into %s, "
-                           u"then press MasterplanBase again (other SVGs there, not used: %s)"
+        raise RuntimeError(u"Aras's masterplan SVG is missing: press MasterplanAI first (it writes master.svg into %s "
+                           u"from his newest masterplan.svg), then MasterplanBase (other SVGs there, not used: %s)"
                            % (os.path.dirname(p), u", ".join(others) or u"none"))
     log.append(u"SVG opened: %s (%.1f MB)" % (p, os.path.getsize(p) / 1048576.0))
     return p
@@ -514,6 +536,13 @@ def mp_keys(C, prefix):
     return [k for k in C["layers"] if k == prefix or k.startswith(prefix + "/")]
 
 
+def soft(h):
+    """v1.6: a hex colour 30 % of the way to white (70 % opacity over white paper); None stays None"""
+    if not h or len(h) != 6:
+        return h
+    return u"".join(u"%02X" % int(round(int(h[i:i + 2], 16) + (255 - int(h[i:i + 2], 16)) * SOFT_MIX)) for i in (0, 2, 4))
+
+
 def mp_draw(C, items, T, k, lim, cid, layers=None, style=None):
     """the cache through the page transform T (survey m -> page mm, k = mm per m), into Basemap-writer items cut to
     clip id cid; layers = a set of key prefixes (None = all but the existing ones: PLACE_GROUP); style keys:
@@ -531,6 +560,10 @@ def mp_draw(C, items, T, k, lim, cid, layers=None, style=None):
         for kind, fill, stroke, w, P in recs:
             if kind == "s" and not st.get("stamps"):
                 continue
+            if kind == "a" and (max(p[0] for p in P) - min(p[0] for p in P)) * \
+                    (max(p[1] for p in P) - min(p[1] for p in P)) > MAX_A_M2:
+                continue                                 # v1.4 (Aras 15 Nov 05:53 UTC "why is buildings etc. is not
+                # showing"): 42 kopruler/texture picture areas are about 2 km2 each and drew a grey sheet over the map
             Q = [T(p) for p in P]
             if len(Q) < 2 or max(q[0] for q in Q) < x0 or min(q[0] for q in Q) > x1 or \
                     max(q[1] for q in Q) < y0 or min(q[1] for q in Q) > y1:
@@ -539,11 +572,13 @@ def mp_draw(C, items, T, k, lim, cid, layers=None, style=None):
                 fill = word(key, st.get("area") or {}) or word(key, AREA_FILL) or AREA_DEFAULT
             fill = word(key, st.get("fill") or {}) or fill
             stroke = word(key, st.get("stroke") or {}) or stroke
+            if key.split("/")[0] in SOFT_KEYS and "PLANTING_v13_1" not in key.split("/"):   # v1.7            # v1.6: trees + bushes at 70 % (mixed to the paper)
+                fill, stroke = soft(fill), soft(stroke)
             lw = max(st.get("lw_min", 0.05), (w or 0.0) * k)
             if kind in ("r", "a", "s") and len(Q) >= 3:
                 items.append(("poly", [Q], fill, stroke, lw if stroke else 0.0, None, "mp/" + key, 1, None, cid))
             elif stroke:
-                items.append(("line", Q, stroke, lw, None, "mp/" + key, 1, cid))
+                items.append(("line", Q, stroke, lw, cid, "mp/" + key, 1))      # v1.3: the writer reads a line's clip at [4]
             else:
                 continue
             cnt[key] = cnt.get(key, 0) + 1
@@ -561,7 +596,7 @@ def build():
         try:
             with open(out, encoding="utf-8") as f:
                 old = json.load(f)
-            if old.get("svg_stamp") == stamp and old.get("version") == VERSION:
+            if old.get("svg_stamp") == stamp:                # v1.2: the same SVG = no rebuild (any version)
                 return u"cache up to date (%s, %s): nothing rebuilt (set rebuild to True to force)\n%s %s, 0 FLAG " \
                        u"line(s), %.1f s" % (out, os.path.basename(src), GH_LABEL, VERSION, time.time() - t0)
         except Exception:
