@@ -17,10 +17,11 @@ Reads the newest scripts/bergama_basemap_v*, bergama_p02_what_is_there_v*, berga
 """
 import os, re, glob, json, math, time
 
-NC_VERSION = "v9.9"   # v9.9: a heritage stop on a cut line stays in the cropped section (N4-A Red Hall); v9.8: v9.8: Ulu Cami silhouette as built (hall, three domes, minaret on a stone base); v9.7: v9.7: Red Hall drawn as the roofless arched brick hall; diagram levels start at the riser they meet; v9.6: v9.6: program brief under the land-use bar when it fits, perspective the full right half; v9.5: v9.5: diagram levels run to the banks, N5 town band lower and label over its move; cuts packed from the top, why-here block follows, perspective room grows; V1 clear of stops, names and its arrows; v9.4: v9.4: at least 30 % (or 90 m) of a cut in view, so flat cuts get taller; v9.3: v9.3: section fit by the drawing without its sky, at least 55 % (or 150 m) of the cut in view, sky cut to the room; v9.2: v9.2 (fresh review of run 4): sections fill their rooms (cropped round the stream, own scale bar), no intro line, short key words, V1 in ink, land use = 5 classes + other with names on one row, program brief under the story, diagram arrows start at their cause, slots as voids, FLAG count includes carried FLAGs; v9.1: v9.1: diagrams to DIAGRAM_STYLE v2 (Niarchos measured: low ground, names under it, small accent); v9: v9: why-here diagrams redrawn on the shared diagram kit (pc_dg_kit, DIAGRAM_STYLE.md; Aras 21:30 UTC); v8.4: v8.4: scale + north above the plan (off his drawing), intro wording; v8.3: v8.3: B cut subtitle "along the bank", N3 diagram label clear of the dots; v8.2: v8.2: 4-corner picture rectangles of the masterplan left out (no solid green blocks), the river filled as water; v8.1: v8.1: masterplan sheet / texture frames (> 0.1 km2) left out, legend columns balanced, intro without the old levels text; v8: plan = his masterplan drawing; why-here story + one concept diagram per node; water bars and meets line gone; v7.5: v7.5: section_lines v2 (B along the bank: looks at the stream, no water bars); v7.4: v7.4: cut marks = two end arrows, no line between (pages_common v3.14); v7.3: v7.3: scale + north ignore the node frame line; v7.2: v7.2: the proposal from his masterplan SVG (MasterplanBase cache); v7.1: v7.1: R01 cut arrows (pc_cut_mark), no city-square ring, land-use columns >= 45 mm; v7: v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
+NC_VERSION = "v10"   # v10: why-here diagrams as section-axo blocks (depth, shaded planes, extruded town, accent move with shadow); MapBase always under the plan, his existing roads/buildings left out; v9.9: v9.9: a heritage stop on a cut line stays in the cropped section (N4-A Red Hall); v9.8: v9.8: Ulu Cami silhouette as built (hall, three domes, minaret on a stone base); v9.7: v9.7: Red Hall drawn as the roofless arched brick hall; diagram levels start at the riser they meet; v9.6: v9.6: program brief under the land-use bar when it fits, perspective the full right half; v9.5: v9.5: diagram levels run to the banks, N5 town band lower and label over its move; cuts packed from the top, why-here block follows, perspective room grows; V1 clear of stops, names and its arrows; v9.4: v9.4: at least 30 % (or 90 m) of a cut in view, so flat cuts get taller; v9.3: v9.3: section fit by the drawing without its sky, at least 55 % (or 150 m) of the cut in view, sky cut to the room; v9.2: v9.2 (fresh review of run 4): sections fill their rooms (cropped round the stream, own scale bar), no intro line, short key words, V1 in ink, land use = 5 classes + other with names on one row, program brief under the story, diagram arrows start at their cause, slots as voids, FLAG count includes carried FLAGs; v9.1: v9.1: diagrams to DIAGRAM_STYLE v2 (Niarchos measured: low ground, names under it, small accent); v9: v9: why-here diagrams redrawn on the shared diagram kit (pc_dg_kit, DIAGRAM_STYLE.md; Aras 21:30 UTC); v8.4: v8.4: scale + north above the plan (off his drawing), intro wording; v8.3: v8.3: B cut subtitle "along the bank", N3 diagram label clear of the dots; v8.2: v8.2: 4-corner picture rectangles of the masterplan left out (no solid green blocks), the river filled as water; v8.1: v8.1: masterplan sheet / texture frames (> 0.1 km2) left out, legend columns balanced, intro without the old levels text; v8: plan = his masterplan drawing; why-here story + one concept diagram per node; water bars and meets line gone; v7.5: v7.5: section_lines v2 (B along the bank: looks at the stream, no water bars); v7.4: v7.4: cut marks = two end arrows, no line between (pages_common v3.14); v7.3: v7.3: scale + north ignore the node frame line; v7.2: v7.2: the proposal from his masterplan SVG (MasterplanBase cache); v7.1: v7.1: R01 cut arrows (pc_cut_mark), no city-square ring, land-use columns >= 45 mm; v7: v7: every drawing fills its room on the A3 sheet, no 1:x printed (scale bars kept); v6.7: v6.7: no sources on the page (log only); v6.6: v6.6: scale + north to the emptiest plan corner; V1 also clear of link lines; v6.5: v6.5: V1 placed clear of labels; light backing behind plan labels; v6.4: v6.4: no repeats (R4 R5 R10): only the city-square stop, loop stops in the frame, no plant callouts; v6.3: v6.3: level marker stack (layer "levels") left out of the cuts; v6.2: v6.2: own section header (cached title block dropped), scales to 1:3000, land-use columns fit; v6.1: v6.1: cut items from cuts/<name>.json (Sections v1.6.5); v6: sections read from the Sections cache (cuts.json); v5   # v5: the plan context is the shared MapBase (mb_draw), Aras 12:17-12:18 UTC   # v4: brief plan rules (existing vs proposal, V1 viewpoint, program + building placeholders)   # v2: also output/presentation/<slide>.pdf (Aras 14 Nov 11:22 UTC)
 ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
 PAGE_W, PAGE_H = 420.0, 297.0
 NODE_MARGIN_M = 25.0                       # m of town round the node frame on the plan
+MP_EXISTING = ("ev-yol", "builts2")   # v10: his copy of the existing roads / buildings: MapBase draws those
 MP_MAX_M2 = 100000.0                 # m2: a bigger masterplan piece is a sheet / texture frame (v8.1)
 PLAN_BOX = (14.0, 100.0, 200.0, 264.0)     # mm: x0, y0, x1, y1 of the plan's room
 SEC_ROOMS = ((214.0, 192.0, 406.0, 286.0), (214.0, 102.0, 406.0, 186.0))   # v9.2: A up to the top (no intro line)   # mm: N#-A, N#-B
@@ -171,151 +172,281 @@ DG_INK, DG_GREY, DG_WATER = "1E1E1E", "C9C6BF", "A2B6B5"
 
 
 def concept(node, items, x0, y0, W, H, G=None):
-    """v9.1 (DIAGRAM_STYLE v2, measured on RPBW's Niarchos sketch): the node's one claim as a long low strip in a W x H
-    mm box at (x0, y0), drawn with the shared kit (pages_common pc_dg_kit): the ground low (about 70 % air above),
-    3 x heavier than every other line, with poché; the town one low band on it; the driver at the frame edge; our
-    move the only accent and small; names under the ground on hairline brackets; one accent label in the air.
-    Shapes are diagrams, not to scale; the names come from the node's story."""
-    K = G["pc_dg_kit"](items, x0, y0, W, H, "concept", dash_at=4)   # nodes write with the Sections writer
-    lab, br = K["label"], K["bracket"]
+    """v10 (Aras 15 Nov 06:10 UTC "diagrams are awful ... should look really clear and abstract however not basic"):
+    each node's one claim as a SECTION-AXO BLOCK (the cut model of the RPBW / BIG / Snøhetta concept diagrams): the cut
+    face in poché with the one heavy ground line, the land behind it as shaded planes in oblique depth, the town as a
+    regular row of small white blocks, heritage as its own built shape, the stream as a flat plane, our move the ONLY
+    accent solid with its shadow, people on it, names under the ground on brackets. Not to scale; names from the story."""
+    # the block's depth runs 13 units to the right: 205 x 47 local units fill the W x H box, nothing spills out
+    K = G["pc_dg_kit"](items, x0, y0, W, H, "concept", lw=205.0, lh=47.0, dash_at=4)
+    C, Wt = K["C"], K["W"]
+    poly, line, lab, br = K["poly"], K["line"], K["label"], K["bracket"]
+    OX, OY = 13.0, 8.5                                     # full depth of the block, oblique (local units)
+    T_FLAT, T_DOWN, T_UP = "F4F1EB", "E9E4DA", "DED7CB"    # lit planes: flat, facing the light, facing away
+    W_TOP, W_EDGE = "C3D2D1", "8FA6A5"
+    M_FR, M_TOP, M_SIDE = C["move"], "DDA261", "9E5F1F"
+    X_FR, X_TOP, X_SIDE, X_LN = "FFFFFF", "EFECE6", "E3DFD7", "9A938A"
+    SHADOW = "CFC8BC"
+    hair = Wt["hair"]
 
-    def lvl(y, xa, xb):                                   # v9.5: a named level continued over the flooded width
-        K["line"]([(xa, y), (xb, y)], K["C"]["water_ln"], K["W"]["hair"] * 2, (1.4, 0.9))
+    def o(p, d):
+        return (p[0] + OX * d, p[1] + OY * d)
+
+    def steps(xa, xb, ya, yb, n):
+        pts, dx, dy = [], (xb - xa) / float(n), (yb - ya) / float(n)
+        for i in range(n):
+            if yb < ya:                                   # down to the right: tread, then riser
+                pts += [(xa + dx * (i + 1), ya + dy * i), (xa + dx * (i + 1), ya + dy * (i + 1))]
+            else:                                         # up to the right: riser, then tread
+                pts += [(xa + dx * i, ya + dy * (i + 1)), (xa + dx * (i + 1), ya + dy * (i + 1))]
+        return pts
+
+    def gy(g, x):
+        for a, b in zip(g, g[1:]):
+            if a[0] <= x <= b[0] and b[0] > a[0]:
+                return a[1] + (b[1] - a[1]) * (x - a[0]) / (b[0] - a[0])
+        return g[0][1] if x < g[0][0] else g[-1][1]
+
+    TONE = {}
+
+    def terrain(g, accent=()):
+        """the land behind the cut: one plane per segment, shaded by its slope; accent spans tinted"""
+        quads = []
+        for a, b in zip(g, g[1:]):
+            dx, dy = b[0] - a[0], b[1] - a[1]
+            if abs(dx) < 1e-9 and abs(dy) < 1e-9:
+                continue
+            vis = dx * OY - dy * OX > 1e-9
+            tone = T_FLAT if abs(dy) < 1e-6 else (T_DOWN if dy < 0 else T_UP)
+            if abs(dy) < 1e-6 and any(xa - 1e-6 <= min(a[0], b[0]) and max(a[0], b[0]) <= xb + 1e-6
+                                      for xa, xb in accent):
+                tone = "F3E0C8"                           # our terraces: only their treads carry the tint
+            quads.append((vis, [a, b, o(b, 1), o(a, 1)], tone))
+            TONE[(a, b)] = tone
+        for vis, q, tone in sorted(quads, key=lambda t: t[0]):
+            poly(q, tone, tone, 0.05)
+        line([o(p, 1) for p in g], X_LN, hair)            # the far edge of the block
+
+    def water(xa, xb, yw, g):
+        poly([(xa, yw), (xb, yw), o((xb, yw), 1), o((xa, yw), 1)], W_TOP)
+        for d in (0.33, 0.66):                            # two hairlines = a flat plane, not a wave
+            line([o((xa, yw), d), o((xb, yw), d)], W_EDGE, hair * 0.8)
+        under = [p for p in g if xa <= p[0] <= xb and p[1] <= yw + 1e-6]
+        poly([(xa, yw)] + under + [(xb, yw)], C["water"])
+        for a, b in zip(g, g[1:]):                        # land above the water stays in front of the plane
+            if min(a[1], b[1]) > yw + 1e-6 and (b[0] - a[0]) * OY - (b[1] - a[1]) * OX > 1e-9:
+                tone = TONE.get((a, b), T_FLAT)
+                poly([a, b, o(b, 1), o(a, 1)], tone, tone, 0.05)
+
+    def cut(g, base, accent=()):
+        """the cut face: poché down to the base, the right end face, the ONE heavy line"""
+        poly([(g[0][0], base)] + list(g) + [(g[-1][0], base)], C["ground"])
+        e = (g[-1][0], base)
+        poly([e, g[-1], o(g[-1], 1), o(e, 1)], "CFC9BE")
+        line(g, C["ink"], Wt["cut"])
+        for xa, xb in accent:                             # our terraces in the cut: the line turns accent
+            seg = [p for p in g if xa - 1e-6 <= p[0] <= xb + 1e-6]
+            if len(seg) >= 2:
+                line(seg, M_FR, Wt["cut"])
+
+    def block(x0_, x1_, yb, h, d0, d1, kind="ctx", top_h=None):
+        """an extruded block standing at depth d0..d1: front, top, right side"""
+        fr, tp, sd, st, lw_ = {"ctx": (X_FR, X_TOP, X_SIDE, X_LN, 0.1),
+                               "her": ("FBFAF7", "ECE8E1", "DCD6CC", C["her"], 0.16),
+                               "move": (M_FR, M_TOP, M_SIDE, M_SIDE, 0.12),
+                               "grey": ("E4E0D8", "D6D1C7", "C9C3B8", X_LN, 0.1)}[kind]
+        a, b = o((x0_, yb), d0), o((x1_, yb), d0)
+        a2, b2 = o((x0_, yb + h), d0), o((x1_, yb + h), d0)
+        poly([b, o((x1_, yb), d1), o((x1_, yb + h), d1), b2], sd, st, lw_)
+        poly([a2, b2, o((x1_, yb + h), d1), o((x0_, yb + h), d1)], tp, st, lw_)
+        poly([a, b, b2, a2], fr, st, lw_)
+        return a2, b2
+
+    def shadow(x0_, x1_, y_, d0, d1, dx=2.0, on_water=False):
+        poly([o((x0_ + dx, y_), d0), o((x1_ + dx, y_), d0), o((x1_ + dx, y_), d1), o((x0_ + dx, y_), d1)],
+             "A9BDBC" if on_water else SHADOW)
+
+    def slab(x0_, x1_, y_, g, d0, d1, stems=(), th=1.1, ys=None):
+        shadow(x0_, x1_, gy(g, (x0_ + x1_) / 2.0) if ys is None else ys, d0, d1, on_water=ys is not None)
+        for xs in stems:                                  # thin stems down to the land at the slab's middle depth
+            dm = (d0 + d1) / 2.0
+            line([o((xs, gy(g, xs)), dm), o((xs, y_), dm)], M_SIDE, Wt["move"])
+        block(x0_, x1_, y_, th, d0, d1, "move")
+
+    def town(g, xa, xb, step, d0, d1, hmax, focus, roof=False):
+        n = max(1, int((xb - xa) / step))
+        span = max(abs(xa - focus), abs(xb - focus), 1.0)
+        for i in range(n):
+            xc = xa + (i + 0.5) * (xb - xa) / n
+            f_ = 1.0 - 0.45 * abs(xc - focus) / span      # smaller away from our move
+            w_ = step * 0.62
+            block(xc - w_ / 2.0, xc + w_ / 2.0, gy(g, xc), hmax * f_, d0, d1, "ctx")
+
+    def people(xs, y_, d):
+        for x_ in xs:
+            p = o((x_, y_ if not callable(y_) else y_(x_)), d)
+            K["person"](p[0], p[1])
+
+    def level(y_, xa, xb, name, lx=None):
+        line([(xa, y_), (xb, y_)], C["water_ln"], hair * 2, (1.4, 0.9))
+        line([o((xb, y_), 0), o((xb, y_), 1)], C["water_ln"], hair * 2, (1.4, 0.9))
+        K["text"](name, (xb - 0.5) if lx is None else lx, y_ + 0.6, 1.5, C["water_ln"], True, "R" if lx is None else "L")
+
+    def arches_front(x0_, x1_, yb, h, d, n, kind="her"):
+        """a bridge / arcade seen side-on at depth d: a block with n round openings through it"""
+        block(x0_, x1_, yb, h, d, d + 0.18, kind)
+        span = (x1_ - x0_) / n
+        for i in range(n):
+            cx = x0_ + span * (i + 0.5)
+            r = span * 0.36
+            pts = [(cx - r, yb)] + [(cx + r * math.cos(math.radians(a_)), yb + h * 0.42 + r * math.sin(math.radians(a_)))
+                                    for a_ in range(180, -1, -15)] + [(cx + r, yb)]
+            poly([o(p, d) for p in pts], W_TOP, C["her"], 0.16)
+
+    BASE = 3.0
     if node == "N1":                                      # one stream, two neighbourhoods: a garden deck joins them
-        g = [(0, 10), (68, 7), (82, 2.5), (110, 2.5), (124, 7), (192, 10)]
-        K["ground"](g)
-        K["water"](82, 110, 0.8, 3.4)
-        K["city"](g, 14, 64, step=3.4, h=1.6, focus=96)
-        K["city"](g, 128, 188, step=3.4, h=1.6, focus=96)
-        K["steps"](64, 82, 8.6, 3.4, 4, base=2.5)
-        K["steps"](128, 110, 8.6, 3.4, 4, base=2.5)
-        K["move"]([(70, 13.0), (122, 13.0), (122, 14.3), (70, 14.3)])
-        for x in (74, 118):
-            K["line"]([(x, 7.0), (x, 13.0)], K["C"]["move"], K["W"]["move"])
-        K["people"]([84, 90, 97, 104], 14.3)
-        K["road"](0, 10.2, 11.0)
-        K["arrow"]((4.0, 16.0), (20.0, 11.6), "bus")
-        lab(u"one garden across the stream", 96, 19.5, True, "C")
-        br(0, 12, -0.6, u"VILLAGE BUSES")
-        br(16, 64, -0.6, u"UPPER")
-        br(128, 188, -0.6, u"LOWER")
+        g = [(0, 14.5), (64, 12.6)] + steps(64, 82, 12.6, 7.4, 4) + [(82, 5.6), (110, 5.6), (110, 7.4)] + \
+            steps(110, 128, 7.4, 12.6, 4) + [(192, 14.5)]
+        acc = ((64, 82), (110, 128))
+        terrain(g, acc)
+        water(82, 110, 7.4, g)
+        town(g, 6, 58, 4.6, 0.42, 0.78, 3.0, 96)
+        town(g, 134, 186, 4.6, 0.42, 0.78, 3.0, 96)
+        slab(72, 120, 20.5, g, 0.28, 0.58, stems=(76, 116), th=0.9, ys=7.4)
+        cut(g, BASE, acc)
+        people([86, 94, 102], 21.4, 0.43)
+        people([69, 123], lambda x_: gy(g, x_), 0.2)
+        K["road"](1.5, 14.5, 9.0)
+        K["arrow"]((5.0, 26.0), (15.0, 20.5), "bus")
+        lab(u"one garden across the stream", 96, 31.5, True, "C")
+        br(0, 12, 2.0, u"VILLAGE BUSES")
+        br(16, 62, 2.0, u"UPPER")
+        br(130, 188, 2.0, u"LOWER")
     elif node == "N2":                                    # 1,800 years of one crossing: terraces step into the river
-        g = [(0, 9), (62, 9), (102, 2.5), (192, 2.5)]
-        K["ground"](g)
-        K["water"](100, 192, 0.8, 3.4, [(5.6, u"WINTER")])
-        lvl(5.6, 62 + 40 * 4 / 6.0, 100)                  # v9.7: from the riser it meets (lines print over fills)
-        K["city"](g, 2, 14, step=3.4, h=1.6, focus=80)
-        # v9.8: Ulu Cami as built (Visit Izmir 11125: rectangular cut-stone prayer hall, three domes on the mihrab
-        # axis, round minaret with one balcony on a stone base beside it); seen side-on, not to scale
-        hc, hw_ = K["C"]["her"], K["W"]["thin"] * 1.4
-        K["poly"]([(16, 9), (36, 9), (36, 13), (16, 13)], K["C"]["paper"], hc, hw_)
+        g = [(0, 14.5), (62, 14.5)] + steps(62, 102, 14.5, 7.4, 6) + [(102, 5.6), (192, 5.6)]
+        acc = ((62, 102),)
+        terrain(g, acc)
+        water(102, 192, 7.4, g)
+        town(g, 2, 13, 3.6, 0.5, 0.8, 1.8, 80)
+        a2, b2 = block(16, 36, 14.5, 4.4, 0.32, 0.8, "her")     # Ulu Cami: hall, three domes on the mihrab axis
         for xd in (20.5, 26.0, 31.5):
-            K["poly"]([(xd - 2.2, 13), (xd + 2.2, 13), (xd + 2.2, 13.6), (xd - 2.2, 13.6)], K["C"]["paper"], hc, hw_)
-            K["poly"]([(xd + 2.2 * math.cos(math.radians(a_)), 13.6 + 2.0 * math.sin(math.radians(a_)))
-                       for a_ in range(0, 181, 12)], K["C"]["paper"], hc, hw_)
-        K["poly"]([(37.6, 9), (40.4, 9), (40.4, 11.4), (37.6, 11.4)], K["C"]["paper"], hc, hw_)   # stone base
-        K["poly"]([(38.4, 11.4), (39.6, 11.4), (39.6, 20.6), (38.4, 20.6)], K["C"]["paper"], hc, hw_)
-        K["poly"]([(38.0, 18.4), (40.0, 18.4), (40.0, 18.9), (38.0, 18.9)], K["C"]["paper"], hc, hw_)   # balcony
-        K["poly"]([(38.4, 20.6), (39.6, 20.6), (39.0, 23.0)], K["C"]["paper"], hc, hw_)
-        K["silhouette"]("dome", 52, 9, 0.7)
-        K["steps"](62, 102, 9, 2.5, 6, base=2.5)
-        K["people"]([72, 80, 88], 7.0)
-        K["arrow"]((56.0, 10.6), (68.0, 9.4), "people")
-        K["silhouette"]("arches", 146, 2.5, 2.2)
-        lab(u"terraces into the river", 84, 19.0, True, "C")
-        br(15, 42, -0.6, u"ULU CAMI")
-        br(46, 58, -0.6, u"HAMAM")
-        br(128, 164, -0.6, u"ROMAN BRIDGE")
+            c_ = o((xd, 18.9), 0.56)
+            poly([(c_[0] + 2.0 * math.cos(math.radians(a_)), c_[1] + 2.0 * math.sin(math.radians(a_)))
+                  for a_ in range(0, 181, 12)], "FBFAF7", C["her"], 0.16)
+        block(38.4, 39.8, 14.5, 3.0, 0.56, 0.66, "her")         # minaret: stone base, round shaft, one balcony
+        block(38.7, 39.5, 17.5, 8.5, 0.58, 0.64, "her")
+        block(38.4, 39.8, 23.6, 0.5, 0.56, 0.66, "her")
+        t_ = o((39.1, 26.0), 0.61)
+        poly([(t_[0] - 0.4, t_[1]), (t_[0] + 0.4, t_[1]), (t_[0], t_[1] + 2.4)], "FBFAF7", C["her"], 0.16)
+        block(46, 56, 14.5, 2.6, 0.4, 0.75, "her")              # Tabaklar Hamami
+        c_ = o((51, 17.1), 0.57)
+        poly([(c_[0] + 2.4 * math.cos(math.radians(a_)), c_[1] + 1.9 * math.sin(math.radians(a_)))
+              for a_ in range(0, 181, 12)], "FBFAF7", C["her"], 0.16)
+        arches_front(132, 166, 5.6, 7.6, 0.55, 3)               # the Roman bridge
+        cut(g, BASE, acc)
+        people([70, 80, 90], lambda x_: gy(g, x_), 0.35)
+        level(9.6, 62 + 40 * 4 / 6.0, 192, u"WINTER")
+        K["arrow"]((64.0, 22.5), (73.0, 17.0), "people")
+        lab(u"terraces into the river", 84, 30.5, True, "C")
+        br(14, 42, 2.0, u"ULU CAMI")
+        br(45, 58, 2.0, u"HAMAM")
+        br(130, 168, 2.0, u"ROMAN BRIDGE")
     elif node == "N3":                                    # the bazaar walks over its river: slots open the hidden stream
-        g = [(0, 2.5), (14, 2.5), (18, 9), (174, 9), (178, 2.5), (192, 2.5)]
-        K["ground"](g)
-        K["water"](0, 16, 0.8, 2.2)
-        K["water"](176, 192, 0.8, 2.2)
-        K["poly"]([(16, 2.2), (176, 2.2), (176, 5.0), (16, 5.0)], K["C"]["water"])
-        K["city"](g, 22, 172, step=3.0, h=1.6, focus=96, roof=False)
-        for x in (54, 82, 110, 138):                      # v9.2: slots are voids cut through the plate, accent edged
-            K["poly"]([(x - 1.6, 5.0), (x + 1.6, 5.0), (x + 1.6, 9.0), (x - 1.6, 9.0)], "FFFFFF")
-            for xe in (x - 1.6, x + 1.6):
-                K["line"]([(xe, 5.0), (xe, 9.4)], K["C"]["move"], 0.45)
-            K["arrow"]((x, 13.5), (x, 6.0), "water")
-        K["people"]([58, 86, 114], 9.4)
-        K["road"](188, 2.6, 11.0)
-        K["arrow"]((187.0, 14.0), (179.5, 4.2), "bus")
-        lab(u"slots to the water below", 96, 17.0, True, "C")
-        br(0, 16, -0.6, u"TABAK KÖPRÜSÜ")
-        br(20, 172, -0.6, u"THE STREAM UNDER THE TOWN · 234 M")
-        br(178, 192, -0.6, u"BUSES")
+        g = [(0, 5.6), (14, 5.6), (14, 7.4), (18, 14.5), (174, 14.5), (178, 7.4), (178, 5.6), (192, 5.6)]
+        terrain(g)
+        water(0, 14, 7.4, g)
+        water(178, 192, 7.4, g)
+        for i_, xc in enumerate(range(26, 170, 6)):              # the arasta: one row of shop units on the plate
+            block(xc - 2.0, xc + 2.0, 14.5, 2.2 + (0.6 if i_ % 4 == 0 else 0.0), 0.62, 0.92, "ctx")
+        slots = (54, 82, 110, 138)
+        for xs in slots:                                          # the slots: voids in the plate, accent rims
+            q = [o((xs - 2.4, 14.5), 0.18), o((xs + 2.4, 14.5), 0.18), o((xs + 2.4, 14.5), 0.5), o((xs - 2.4, 14.5), 0.5)]
+            poly(q, "6F8E8D", M_FR, Wt["move"] * 1.6)
+        cut(g, BASE)
+        poly([(18, 6.0), (174, 6.0), (174, 9.6), (18, 9.6)], "8FA6A5")    # the stream under the town, in the cut
+        poly([(18, 6.0), (174, 6.0), (174, 7.4), (18, 7.4)], C["water"])
+        for xs in slots:
+            poly([(xs - 1.2, 9.6), (xs + 1.2, 9.6), (xs + 1.2, 14.5), (xs - 1.2, 14.5)], "FFFFFF")
+            line([(xs - 1.2, 9.6), (xs - 1.2, 14.5)], M_FR, Wt["move"] * 1.6)
+            line([(xs + 1.2, 9.6), (xs + 1.2, 14.5)], M_FR, Wt["move"] * 1.6)
+        for xs in (54, 110):
+            K["arrow"]((xs, 24.0), (xs, 10.4), "water") if xs == 54 else None
+        people([60, 88, 116, 144], 14.5, 0.3)
+        K["road"](188.5, 7.6, 10.0)
+        K["arrow"]((187.0, 21.5), (180.0, 12.0), "bus")
+        lab(u"slots to the water below", 96, 27.0, True, "C")
+        br(0, 16, 2.0, u"TABAK KÖPRÜSÜ")
+        br(20, 172, 2.0, u"THE STREAM UNDER THE TOWN · 234 M")
+        br(178, 192, 2.0, u"BUSES")
     elif node == "N4":                                    # the temple that stands on the river
-        g = [(0, 9), (124, 9), (130, 2.5), (192, 2.5)]
-        K["ground"](g)
-        K["water"](128, 174, 0.8, 3.4, [(6.2, u"Q500")])
-        K["water"](174, 192, 0.8, 3.4)
-        lvl(6.2, 174, 192)
-        for xa in (70, 96):                               # the twin tunnels under the hall, the stream inside
-            arch = [(xa, 0.6)] + [(xa + 11 - 11 * math.cos(math.radians(a)), 0.6 + 5.2 * math.sin(math.radians(a)))
-                                  for a in range(0, 181, 12)] + [(xa + 22, 0.6)]
-            K["poly"](arch, K["C"]["water"], K["C"]["ink"], K["W"]["thin"])
-        K["city"](g, 4, 58, step=3.4, h=1.6, focus=150)
-        # v9.7: the Red Hall as the roofless brick hall it is today (tall walls, rows of round-arched windows),
-        # not a gabled shed; shape not to scale
-        K["poly"]([(80, 9), (104, 9), (104, 18.5), (80, 18.5)], K["C"]["paper"], K["C"]["her"], K["W"]["move"])
-        for xw in (83.5, 89.0, 94.5, 100.0):
-            for yw0, hw in ((14.2, 2.6), (10.2, 2.4)):
-                win = [(xw - 0.9, yw0)] + [(xw + 0.9 * math.cos(math.radians(a_)), yw0 + hw + 0.9 * math.sin(
-                    math.radians(a_))) for a_ in range(180, -1, -30)] + [(xw + 0.9, yw0)]
-                K["line"](win + [win[0]], K["C"]["her"], K["W"]["hair"] * 1.5)
-        K["steps"](120, 136, 9, 2.5, 4, base=2.5)
-        K["people"]([126, 132], 5.8)
-        K["move"]([(142, 16.0), (172, 16.0), (172, 17.3), (142, 17.3)])
-        for x in (146, 157, 168):
-            K["line"]([(x, 3.4), (x, 16.0)], K["C"]["move"], K["W"]["move"])
-        K["people"]([148, 155, 162], 17.3)
-        K["silhouette"]("arches", 184, 2.5, 1.0)
-        K["arrow"]((172.5, 17.6), (179.5, 7.6), "people")
-        lab(u"raised gathering", 150, 22.5, True, "C")
-        br(80, 104, -0.6, u"RED HALL")
-        br(118, 138, -0.6, u"TUNNEL MOUTH")
-        br(176, 192, -0.6, u"ÜÇ KEMER")
+        g = [(0, 14.5), (124, 14.5)] + steps(124, 138, 14.5, 7.4, 4) + [(138, 5.6), (192, 5.6)]
+        acc = ((124, 138),)
+        terrain(g, acc)
+        water(138, 192, 7.4, g)
+        town(g, 4, 60, 4.0, 0.45, 0.82, 2.4, 150)
+        a2, b2 = block(78, 106, 14.5, 10.0, 0.3, 0.78, "her")   # the Red Hall: roofless, rows of arched windows
+        for xw in (82.5, 88.0, 93.5, 99.0, 103.0):
+            for yw0, hw in ((20.6, 2.2), (16.4, 2.2)):
+                pts = [(xw - 0.8, yw0)] + [(xw + 0.8 * math.cos(math.radians(a_)), yw0 + hw + 0.8 *
+                                            math.sin(math.radians(a_))) for a_ in range(180, -1, -30)] + [(xw + 0.8, yw0)]
+                line([o(p, 0.3) for p in pts] + [o(pts[0], 0.3)], C["her"], hair * 1.6)
+        slab(142, 166, 22.0, g, 0.24, 0.56, stems=(146, 154, 162), th=0.9, ys=7.4)
+        arches_front(172, 190, 5.6, 6.6, 0.5, 3)                 # Üç Kemer
+        cut(g, BASE, acc)
+        for xa_ in (70, 96):                                     # the twin tunnels in the cut, the stream inside
+            arch = [(xa_, 5.0)] + [(xa_ + 11 - 11 * math.cos(math.radians(a_)), 5.0 + 6.0 * math.sin(math.radians(a_)))
+                                   for a_ in range(0, 181, 12)] + [(xa_ + 22, 5.0)]
+            poly(arch, "8FA6A5", C["ink"], Wt["thin"])
+            poly([(xa_ + 0.6, 5.0), (xa_ + 21.4, 5.0), (xa_ + 21.0, 7.4), (xa_ + 1.0, 7.4)], C["water"])
+        people([148, 154, 160], 22.9, 0.4)
+        people([127, 134], lambda x_: gy(g, x_), 0.2)
+        level(11.0, 131.0, 192, u"Q500", lx=139.0)
+        K["arrow"]((168.0, 25.0), (178.0, 17.5), "people")
+        lab(u"raised gathering", 158, 30.5, True, "C")
+        br(80, 104, 2.0, u"RED HALL")
+        br(118, 138, 2.0, u"TUNNEL MOUTH")
+        br(172, 190, 2.0, u"ÜÇ KEMER")
     elif node == "N5":                                    # the bank as the front yard
-        g = [(0, 9), (124, 9), (146, 2.5), (192, 2.5)]
-        K["ground"](g)
-        K["water"](142, 192, 0.8, 3.4)
-        K["city"](g, 8, 116, step=7.2, h=1.8, focus=124)   # v9.5: the town band stays low (STYLE v2)
-        K["line"]([(119, 9), (119, 12.0)], K["C"]["ink"], K["W"]["thin"] * 2)
-        K["move"]([(124, 9), (134, 9), (134, 12.6), (124, 12.6)])
-        K["steps"](134, 148, 9, 2.5, 4, base=2.5)
-        K["people"]([138, 142, 146], 5.8)
-        K["arrow"]((110.0, 10.4), (123.0, 11.6), "people")
-        K["road"](0, 9.2, 11.0)
-        K["arrow"]((4.0, 15.0), (18.0, 10.4), "bus")
-        lab(u"front yard to the water", 136, 15.5, True, "C")   # v9.5: over its move
-        br(0, 6, -0.6, u"BUSES")
-        br(10, 116, -0.6, u"HOUSES TURN THEIR BACKS TO THE STREAM")
-        br(124, 150, -0.6, u"THE BANK")
+        g = [(0, 14.5), (134, 14.5)] + steps(134, 150, 14.5, 7.4, 4) + [(150, 5.6), (192, 5.6)]
+        acc = ((134, 150),)
+        terrain(g, acc)
+        water(150, 192, 7.4, g)
+        town(g, 10, 114, 7.0, 0.36, 0.82, 3.2, 124)
+        shadow(124, 134, 14.5, 0.25, 0.7)
+        block(124, 134, 14.5, 4.2, 0.25, 0.7, "move")                                  # the pavilion on the dry top
+        cut(g, BASE, acc)
+        people([138, 142, 146], lambda x_: gy(g, x_), 0.25)
+        K["road"](1.5, 14.5, 9.0)
+        K["arrow"]((5.0, 26.0), (15.0, 20.5), "bus")
+        K["arrow"]((122.0, 26.0), (128.5, 21.0), "people")
+        lab(u"front yard to the water", 138, 28.5, True, "C")
+        br(0, 6, 2.0, u"BUSES")
+        br(10, 116, 2.0, u"HOUSES TURN THEIR BACKS TO THE STREAM")
+        br(124, 152, 2.0, u"THE BANK")
     elif node == "N6":                                    # the door to the town
-        g = [(0, 9), (106, 9), (118, 2.5), (150, 2.5), (160, 9), (192, 9)]
-        K["ground"](g)
-        K["water"](116, 152, 0.8, 3.4)
-        for i in range(4):                                # the sheds: one low saw-tooth band
-            xa = 4 + i * 17.0
-            K["poly"]([(xa, 9), (xa + 15, 9), (xa + 15, 10.6), (xa + 7.5, 11.6), (xa + 7.5, 10.6), (xa, 11.6)],
-                      K["C"]["ctx"])
-        K["poly"]([(106, 9.0), (160, 9.0), (160, 10.0), (106, 10.0)], "FFFFFF", K["C"]["ink"], 0.3)   # road bridge
-        for x in (128, 140):
-            K["line"]([(x, 2.5), (x, 9.0)], K["C"]["ink"], 0.3)
-        K["road"](188, 9.2, 11.0)
-        K["arrow"]((186.0, 12.0), (162.0, 12.0), "bus")
-        K["move"]([(80, 14.0), (104, 14.0), (104, 15.4), (80, 15.4)])
-        for x in (84, 100):
-            K["line"]([(x, 9), (x, 14.0)], K["C"]["move"], K["W"]["move"])
-        K["people"]([87, 93, 99], 15.4)
-        K["arrow"]((112.0, 10.4), (105.0, 13.6), "people")
-        lab(u"lifted, facing the arrival", 92, 21.0, True, "C")
-        br(4, 72, -0.6, u"SHEDS")
-        br(108, 160, -0.6, u"ROAD BRIDGE")
-        br(164, 192, -0.6, u"REGIONAL BUSES")
-    if node in ("N1", "N2", "N3", "N4", "N5", "N6"):     # v9.2: the one heavy line runs whole, over water and moves
-        K["line"](g, K["C"]["ink"], K["W"]["cut"])
+        g = [(0, 14.5), (106, 14.5), (116, 7.4), (118, 5.6), (150, 5.6), (152, 7.4), (160, 14.5), (192, 14.5)]
+        terrain(g)
+        water(116, 152, 7.4, g)
+        for i in range(4):                                       # the sheds: one low saw-tooth band
+            xa_ = 6 + i * 17.0
+            block(xa_, xa_ + 15, 14.5, 2.0, 0.45, 0.9, "grey")
+            r1, r2 = o((xa_, 16.5), 0.45), o((xa_ + 7.5, 16.5), 0.45)
+            poly([r1, (r1[0], r1[1] + 1.6), r2], "D6D1C7", X_LN, 0.1)
+            r1, r2 = o((xa_ + 7.5, 16.5), 0.45), o((xa_ + 15, 16.5), 0.45)
+            poly([r1, (r1[0], r1[1] + 1.6), r2], "D6D1C7", X_LN, 0.1)
+        block(106, 160, 14.5, 1.0, 0.25, 0.75, "ctx")            # the road bridge over the stream
+        for xp in (126, 140):
+            block(xp - 0.5, xp + 0.5, 5.6, 8.9, 0.42, 0.58, "grey")
+        slab(78, 102, 20.0, g, 0.26, 0.56, stems=(82, 98), th=0.9)
+        cut(g, BASE)
+        people([84, 90, 96], 20.9, 0.41)
+        K["road"](188.5, 14.5, 9.0)
+        K["arrow"]((185.0, 19.0), (164.0, 19.0), "bus")
+        K["arrow"]((112.0, 18.0), (104.0, 21.0), "people")
+        lab(u"lifted, facing the arrival", 90, 29.5, True, "C")
+        br(4, 74, 2.0, u"SHEDS")
+        br(106, 160, 2.0, u"ROAD BRIDGE")
+        br(166, 192, 2.0, u"REGIONAL BUSES")
 
 
 # ================================================================ small helpers (page mm)
@@ -587,6 +718,7 @@ def node_page(cfg, log):
     # v8 (Aras 16:30 UTC "use masterplan drawing directly with more details"): the plan IS his masterplan drawing
     # (MasterplanBase cache, every layer); MapBase stays behind the land-use count, and draws only if that cache is missing
     mp_rows, ex_rows = [], []
+    mb_in = False
     try:
         MPn, MPC = G["pc_mp_data"](log)
         # v8.1 (run 1: the plan came out as one beige sheet): pieces over MP_MAX_M2 are his picture / texture frames
@@ -598,9 +730,14 @@ def node_page(cfg, log):
         n_big = sum(1 for v_ in MPC["layers"].values() for e_ in v_ if cut_(e_))
         MPC = dict(MPC, layers=dict((kk, [e_ for e_ in v_ if not cut_(e_)]) for kk, v_ in MPC["layers"].items()))
         log.append(u"masterplan: %d sheet frames (> %.0f m2) and picture rectangles left out" % (n_big, MP_MAX_M2))
+        # v10 (Aras 15 Nov 06:12 UTC "in the nodes it is so appearant how missing our basemap is"): the shared base
+        # map (MapBase: joined streets, houses with shadows) is always under; his drawing adds everything but his own
+        # copy of the existing roads and buildings (ev-yol, builts2), which were fragments
+        items += its_
+        mb_in = True
         mp_cnt = MPn["mp_draw"](MPC, items, lambda xy: (X0 + F.local(xy)[0] * k, Y0 + F.local(xy)[1] * k), k,
                                 (X0, Y0, X0 + F.w * k, Y0 + F.h * k), None,
-                                layers=set(kk.split("/")[0] for kk in MPC["layers"]),
+                                layers=set(kk.split("/")[0] for kk in MPC["layers"]) - set(MP_EXISTING),
                                 style={"fill": {"su_outline": P["WATER_C"]}})   # v8.2: his river (a picture) as water
         seen = set()
         for kk in mp_cnt:
@@ -618,10 +755,10 @@ def node_page(cfg, log):
                                                     "line", col, nm[1]))
         log.append(u"plan = his masterplan: %s" % (u", ".join(u"%s %d" % kv for kv in sorted(mp_cnt.items())) or
                                                   u"nothing in this frame"))
-        if not mp_cnt:
-            items += its_
+        ex_rows[:0] = [r_ for r_ in MB["mb_legend"](MC, mb_cnt) if r_[0] in ("box", "line")][:4]
     except Exception as ex_:
-        items += its_
+        if not mb_in:
+            items += its_
         log.append(u"FLAG masterplan not drawn (%s: %s): press MasterplanBase once; MapBase drawn instead" % (
             type(ex_).__name__, ex_))
     sec_ids = set()
@@ -970,8 +1107,8 @@ def node_page(cfg, log):
         # v9.5: the why-here block follows the packed cuts up; the perspective room grows by what is freed
         yw = max(95.0, min(cur_top - 1.0, 150.0))
         items.append(T_(u"WHY HERE · %s" % st[0].upper(), 214.0, yw, 2.8, INK, True, "L", "diagrams"))
-        concept(node, items, 214.0, yw - 33.0, 192.0, 30.0, G)
-        yy = yw - 41.0
+        concept(node, items, 214.0, yw - 47.0, 192.0, 44.0, G)   # v10: the section-axo block is 44 mm tall
+        yy = yw - 53.0
         y_story = yy
         for para_ in st[1]:
             for ln in wrap(B, para_, 2.2, 90.0):
