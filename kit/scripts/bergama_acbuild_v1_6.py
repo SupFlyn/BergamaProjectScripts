@@ -37,7 +37,7 @@ Works when: the log's first line is "TAPIR OK <version>" and Archicad's Navigato
 """
 import os, re, json, math, time, glob
 
-VERSION = "v1.6"   # v1.6 (Aras 15 Nov 09:52-10:29 "draw our canopies much better like designed ones" / "Some closed areas underneath" / canopies in Archicad "yes please"): his master.svg canopies (kanopi layer) built as his reference: folded triangle-facet roof (meshes) with a timber louvre layer under it, Y steel columns (trunk + 2 arms) under the valleys on a 12 m bay, timber deck on a stone plinth bay by bay, a glazed room in every other bay where the floor is >= Q500 + 0.60 m, timber planters in the open bays; heights as Sections v1.28.2 (DfT 2.30 m clear, EA 0.60 m over Q500, ridge +1.8 m ASSUMED)   # v1.5 + Kızıl Avlu: the main hall outline(s) from the MasterplanBase cache (Sections library red_hall_load), roofless walls 19 m (Wikipedia, Red Basilica: "Its walls still survive up to a height of 19 metres"), no windows, no roof; v1.5 (15 Nov run 7: houses beyond the 200 m depth drawn as floating outlines): no marked distant area (only the 200 m behind each cut is drawn); publishing may take 30 min (the set grew)   # v1.4 v1.4 (15 Nov: Sections v1.18 moved the N4 lines): the Archicad origin is kept from the first run; a section whose line moved is deleted and made again on the new line (its view too), with a FLAG to refresh the publisher set   # v1.3 (run 4: houses 200 m behind stood in the sky, the hill under them was not drawn): per cut the ground behind (highest survey ground 10-200 m behind, every 2 m) written to acbuild.json for SectionsAC   # v1.2 (SectionsAC run 3: the DWGs held only the roofs = the one element type without a BG layer, so the BG layers are not shown in the views): every element on the tool default layers; registration blocks at -50 m (found by geometry); no terrain mesh (our ground is drawn instead)   # v1.1 (14 Nov run 1): mesh without layerIndex (Tapir schema), hipped roofs as one-level polyroofs, footprints cleaned (slab failures)
+VERSION = "v1.6"   # v1.6 (also: the ground-behind profile reaches 1000 m, as houses of other cuts beyond 200 m show in the sections); v1.6 (Aras 15 Nov 09:52-10:29 "draw our canopies much better like designed ones" / "Some closed areas underneath" / canopies in Archicad "yes please"): his master.svg canopies (kanopi layer) built as his reference: folded triangle-facet roof (meshes) with a timber louvre layer under it, Y steel columns (trunk + 2 arms) under the valleys on a 12 m bay, timber deck on a stone plinth bay by bay, a glazed room in every other bay where the floor is >= Q500 + 0.60 m, timber planters in the open bays; heights as Sections v1.28.2 (DfT 2.30 m clear, EA 0.60 m over Q500, ridge +1.8 m ASSUMED)   # v1.5 + Kızıl Avlu: the main hall outline(s) from the MasterplanBase cache (Sections library red_hall_load), roofless walls 19 m (Wikipedia, Red Basilica: "Its walls still survive up to a height of 19 metres"), no windows, no roof; v1.5 (15 Nov run 7: houses beyond the 200 m depth drawn as floating outlines): no marked distant area (only the 200 m behind each cut is drawn); publishing may take 30 min (the set grew)   # v1.4 v1.4 (15 Nov: Sections v1.18 moved the N4 lines): the Archicad origin is kept from the first run; a section whose line moved is deleted and made again on the new line (its view too), with a FLAG to refresh the publisher set   # v1.3 (run 4: houses 200 m behind stood in the sky, the hill under them was not drawn): per cut the ground behind (highest survey ground 10-200 m behind, every 2 m) written to acbuild.json for SectionsAC   # v1.2 (SectionsAC run 3: the DWGs held only the roofs = the one element type without a BG layer, so the BG layers are not shown in the views): every element on the tool default layers; registration blocks at -50 m (found by geometry); no terrain mesh (our ground is drawn instead)   # v1.1 (14 Nov run 1): mesh without layerIndex (Tapir schema), hipped roofs as one-level polyroofs, footprints cleaned (slab failures)
 GH_LABEL = "AcBuild"
 OUT_FOLDER = "bergama_archicad"
 LOG_NAME = "bergama_acbuild_log.txt"
@@ -53,6 +53,8 @@ PORTS = range(19723, 19744)        # Archicad's JSON API ports (the first Archic
 PUB_SET = "Bergama_Sections"       # publisher set name (made once by hand: DWG, the "Bergama sections" views)
 VIEW_FOLDER = "Bergama sections"
 BACK_M = 200.0                     # m behind the cut: the Sections script's BACK_M (v1.7)
+VIEW_M = 1000.0                    # v1.6: the ground-behind profile reaches this far (run 9: houses of the other cuts
+                                   # seen beyond 200 m floated over a 200 m profile in N1-B)
 SIDE_M = 10.0                      # m in front of the line still modelled (the buildings the line cuts)
 STOREY = {"sacred": 5.0, "monument": 5.0, "civic": 3.5, "industry": 4.5}   # else STOREY_M
 STOREY_M = 3.0
@@ -606,19 +608,6 @@ def main():
     pts = list(spots.values())
     tin = L_["Tin"]([(p[0] - ox, p[1] - oy, p[2]) for p in pts])
     zmin_all = min(p[2] for p in pts) if pts else 0.0
-    backs = {}
-    for name, A, B, Ln, u, n in rects:                     # v1.3: the ground behind, from the same TIN
-        prof, s = [], 0.0
-        while s <= Ln + 1e-9:
-            zs = [tin.z(A[0] + u[0] * s + n[0] * d - ox, A[1] + u[1] * s + n[1] * d - oy)
-                  for d in range(10, int(BACK_M) + 1, 5)]
-            zs = [z for z in zs if z is not None]
-            prof.append([round(s, 2), round(max(zs), 2) if zs else None])
-            s += 2.0
-        backs[name] = prof
-    log.append(u"ground behind: %d cut profiles (highest survey ground 10-%.0f m behind, every 2 m)" % (
-        len(backs), BACK_M))
-
     bld, skipped = [], 0
     for i, (b, x) in enumerate(zip(M["bld"], M.get("bld_x") or [[0, "", ""]] * len(M["bld"]))):
         ring = [tuple(q) for q in b[0]]
@@ -656,6 +645,24 @@ def main():
         log.append(u"Kızıl Avlu hall: %d points, walls %.0f m, base z %.1f m" % (len(ring), h_, bld[-1]["z"]))
     log.append(u"buildings in the cut rectangles: %d (%d cut by a line); %d without a floor count left out" % (
         len(bld), sum(1 for b in bld if b["cut"]), skipped))
+
+    backs, deep = {}, {}
+    for name, A, B, Ln, u, n in rects:                     # v1.3: the ground behind, from the same TIN
+        # v1.6: as deep as the farthest building this cut sees (other cuts' houses show beyond 200 m), <= VIEW_M
+        D = [so(q, A, u, n) for b in bld for q in b["ring"]]
+        dm = min(VIEW_M, max([BACK_M] + [o_ for s_, o_ in D if 0.0 <= s_ <= Ln and o_ > 0]))
+        deep[name] = dm
+        prof, s = [], 0.0
+        while s <= Ln + 1e-9:
+            zs = [tin.z(A[0] + u[0] * s + n[0] * d - ox, A[1] + u[1] * s + n[1] * d - oy)
+                  for d in list(range(10, int(BACK_M) + 1, 5)) + list(range(int(BACK_M) + 10, int(dm) + 1, 10))]
+            zs = [z for z in zs if z is not None]
+            prof.append([round(s, 2), round(max(zs), 2) if zs else None])
+            s += 2.0
+        backs[name] = prof
+    log.append(u"ground behind: %d cut profiles (highest survey ground 10 m to the farthest building seen, every "
+               u"2 m: %s)" % (len(backs), u", ".join(u"%s %.0f m" % kv for kv in sorted(deep.items()))))
+
 
     # ---- clear the previous run, stories, layers
     os.makedirs(CACHE_DIR, exist_ok=True)
