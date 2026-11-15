@@ -25,7 +25,7 @@ Items are the Basemap writer's tuples (page mm, y up):
 """
 import os, re, json, math, time, glob
 
-PC_VERSION = "v3.34"  # v3.34 (Aras 15 Nov 17:06-17:07 UTC "pull inside of the working area exactly from .svg like cut and paste" / "Make that for every drawing except slide 1", standing): pc_masterplan pastes master.svg inside the working area only: every layer (his existing ev-yol too), his own colours, cut to the working-area outline (clip PC_CLIP_WA = the map frame AND the working area, even-odd), over a paper-white fill of the working area that hides the base map; outside it each page keeps its own context; M.wa keeps the page rings and pc_write adds the clip; paste=False = the v3.29 behaviour; v3.33 (Aras 15 Nov 15:57 UTC "make these blue and red lines thinner like scale the lines according to the drawing size please across all drawings"): pc_stroke_k(w, h) = the stroke factor of a drawing w x h mm (sqrt of its area over PC_STROKE_REF, 0.35-1.0), pc_stroke(lw, k) applies it; v3.32 v3.32 (Aras 15 Nov 14:46 + his Archicad S-01 screenshot 15:02 UTC): pc_cut_mark in Archicad's section marker look (filled triangle on the cut at each end pointing the view, thin stub + dot + dash inward, name turned along the cut beyond the end, regular weight); v3.31 v3.31 (Aras 15 Nov 14:56 UTC "center the numbers in the boundries", standing): pc_text_c centres a mark's letters by their true Helvetica widths (no 5 % bold estimate); pc_cut_mark names use it; v3.30: pc_photos takes PNGs (SVG mime by extension) and an optional 6th item True = placed UNDER the drawing (PDF overlay off; SVG first in the file), for Page01Axo v4's Rhino 3D capture; v3.29 (Aras 15 Nov 14:45 UTC): pc_write puts the working-area dashes (layer study_area) on top of every other item ("make our working area dashed line as the most foreground line"); pc_masterplan draws master.svg (MasterplanBase cache, vector) on a map, for maps that use his masterplan as their base; v3.28: pc_text_c, a mark letter centred on its glyph box (Helvetica cap height 0.718 em: baseline = centre - 0.359 x size; Aras 15 Nov 13:50 UTC "letters are not centered in the boxes"); the loop badge numbers use it; v3.27: no white box behind any name (Aras 15 Nov 13:44 UTC "dont have a opaque background for texts in any single of the drawings"): Labels.put halo = pc_halo, a thin white text-shaped outline (8 white copies 0.1-0.25 mm round the name), no box; v3.26: pc_mapbase logs the fill rings read / in view per layer (MapBase v1.8 mb_fill_log; Aras 07:46 "you might be skipping somewhere in the fills"); v3.25: pc_mapbase a05 bridges a warm dark grey 7A7468 at 0.18 mm (run 1: black 0.3 mm bridge lines were the heaviest ink on the pale base); v3.24: pc_mapbase a05 streets a pale warm grey F5F3EE (MapBaseCheck run 1: white streets on white houses read as one white mass in the old town; houses stay white), the street-edge lines cut to the network (MapBase v1.7); v3.23: pc_mapbase context make-up (Aras 15 Nov 06:03-06:05 "too many stray lines ... houses fills are overlapping ... Roads are not clear"; "thousand times better as house designs" = the 13 Nov A05 house look): houses white with a pale outline (MapBase v1.6 adds the crisp grey shadow to the lower left and drops wall / edge pieces under 3 m); streets white on a darker ground with darker edges; walls lighter; style key "a05": False keeps the old look; v3.22: pc_dg_kit to DIAGRAM_STYLE v2 (ground 3 x other weights, pale-accent terraces, arches silhouette);  v3.21: v3.21: pc_dg_kit dashes at item[6] (Basemap writer), dash_at=4 for the Sections writer;  v3.20: v3.20: pc_dg_kit, the diagram kit of library/diagram_style/DIAGRAM_STYLE.md (Aras 21:30 UTC "all the diagrams are awful"); v3.19: v3.18 undone (the writer keeps a line's clip at item[4]: those lines were really unclipped); v3.17: SiteMap ring + b (survey box), pc_site_den, pc_north_deg, pc_sheet cols + span (legend columns beside a site_alan strip); v3.16: pc_loop names=True (stop names on the map), every stop outside the frame gets an edge arrow, the stream walk in either loop order (loop numbered from Asklepion, Aras 16:26); v3.15: SiteMap / pc_site_map (the map frame = site_alan turned flat, Aras 16:17 UTC "KEEP EVERY DRAWING STRICTLY IN SITE_ALAN"), pc_loop edge arrows to stops outside it, pc_north_items; v3.14: pc_cut_mark = two end arrows, no line between (Aras 16:05 UTC); v3.13: v3.13: pc_mp_data (MasterplanBase: the masterplan SVG cached in survey m); v3.12: pc_cut_mark, the R01 cut symbol (two arrows, Aras 15:37 UTC); v3.11: pc_loop (the heritage loop, one code for the heritage and the transit map; Aras 15:31) and pc_station_name; v3.10: pc_a3_den / pc_a3 (a map page fitted and centred on A3 or a slide panel, Aras 15:25-15:27 UTC); v3.9: no sources in the drawings (Aras 15:23 UTC): pc_nosrc on MapBase legend rows, empty credit skipped; v3.8: a name with no free place goes where it overlaps least (run 7); v3.7: Labels.block_line / block_items (names keep off lines: run 6 review); v3.6: the outside Python runs hidden (no console window, Aras 14 Nov 12:57 UTC); v3.5: frame check skips items with any clip id; pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
+PC_VERSION = "v3.35"  # v3.35 (Aras 15 Nov 19:48 UTC "much much faster"): pc_fast_load, the MapBase and MasterplanBase caches parsed once a Rhino session (marshal copy in sticky, same values and log lines); v3.34 v3.34 (Aras 15 Nov 17:06-17:07 UTC "pull inside of the working area exactly from .svg like cut and paste" / "Make that for every drawing except slide 1", standing): pc_masterplan pastes master.svg inside the working area only: every layer (his existing ev-yol too), his own colours, cut to the working-area outline (clip PC_CLIP_WA = the map frame AND the working area, even-odd), over a paper-white fill of the working area that hides the base map; outside it each page keeps its own context; M.wa keeps the page rings and pc_write adds the clip; paste=False = the v3.29 behaviour; v3.33 (Aras 15 Nov 15:57 UTC "make these blue and red lines thinner like scale the lines according to the drawing size please across all drawings"): pc_stroke_k(w, h) = the stroke factor of a drawing w x h mm (sqrt of its area over PC_STROKE_REF, 0.35-1.0), pc_stroke(lw, k) applies it; v3.32 v3.32 (Aras 15 Nov 14:46 + his Archicad S-01 screenshot 15:02 UTC): pc_cut_mark in Archicad's section marker look (filled triangle on the cut at each end pointing the view, thin stub + dot + dash inward, name turned along the cut beyond the end, regular weight); v3.31 v3.31 (Aras 15 Nov 14:56 UTC "center the numbers in the boundries", standing): pc_text_c centres a mark's letters by their true Helvetica widths (no 5 % bold estimate); pc_cut_mark names use it; v3.30: pc_photos takes PNGs (SVG mime by extension) and an optional 6th item True = placed UNDER the drawing (PDF overlay off; SVG first in the file), for Page01Axo v4's Rhino 3D capture; v3.29 (Aras 15 Nov 14:45 UTC): pc_write puts the working-area dashes (layer study_area) on top of every other item ("make our working area dashed line as the most foreground line"); pc_masterplan draws master.svg (MasterplanBase cache, vector) on a map, for maps that use his masterplan as their base; v3.28: pc_text_c, a mark letter centred on its glyph box (Helvetica cap height 0.718 em: baseline = centre - 0.359 x size; Aras 15 Nov 13:50 UTC "letters are not centered in the boxes"); the loop badge numbers use it; v3.27: no white box behind any name (Aras 15 Nov 13:44 UTC "dont have a opaque background for texts in any single of the drawings"): Labels.put halo = pc_halo, a thin white text-shaped outline (8 white copies 0.1-0.25 mm round the name), no box; v3.26: pc_mapbase logs the fill rings read / in view per layer (MapBase v1.8 mb_fill_log; Aras 07:46 "you might be skipping somewhere in the fills"); v3.25: pc_mapbase a05 bridges a warm dark grey 7A7468 at 0.18 mm (run 1: black 0.3 mm bridge lines were the heaviest ink on the pale base); v3.24: pc_mapbase a05 streets a pale warm grey F5F3EE (MapBaseCheck run 1: white streets on white houses read as one white mass in the old town; houses stay white), the street-edge lines cut to the network (MapBase v1.7); v3.23: pc_mapbase context make-up (Aras 15 Nov 06:03-06:05 "too many stray lines ... houses fills are overlapping ... Roads are not clear"; "thousand times better as house designs" = the 13 Nov A05 house look): houses white with a pale outline (MapBase v1.6 adds the crisp grey shadow to the lower left and drops wall / edge pieces under 3 m); streets white on a darker ground with darker edges; walls lighter; style key "a05": False keeps the old look; v3.22: pc_dg_kit to DIAGRAM_STYLE v2 (ground 3 x other weights, pale-accent terraces, arches silhouette);  v3.21: v3.21: pc_dg_kit dashes at item[6] (Basemap writer), dash_at=4 for the Sections writer;  v3.20: v3.20: pc_dg_kit, the diagram kit of library/diagram_style/DIAGRAM_STYLE.md (Aras 21:30 UTC "all the diagrams are awful"); v3.19: v3.18 undone (the writer keeps a line's clip at item[4]: those lines were really unclipped); v3.17: SiteMap ring + b (survey box), pc_site_den, pc_north_deg, pc_sheet cols + span (legend columns beside a site_alan strip); v3.16: pc_loop names=True (stop names on the map), every stop outside the frame gets an edge arrow, the stream walk in either loop order (loop numbered from Asklepion, Aras 16:26); v3.15: SiteMap / pc_site_map (the map frame = site_alan turned flat, Aras 16:17 UTC "KEEP EVERY DRAWING STRICTLY IN SITE_ALAN"), pc_loop edge arrows to stops outside it, pc_north_items; v3.14: pc_cut_mark = two end arrows, no line between (Aras 16:05 UTC); v3.13: v3.13: pc_mp_data (MasterplanBase: the masterplan SVG cached in survey m); v3.12: pc_cut_mark, the R01 cut symbol (two arrows, Aras 15:37 UTC); v3.11: pc_loop (the heritage loop, one code for the heritage and the transit map; Aras 15:31) and pc_station_name; v3.10: pc_a3_den / pc_a3 (a map page fitted and centred on A3 or a slide panel, Aras 15:25-15:27 UTC); v3.9: no sources in the drawings (Aras 15:23 UTC): pc_nosrc on MapBase legend rows, empty credit skipped; v3.8: a name with no free place goes where it overlaps least (run 7); v3.7: Labels.block_line / block_items (names keep off lines: run 6 review); v3.6: the outside Python runs hidden (no console window, Aras 14 Nov 12:57 UTC); v3.5: frame check skips items with any clip id; pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
 PC_NOWIN = 0x08000000 if os.name == "nt" else 0   # v3.6: CREATE_NO_WINDOW for the review-PNG / photo subprocesses
 PC_DATA = os.path.join("Data", "bergama_access_heritage.json")
 PC_CENTRE = os.path.join("Data", "selinos_centreline.json")
@@ -280,15 +280,53 @@ def pc_mb_lib(log):
     ns = {"__name__": "bergama_mapbase_lib"}
     exec(compile(code[:code.index(PC_MB_END)], src_, "exec"), ns)
     ns["BERGAMA_ROOT"] = pc_root()
+    ns["_pc_src"] = src_                              # v3.35: the library file, part of pc_fast_load's key
     log.append(u"base map: %s (%s %s)" % (src_, ns.get("GH_LABEL"), ns.get("VERSION")))
     return ns
 
 
+def pc_fast_load(tag, src_, files, load, log):
+    """v3.35 (Aras 15 Nov 19:48 UTC "optimize the scripts to be much much faster"): a cache read once per Rhino
+    session. The first page parses it as before (load(log)); the parsed result is kept as marshal bytes in Rhino's
+    sticky, keyed by the library script and each file's size + time, and the next page gets a fresh identical copy
+    (same values, same log lines) without parsing the JSON again. Any change to a file or the library -> parsed
+    again; a load with a FLAG line is never kept; outside Rhino nothing is kept"""
+    import marshal
+    try:
+        import scriptcontext as _scf
+        st = _scf.sticky
+    except Exception:
+        return load(log)
+    try:
+        k = [src_, os.stat(src_).st_mtime_ns]
+        for p in files:
+            s_ = os.stat(p) if os.path.isfile(p) else None
+            k.append([p, s_.st_size if s_ else None, s_.st_mtime_ns if s_ else None])
+    except Exception:
+        return load(log)
+    hit = st.get("bergama_fast_" + tag)
+    if hit and hit[0] == k:
+        log.extend(hit[2])
+        return marshal.loads(hit[1])
+    n0 = len(log)
+    C = load(log)
+    lines = log[n0:]
+    if C is not None and not any(u"FLAG" in l for l in lines):
+        try:
+            st["bergama_fast_" + tag] = (k, marshal.dumps(C), list(lines))
+        except Exception:
+            st.pop("bergama_fast_" + tag, None)
+    return C
+
+
 def pc_mb_data(log):
-    """v3.5: (MapBase library, its cache), loaded once a run"""
+    """v3.5: (MapBase library, its cache), loaded once a run (v3.35: parsed once a Rhino session, pc_fast_load)"""
     if "mb" not in PC_STATE:
         ns = pc_mb_lib(log)
-        C = ns["mb_load"](log)
+        R_ = ns["BERGAMA_ROOT"]
+        C = pc_fast_load("mb", ns["_pc_src"], [
+            os.path.join(R_, "cached", "bergama_mapbase", ns["MB_FILE"]), os.path.join(R_, ns["LC_FILE"]),
+            os.path.join(R_, ns["VEG_FILE"])], ns["mb_load"], log)
         if C is None:
             raise RuntimeError(u"press MapBase once (it caches the base map every page draws), then this page")
         PC_STATE["mb"] = (ns, C)
@@ -311,7 +349,8 @@ def pc_mp_data(log):
         ns = {"__name__": "bergama_masterplanbase_lib"}
         exec(compile(code[:code.index(PC_MB_END)], src_, "exec"), ns)
         ns["BERGAMA_ROOT"] = pc_root()
-        C = ns["mp_load"](log)
+        C = pc_fast_load("mp", src_, [os.path.join(pc_root(), "cached", ns["OUT_FOLDER"], ns["MP_FILE"])],
+                         ns["mp_load"], log)              # v3.35: parsed once a Rhino session
         if C is None:
             raise RuntimeError(u"press MasterplanBase once (it caches the masterplan every page draws), then this page")
         PC_STATE["mp"] = (ns, C)
