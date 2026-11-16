@@ -1,5 +1,5 @@
 {
- "what": "v6 (15 Nov 2026 22:2x UTC, Aras 22:10 'move the node 6 to the building that is across the river' + 22:15 screenshot 'n6 will be here' = his faceted-roof 'desings' building, u 1943-2099, v 301-381): N6 = strip u 1861-2181 (same 320 x 465 m) centred on that building; N6-A square to the stream through its middle, N6-B along its bank 30 m off the centreline, frame end to frame end. nodes_v5/lines_v5 = before. v5 (15 Nov 2026 15:2x UTC): N3 west end to u 705 so it reaches into the working area. v4 (15 Nov 2026, Aras 08:46 UTC 'yes' to moving N5 and N6 so the master.svg buildings sit inside them): N5 = strip u 1400-1795, N6 = u 1795-2115 (same v as v3); N5-A / N6-A cross the stream square to it through the building frames' middles (u 1699 / 2022), N5-B / N6-B run along the bank 12 / 30 m off the centreline at the frame ends (never crossing it), all edge to edge. nodes_v3/lines_v3 = before. v3 (15 Nov 2026, Aras approved the defaults 04:58 UTC: node frames apart and inside his masterplan drawing): every frame kept inside the masterplan drawing's frame (site_alan strip, 2,845 x 529 m, from the MasterplanBase cache matrix + svg_box); N1 cut to the strip's width; N5 and N6 slid across the strip (same size) to its far edge; N3 slid 51 m upstream and N4 starts where N3 ends and stops where N5 starts (no overlap); each A/B line re-run from frame edge to frame edge on the same line. nodes_v2/lines_v2 = before. Panel Review II section lines N1-A ... N6-B and node frames N1-N6 in survey coordinates (m). v2 (Aras 14 Nov 16:12-16:13 UTC: 'two section lines dont look at the same way ... if they are cross sections it is even better ... Section should cross all of the zone area at least'; 'shift this one aswell it is out of our working area'): A = square to the stream at the old A's stream point, from node frame edge to frame edge, looking downstream; B = parallel to the local stream direction (crossing A at right angles), 25-45 m off the stream on the frame-centre side where it stays out of the water inside the frame, frame edge to frame edge, looking at the stream. Both stay inside their node frame. lines_v1 = the 11 Nov lines (all looked the same way, some ran past the frame).",
+ "what": "v7 (16 Nov 2026 01:4x UTC): N2-B moved 20 m onto the bank top (see changes). v6 (15 Nov 2026 22:2x UTC, Aras 22:10 'move the node 6 to the building that is across the river' + 22:15 screenshot 'n6 will be here' = his faceted-roof 'desings' building, u 1943-2099, v 301-381): N6 = strip u 1861-2181 (same 320 x 465 m) centred on that building; N6-A square to the stream through its middle, N6-B along its bank 30 m off the centreline, frame end to frame end. nodes_v5/lines_v5 = before. v5 (15 Nov 2026 15:2x UTC): N3 west end to u 705 so it reaches into the working area. v4 (15 Nov 2026, Aras 08:46 UTC 'yes' to moving N5 and N6 so the master.svg buildings sit inside them): N5 = strip u 1400-1795, N6 = u 1795-2115 (same v as v3); N5-A / N6-A cross the stream square to it through the building frames' middles (u 1699 / 2022), N5-B / N6-B run along the bank 12 / 30 m off the centreline at the frame ends (never crossing it), all edge to edge. nodes_v3/lines_v3 = before. v3 (15 Nov 2026, Aras approved the defaults 04:58 UTC: node frames apart and inside his masterplan drawing): every frame kept inside the masterplan drawing's frame (site_alan strip, 2,845 x 529 m, from the MasterplanBase cache matrix + svg_box); N1 cut to the strip's width; N5 and N6 slid across the strip (same size) to its far edge; N3 slid 51 m upstream and N4 starts where N3 ends and stops where N5 starts (no overlap); each A/B line re-run from frame edge to frame edge on the same line. nodes_v2/lines_v2 = before. Panel Review II section lines N1-A ... N6-B and node frames N1-N6 in survey coordinates (m). v2 (Aras 14 Nov 16:12-16:13 UTC: 'two section lines dont look at the same way ... if they are cross sections it is even better ... Section should cross all of the zone area at least'; 'shift this one aswell it is out of our working area'): A = square to the stream at the old A's stream point, from node frame edge to frame edge, looking downstream; B = parallel to the local stream direction (crossing A at right angles), 25-45 m off the stream on the frame-centre side where it stays out of the water inside the frame, frame edge to frame edge, looking at the stream. Both stay inside their node frame. lines_v1 = the 11 Nov lines (all looked the same way, some ran past the frame).",
  "source": "nodes_sections_v2.json (section lines layer v3, 11 Nov 2026, units of B19_setB_layers2.1), placed by its plan frame (277.504, 5742.594, 7514.18 x 1397.44 units = site_alan 2,844.97 x 529.09 m, 2.641215 units per m)",
  "lines": {
   "N1-A": [
@@ -34,12 +34,12 @@
   ],
   "N2-B": [
    [
-    30100.93,
-    32220.59
+    30118.07,
+    32235.92
    ],
    [
-    29795.6,
-    32323.66
+    29814.26,
+    32338.47
    ]
   ],
   "N3-A": [
@@ -629,7 +629,8 @@
   "15 Nov 2026 05:3x UTC (run 12 FLAG: N4-B crossed the stream 77 deg off square): N4-B starts at u 1098 along the strip again (its v2 end), so it runs along the bank and no longer crosses the stream",
   "15 Nov 2026 08:5x UTC (Aras 08:46 'yes'): N5 u 1132-1531 -> 1400-1795, N6 u 2026-2343 -> 1795-2115 (master.svg bina_cerceve buildings at u 1605-1793 and 1939-2105, measured by the building-ideas thread +/-10 m); N5-A, N5-B, N6-A, N6-B redrawn; strip = basemap Frame of site_alan (FRAME_COPY), u from the west",
   "15 Nov 2026 15:2x UTC (Aras 15:14 'all the nodes are indeed in our working area', 15:14 'if your notes clashes update it to be carried to the inside of the area'): N3 Bazaar u 758-937 -> 705-937 (west end as library/node_ideas_2026-11-15/NODE_IDEAS.md, u 705); the v4 N3 frame lay wholly in the gap of the working area (Basemap calisma, u 735-981 along the strip, the covered stretch); now it overlaps the west working-area ring by 30 m at the upstream tunnel mouth. Lines unchanged (N3-A, N3-B stay inside). nodes_v4 = before",
-  "15 Nov 2026 22:2x UTC (Aras 22:10 + 22:15 screenshot): N6 u 1795-2115 -> 1861-2181, centred on his faceted-roof 'desings' building (u 1943-2099, v 301-381); N6-A, N6-B redrawn"
+  "15 Nov 2026 22:2x UTC (Aras 22:10 + 22:15 screenshot): N6 u 1795-2115 -> 1861-2181, centred on his faceted-roof 'desings' building (u 1943-2099, v 301-381); N6-A, N6-B redrawn",
+  "16 Nov 2026 01:4x UTC (Aras 01:40 'take the n2b section somewhere else'): N2-B moved 20 m away from the stream onto the bank top (same direction, same look), re-clipped to the N2 frame and 0.8 m shorter at each end (so Sections leaves out the old line's Archicad background, length differs > 1 m). The old line ran 0-30 m beside the stream at s 103-146 m and dropped into a 61-65 m survey dip (DXF NOKTA_TAKEOMETRI) 4-6 m below the beds up- and downstream (unverified). On the new line a TIN of the course DXF heights reads 87 to 71 m with no dip. lines_v6 = before."
  ],
  "nodes_v3": {
   "N1": {
@@ -1156,6 +1157,18 @@
    [
     30919.48,
     31065.1
+   ]
+  ]
+ },
+ "lines_v6": {
+  "N2-B": [
+   [
+    30100.93,
+    32220.59
+   ],
+   [
+    29795.6,
+    32323.66
    ]
   ]
  }
