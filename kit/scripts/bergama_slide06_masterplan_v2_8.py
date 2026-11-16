@@ -20,7 +20,7 @@ Reads  Data/bergama_pages_common.py and what it reads (MapBase + MasterplanBase 
 """
 import os, re, json, math, time
 
-VERSION = "v2"   # v2 (Aras 15 Nov 20:29 UTC "just putting masterplan would leave most of the page empty"; his rule NEVER SPLIT A DRAWING): the whole strip stays ONE drawing across the top; under it N1-N6 close-ups from the same master.svg at one larger scale (CLOSE_DEN, 3 x 2), each centred where its A and B cuts cross, with its frame and its two cuts; legend column at the right with his texture legend (colours as drawn on the page), north arrow and both scale bars
+VERSION = "v2.8"   # v2.8 (Aras 16 Nov 03:34-03:43 UTC): each node pin at its section_lines.json "pin" (where its A and B lines cross; v9), the zoom frames centred there; v2.7 (v2.6 run 16 Nov 01:23 UTC: the masterplan is now a placed print, so no vector piece gave the legend its colours and all 9 texture rows were left out): each texture row falls back to the colour of his own legend picture (sampled 15 Nov, AcBuild MAT) when the page has no vector piece of it;   # v2.6 (Aras 16 Nov 00:57 "place this pins over masterplan in correct places" + his pin picture): his pin: a coloured disc with N# in white, a short point down to a small white ring at the node place (the middle of the working area, v2.3), one colour per node as in his picture; drawn on top of the masterplan   # v2.5 v2.5 (Aras 16 Nov 00:47 "masterplan is no where near the svg ... the white mask outside of our working area is lost. node pins are really really awful"): his masterplan placed whole inside each frame (no cut to the working area), so his own white mask shows; node pins -> a small dark circle with N# in white, names dark   # v2.4 v2.4 (Aras 16 Nov 00:39 "node's zoom ins are not displaying anything" + screenshot: blank white inside the working area): each close-up gets its own masterplan stand-in colour and its own placement (pages_common places one masterplan print per page, at the strip's place); review PNGs made again after   # v2.3 v2.3 (Aras 16 Nov 00:32 "take node pins into the working area and in the middle width wise"): each pin sits in the working area, halfway across its width, on the line through the node centre square to the Selinos centreline   # v2.2 v2.2 (Aras 15 Nov 23:25 "from masterplan page remove the node areas just have those nodes as pins"): no N1-N6 frame rectangles (strip and close-ups); a pin at each node centre (mean of its frame corners), its name above it on the strip; legend row "node N1-N6" with the pin   # v2.1 v2.1 (Aras 15 Nov 23:10 "fix slide 6"; run FLAGs: 2 legend rows cut off, 4 section marks outside the frame): legend rows closer (pitch from the rows that must fit, 4.6-5.5 mm); every cut mark clipped to its panel inset by its name width so triangle and name stay inside (NO OVERFLOW)   # v2 v2 (Aras 15 Nov 20:29 UTC "just putting masterplan would leave most of the page empty"; his rule NEVER SPLIT A DRAWING): the whole strip stays ONE drawing across the top; under it N1-N6 close-ups from the same master.svg at one larger scale (CLOSE_DEN, 3 x 2), each centred where its A and B cuts cross, with its frame and its two cuts; legend column at the right with his texture legend (colours as drawn on the page), north arrow and both scale bars
 SLIDE = 6
 GH_LABEL = "Slide06"
 OUT_FOLDER = "bergama_slide06_masterplan"
@@ -40,10 +40,77 @@ BRIEF_DEN = 1000                     # the brief's scale for slide 6
 CLOSE_DEN = 2500                     # v2: the node close-ups (3 x the strip's 1:7,500)
 LEG_W, GAP = 88.0, 6.0               # v2: legend column width; gap between panels (mm)
 # v2: his texture legend (Aras 15 Nov 18:12-18:17 UTC) -> the masterplan layer it is drawn from on this page
+# v2.7: median colours of his legend pictures (15 Nov 18:12-18:16 UTC, as AcBuild MAT); river = his river tile
+TEX_PIC = {u"river": ("A7B2BA", None), u"bridges": ("928D8B", None), u"historic buildings": ("B56D61", None),
+           u"our buildings (blue = glass)": ("F7F7F7", "989BAD"), u"timber decks": ("BAA89A", None),
+           u"shading canopies": ("F4F4F4", "818282"), u"reed beds": ("707D56", None),
+           u"stepped terraces into the river": ("E5DFD7", "6F6D6A"), u"stone paving at the water": ("CECFCE", None)}
 TEX_LEGEND = ((u"river", ("su", "ana_su")), (u"bridges", ("kopruler",)), (u"historic buildings", ("heritage", "kizil_avlu")),
               (u"our buildings (blue = glass)", ("desings",)), (u"timber decks", ("teras",)),
               (u"shading canopies", ("kanopi",)), (u"reed beds", ("su_bitkii",)),
               (u"stepped terraces into the river", ("begum_su_merdiven",)), (u"stone paving at the water", ("iskele_kenari",)))
+
+
+PIN_COL = dict(N1="5E7C57", N2="4C8788", N3="C26E51", N4="C48A51", N5="679494", N6="617C5B")   # v2.6: read off his
+                                                     # pin picture (16 Nov 00:57 UTC), one colour per node
+
+
+def pin_(G, x, y, txt, col, r=1.8):
+    """v2.6: his pin: the small white ring sits on the node place (x, y); a disc of radius r 1.33 r above it with the
+    N# in white; a short point joins them (proportions as his picture)"""
+    circ = lambda cx, cy, rr: [(cx + rr * math.cos(2 * math.pi * k / 32.0), cy + rr * math.sin(2 * math.pi * k / 32.0))
+                               for k in range(32)]
+    cy = y + 1.33 * r
+    tail = [(x - 0.32 * r, cy - 0.9 * r), (x + 0.32 * r, cy - 0.9 * r), (x, y + 0.42 * r)]
+    return [G["P_"]([tail], col, None, 0.0, "node_pins"), G["P_"]([circ(x, cy, r)], col, None, 0.0, "node_pins"),
+            G["P_"]([circ(x, y, 0.27 * r)], "FFFFFF", col, max(0.15, 0.13 * r), "node_pins"),
+            G["pc_text_c"](txt, x, cy, r * 0.95, "FFFFFF", "node_pins")]
+
+
+def whole_mp(items, G):
+    """v2.5: his masterplan stand-in cut to the frame only (not the working area): his file as drawn, white mask too"""
+    out = []
+    for it_ in items:
+        if it_[0] == "poly" and it_[6] == u"mp/master_print" and len(it_) > 9 and it_[9] == G["PC_CLIP_WA"]:
+            it_ = tuple(it_[:9]) + (G["PC_CLIP"],) + tuple(it_[10:])
+        out.append(it_)
+    return out
+
+
+def wa_mid(G, c, log):
+    """v2.3: the middle of the working area across its width at node centre c (survey m): the line through c square to
+    the Selinos centreline cut by the working-area rings (Basemap cache calisma); the inside run holding c, else the
+    nearest one; c itself (FLAG) when nothing is read"""
+    try:
+        with open(os.path.join(G["pc_root"](), G["PC_STUDY_CACHE"]), encoding="utf-8") as f:
+            cal = [R for R in (json.load(f).get("calisma") or []) if len(R) >= 3]
+    except Exception as ex:
+        log.append(u"FLAG node pins: working area not read (%s): pins at the frame centres" % ex)
+        return c
+    CL = G["pc_selinos_line"]()
+    i = min(range(len(CL)), key=lambda j: G["pc_dist"](CL[j], c))
+    a, b = CL[max(i - 1, 0)], CL[min(i + 1, len(CL) - 1)]
+    L = math.hypot(b[0] - a[0], b[1] - a[1]) or 1.0
+    nx, ny = -(b[1] - a[1]) / L, (b[0] - a[0]) / L        # square to the stream
+    ss = []
+    for R in cal:
+        for p, q in zip(R, R[1:] + R[:1]):
+            ex_, ey_ = q[0] - p[0], q[1] - p[1]
+            den = nx * ey_ - ny * ex_
+            if abs(den) < 1e-12:
+                continue
+            wx, wy = p[0] - c[0], p[1] - c[1]
+            u = (nx * wy - ny * wx) / den                 # along the edge
+            if 0.0 <= u < 1.0:
+                ss.append((wx * ey_ - wy * ex_) / den)    # along the normal from c
+    ss.sort()
+    runs = [(ss[k], ss[k + 1]) for k in range(0, len(ss) - 1, 2)]
+    if not runs:
+        log.append(u"FLAG node pins: no working-area edge across the node: pin at the frame centre")
+        return c
+    r = min(runs, key=lambda t: 0.0 if t[0] <= 0.0 <= t[1] else min(abs(t[0]), abs(t[1])))
+    m = (r[0] + r[1]) / 2.0
+    return (c[0] + nx * m, c[1] + ny * m)
 
 
 def load_common():
@@ -80,20 +147,25 @@ def main():
     # base map + his masterplan inside the working area
     MB = G["pc_mapbase"](M, K, log, MB_LAYERS, {"lc_light": 0.8, "water_hatch": None})
     items = MB[0]
-    items += G["pc_masterplan"](M, log)
+    items += whole_mp(G["pc_masterplan"](M, log), G)   # v2.5: whole, his white mask included
     items += G["pc_study"](M, K, log)
     # node frames
     with open(os.path.join(BERGAMA_ROOT, LINES_JSON), encoding="utf-8") as f:
         SL = json.load(f)
     lw_f = G["pc_stroke"](0.5, sk)
-    for nd, v in sorted(SL["nodes"].items()):
-        R = [T(p) for p in v["corners"]]
-        for run in M.clip(R + [R[0]]):                   # cut to the map frame
-            items.append(L_(run, ACC, lw_f, "node_frames"))
-        top = max(R, key=lambda q: q[1])
-        top = (min(max(top[0], M.box[0] + 15.0), M.box[2] - 15.0), min(top[1], M.box[3] - 4.0))
-        items.append(T_(u"%s %s" % (nd, v["name"]), top[0], top[1] + 1.2, tm["label"], ACC, "node_frames", True, "C"))
-    log.append(u"node frames: %s (section_lines.json %s)" % (u", ".join(sorted(SL["nodes"])), SL["what"][:3]))
+    PIN = {}
+    for nd, v in sorted(SL["nodes"].items()):          # v2.2: a pin per node, no frame
+        if v.get("pin"):                                 # v2.8 (Aras 03:43 "use them"): where its A and B lines cross
+            PIN[nd] = tuple(v["pin"])
+        else:
+            PIN[nd] = wa_mid(G, (sum(q[0] for q in v["corners"]) / len(v["corners"]),
+                                 sum(q[1] for q in v["corners"]) / len(v["corners"])), log)   # v2.3: mid working area
+        c_ = T(PIN[nd])
+        items += pin_(G, c_[0], c_[1], nd, PIN_COL.get(nd, INK))
+        top = (min(max(c_[0], M.box[0] + 15.0), M.box[2] - 15.0), min(c_[1] + 5.0, M.box[3] - 4.0))
+        items.append(T_(v["name"], top[0], top[1], tm["label"], INK, "node_pins", False, "C"))
+    log.append(u"node pins (section_lines pin, else mid working area): %s" % u", ".join(u"%s %.0f,%.0f" % (k, q[0], q[1]) for k, q in sorted(PIN.items())))
+    log.append(u"node pins: %s (section_lines.json %s)" % (u", ".join(sorted(SL["nodes"])), SL["what"][:3]))
     # section lines
     CL = G["pc_selinos_line"]()
     n_cut = 0
@@ -107,7 +179,14 @@ def main():
         else:                                             # along the bank: looking at the stream
             dl = (CL[i][0] - mid[0], CL[i][1] - mid[1])
         q0, q1 = T(mid), T((mid[0] + dl[0], mid[1] + dl[1]))
-        items += G["pc_cut_mark"](T(a), T(b), (q1[0] - q0[0], q1[1] - q0[1]), nm, layer="section_names",
+        pad_, bx_ = tw(nm, tm["label"], False) + 3.5, M.box   # v2.1: triangle + name stay inside the strip frame
+        M.box = (bx_[0] + pad_, bx_[1] + pad_, bx_[2] - pad_, bx_[3] - pad_)
+        runs = M.clip([T(a), T(b)])
+        M.box = bx_
+        if not runs:
+            log.append(u"FLAG %s: no room for its mark inside the strip frame: left out" % nm)
+            continue
+        items += G["pc_cut_mark"](runs[0][0], runs[-1][-1], (q1[0] - q0[0], q1[1] - q0[1]), nm, layer="section_names",
                                   ts=tm["label"])
         n_cut += 1
     log.append(u"section lines: %d (A across the stream looks downstream, B along the bank looks at the stream)" % n_cut)
@@ -119,6 +198,7 @@ def main():
     top_ = M.box[1] - 2 * GAP
     ph = (top_ - MARGIN - 2 * 5.0 - GAP) / 2.0
     n_p, n_drop = 0, [0]
+    CLOSE_MP = []                                        # v2.4: (stand-in colour, placement) per close-up
 
     def inside_(it_, bx):
         if it_[0] == "text":
@@ -147,7 +227,12 @@ def main():
         Mi.box = (cx_, cy_, cx_ + pw, cy_ + ph)
         pid = u"n%d" % (i_ + 1)
         sub = G["pc_mapbase"](Mi, K, log, MB_LAYERS, {"lc_light": 0.8, "water_hatch": None})[0]
-        sub += G["pc_masterplan"](Mi, log)
+        mk_ = u"0103%02X" % (6 + i_)                     # v2.4: this window's own stand-in colour
+        mk0_, G["PC_MP_MARK"] = G["PC_MP_MARK"], mk_
+        sub += whole_mp(G["pc_masterplan"](Mi, log), G)   # v2.5
+        G["PC_MP_MARK"] = mk0_
+        if getattr(Mi, "mp_place", None):
+            CLOSE_MP.append((mk_, Mi.mp_place))
         sub += G["pc_study"](Mi, K, log)
         ren = {"map": pid, "map_wa": pid + u"_wa"}
         for it_ in sub:                                  # the window's own clips
@@ -162,14 +247,17 @@ def main():
         ring_ = [[(Mi.box[0], Mi.box[1]), (Mi.box[2], Mi.box[1]), (Mi.box[2], Mi.box[3]), (Mi.box[0], Mi.box[3])]]
         clips[pid] = [ring_]
         clips[pid + u"_wa"] = [ring_] + [[list(R) for R in getattr(Mi, "wa", None) or []]] if getattr(Mi, "wa", None) else [ring_]
-        R = [Mi.T(q) for q in v["corners"]]
-        for run in Mi.clip(R + [R[0]]):
-            items.append(L_(run, ACC, G["pc_stroke"](0.5, 1.0), "node_frames"))
+        c_ = Mi.T(PIN[nd])                               # v2.3: the same pin place as on the strip
+        if Mi.box[0] + 2.0 <= c_[0] <= Mi.box[2] - 2.0 and Mi.box[1] + 1.0 <= c_[1] <= Mi.box[3] - 6.0:
+            items += pin_(G, c_[0], c_[1], nd, PIN_COL.get(nd, INK), 2.2)   # v2.6: his pin
         for nm in (nd + u"-A", nd + u"-B"):
             if nm not in SL["lines"]:
                 continue
             a, b = SL["lines"][nm]
+            pad_, bx_ = tw(nm, tm["label"], False) + 3.5, Mi.box   # v2.1: triangle + name stay inside the window
+            Mi.box = (bx_[0] + pad_, bx_[1] + pad_, bx_[2] - pad_, bx_[3] - pad_)
             runs = Mi.clip([Mi.T(a), Mi.T(b)])
+            Mi.box = bx_
             if not runs:
                 continue
             p0, p1 = runs[0][0], runs[-1][-1]
@@ -194,7 +282,7 @@ def main():
     it.append(T_(u"MASTERPLAN", MARGIN, yt, tm["title"], INK, "title", True))
     it.append(T_(u"The Selinos as a stepped, amphibious bed: the whole working area with the six nodes and the 12 "
                  u"section lines; below, the six nodes closer", MARGIN, yt - tm["sub"] * 1.6, tm["sub"], INK, "title"))
-    rows = [(lambda x, y: [L_([(x - 4.5, y), (x + 4.5, y)], ACC, lw_f, "legend")], u"node frame N1-N6"),
+    rows = [(lambda x, y: pin_(G, x, y - 1.6, u"N1", PIN_COL["N1"], 1.5), u"node N1-N6"),
             (lambda x, y: [L_([(x - 4.5, y), (x + 4.5, y)], K["study"][0], K["study"][1], "legend", (2.4, 0.8))],
              u"working area"),
             (lambda x, y: G["pc_cut_mark"]((x - 4.5, y), (x + 4.5, y), (0.0, 1.0), u"", layer="legend",
@@ -207,7 +295,7 @@ def main():
                     drawn[w_] = (it_[2], it_[3])
     miss_ = []
     for label, keys in TEX_LEGEND:
-        c_ = next((drawn[k_] for k_ in keys if k_ in drawn), None)
+        c_ = next((drawn[k_] for k_ in keys if k_ in drawn), None) or TEX_PIC.get(label)   # v2.7
         if c_ is None:
             miss_.append(label)
             continue
@@ -218,13 +306,14 @@ def main():
     rows += G["pc_mb_legend"]([r_ for r_ in MB[1] if u"WorldCover" not in r_[2]], K)
     lx = PAGE[0] - MARGIN - LEG_W
     y = top_ - 2.0
+    pitch = max(4.6, min(5.5, (y - MARGIN - 40.0) / max(1, len(rows) - 1)))   # v2.1: every row fits when it can
     for draw, label in rows:
-        if y < MARGIN + 40.0:
+        if y < MARGIN + 40.0 - 0.01:                      # v2.1: tolerance for the exact pitch
             log.append(u"FLAG legend: %d row(s) did not fit the column" % (len(rows) - rows.index((draw, label))))
             break
         it += draw(lx + 5.0, y + 1.0)
         it.append(T_(label, lx + 13.0, y, tm["legend"], INK, "legend"))
-        y -= 5.5
+        y -= pitch
     cx, cy, r = lx + 8.0, MARGIN + 28.0, 5.5
     it += G["pc_north_items"](cx, cy, r, M.north, INK)
     for row_, (dd, nm_) in enumerate(((den, u"strip"), (CLOSE_DEN, u"close-ups"))):
@@ -244,6 +333,19 @@ def main():
     M.box = (MARGIN, MARGIN, PAGE[0] - MARGIN, PAGE[1] - MARGIN)   # v2: the frame check over the whole sheet
     paths = G["pc_write"](lib, M, items, OUT_DIR, NAME, u"Masterplan, 1:%d" % den, log, clips=clips)
     pdfs = [p_ for p_ in paths if p_.lower().endswith(".pdf")]
+
+    class _MP(object):                                   # v2.4: one close-up's placement for pc_mp_place
+        pass
+    mk0_ = G["PC_MP_MARK"]
+    for mk_, place_ in CLOSE_MP:
+        G["PC_MP_MARK"] = mk_
+        m_ = _MP()
+        m_.mp_place, m_.h, m_.w = place_, M.h, M.w
+        G["pc_mp_place"](paths, m_, log)
+    G["PC_MP_MARK"] = mk0_
+    log.append(u"close-ups: masterplan print placed in %d of 6 windows" % len(CLOSE_MP))
+    if CLOSE_MP and pdfs:
+        G["pc_review"](pdfs[0], os.path.join(OUT_DIR, "review"), log)   # the review PNGs again, with the close-ups
     if pdfs:
         G["pc_present"](pdfs[0], SLIDE, log)
     flags = [l for l in log if l.startswith(u"FLAG")]
