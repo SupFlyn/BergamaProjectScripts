@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# CURRENT VERSION: bergama_12sectionsRhino_v1_1.py = 12sectionsRhino v1.1 (levels from the Sections cache); v1 (16 Nov 2026): the 12 node sections N1-A ... N6-B
+# CURRENT VERSION: bergama_12sectionsRhino_v1_9.py = 12sectionsRhino v1.9 (site_alan key map, grey house silhouettes, outlined ground box); v1.8 (key map top right; B cuts without the false walled bed or bed mark; no stones; trees only where his masterplan has them); v1.7 (no zoom insets); v1.6 (assets at their median heights); v1.5 (closer cuts, bed and water on the drawn ground, trees and people added); v1.4 (water never under the bed); v1.3 (scale to fit A3); v1.2 (his masterplan trees on and behind the cuts); v1.1 (levels from the Sections cache); v1 (16 Nov 2026): the 12 node sections N1-A ... N6-B
 # and the four-seasons cut S4 in the look of booklet pp.13-15 (ProposalSections v18.1, copied whole; its own W1-W4
 # main is kept but no longer called). Trees and people: our asset library only (Data/cutouts). Water: mean yearly flow
 # and the maximum recorded gauge level; no Q100, no Q500 lines. Reads the Sections cache (run Sections first).
@@ -125,7 +125,7 @@ import datetime
 import types as _types
 
 # ---- SETTINGS ----
-VERSION = "v1.1"  # v1.1 (16 Nov, run 1): mean and max recorded levels interpolated from the levels Sections calculated (log Q), never under the bed; 12sectionsRhino v1 (16 Nov 2026): copy of ProposalSections v18.1 with a new main (see "12sectionsRhino v1" near the end). Earlier notes = ProposalSections:   # v18.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v18 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v17 (round 4 S7): p13a + p13b at 1:250, one text placer, markers, one trigger file; v16.4 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v16.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v16.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
+VERSION = "v1.9"  # v1.9 (Aras 16 Nov 02:00-02:02 UTC): key map = the whole site_alan strip of his masterplan with its border; every house a plain grey silhouette; the cut ground an outlined white box (no gradient); v1.8 (Aras 16 Nov 01:10-01:17 UTC): key map top right (his masterplan crop, the page's cuts); Sections' walled bed taken off the B cuts that do not cross the stream (N1-B, N2-B, N3-B, N4-B) and no bed mark there; Sections' grey "stones" ovals left out; no assumed 10 m trees, only his masterplan trees; v1.7 (Aras 04:07 TR): no zoom insets; v1.6 (Aras 04:01 TR): trees at our asset library's median heights; v1.5 (Aras 16 Nov 03:42 TR): 120 m round the stream drawn and fitted; bed = drawn survey low, Sections levels as they are (v1.4 lift undone); trees on our green spans; people on Sections stations; v1.4 (run 2): N4-A water under its bed fixed: depths from Sections carried onto the centreline bed; v1.3 (Aras 16 Nov 00:02 UTC "scale to fit"): each page drawn whole and scaled to fill the A3 (one factor per page; scale words, bars and inset scale give the printed scale); v1.2: v1.2 (Aras 16 Nov 00:00 UTC "the trees are no where to be seen"): his masterplan trees (PLANTING layer) on and behind each cut as our species cutouts at sourced heights; v1.1: v1.1 (16 Nov, run 1): mean and max recorded levels interpolated from the levels Sections calculated (log Q), never under the bed; 12sectionsRhino v1 (16 Nov 2026): copy of ProposalSections v18.1 with a new main (see "12sectionsRhino v1" near the end). Earlier notes = ProposalSections:   # v18.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v18 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v17 (round 4 S7): p13a + p13b at 1:250, one text placer, markers, one trigger file; v16.4 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v16.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v16.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
 GH_LABEL = "12sectionsRhino"
 OUT_FOLDER = "bergama_12sectionsRhino"
 LOG_NAME = "bergama_12sectionsRhino_log.txt"
@@ -11501,7 +11501,7 @@ def write_log(text):
 # (README s.5 "137 m³/s (Ilıca 203 m³/s, 2016)"). Levels (v1.1): interpolated linear in log Q between the Manning
 # levels Sections calculated on its own hydraulic cut for 0.423-263.33 m3/s (calculated). Season flows: the Sections cache levels (its own
 # Manning levels of 3.36 / 0.752 / 0.423 m3/s).
-TS_VERSION = "v1.1"
+TS_VERSION = "v1.9"
 TS_FOLDER = "bergama_12sectionsRhino"
 TS_SEC_DIR = os.path.join(BERGAMA, "cached", "bergama_sections")
 TS_W, TS_H, TS_M = 420.0, 297.0, 10.0      # A3 landscape, margin (mm)
@@ -11509,7 +11509,7 @@ TS_MARKS_W = 34.0                          # mm right of each drawing for the le
 TS_DENS = (500, 1000)                      # 1:500 first; 1:1000 when the rows do not fit the page height
 TS_INSET_DEN = 200                         # zoom inset 1:200 (2.5 x 1:500)
 TS_DEPTH_M = 2.0                           # m of earth drawn under the lowest ground
-TS_SKY_MM = (42.0, 30.0)                   # mm of sky over the highest ground (room for the zoom inset): 2 rows, 4 rows
+TS_SKY_MM = (8.0, 6.0)                     # mm of sky over the highest ground (no zoom inset since v1.7): 2 rows, 4 rows
 TS_Q_MEAN, TS_Q_MAXREC = 0.66, 137.0       # m3/s, see the notes above
 TS_N, TS_CHANNEL_M = 0.050, 40.0           # Manning n (Sections N_MANNING), channel search half width (Sections CHANNEL_M)
 TS_STRIP_D = 0.30                          # m, the summer strip depth (Sections STRIP_D, design)
@@ -11525,6 +11525,16 @@ TS_PEOPLE = {u"Promenade": (("person_walk", "person_stand", "person_adult_child"
              u"Stepped terraces": (("person_sit_step",), 4.0),
              u"Cycle path": (("person_bike",), 12.0),
              u"Green": (("person_walk", "person_child_play", "person_stand"), 10.0)}
+# v1.5 (Aras 16 Nov 03:42-03:44 TR "sections looks wrong", "please add trees", "please add humans", "please fix river
+# bed and water height"): each cut drawn over TS_WIN_M round the stream (A) or our proposals (B), not whole, so the
+# bed, water, trees and people read; the bed = the lowest SURVEY ground in the channel (the ground drawn), the water
+# levels = Sections' own levels over that same ground (v1.4's lift onto the centreline bed undone: it floated the water
+# over the drawn channel); trees on our green spans and people on Sections' people stations, our asset cutouts.
+TS_WIN_M = 120.0                            # m of cut drawn (drawing choice, ours)
+TS_TREE_GAP_M = 10.0                        # unused since v1.8 (no assumed trees on green spans)
+TS_TREE_MIX = ("plane", "ash", "stone_pine")   # unused since v1.8
+TS_STONE_FILL = "9C968A"                    # v1.8: fill of Sections' mp_ground "stones" ovals (left out)
+TS_PEOPLE_ALL = ("person_walk", "person_stand", "person_sit_step", "person_bike", "person_adult_child")
 TS_CACHE_FRONT = ("proposal ground", "proposal structures")
 TS_CACHE_BACK = ("proposal behind",)
 SF_LEVEL_NAMES.update({"maxrec": u"max. recorded", "mean": u"mean", "season": u"season", "strip": u"strip"})
@@ -11609,8 +11619,9 @@ def ts_level_cached(cj, Q):
     return ha + (hb - ha) * (lq - math.log(qa)) / (math.log(qb) - math.log(qa))
 
 
-def ts_cutout(key, n=0):
-    """(path, w/h, h_m) of one asset-library cutout (Data/cutouts/cutouts.json), or None"""
+def ts_cutout(key, n=0, depth=0):
+    """(path, w/h, h_m) of one asset-library cutout (Data/cutouts/cutouts.json), or None; depth 1 / 2 = the library's
+    paler depth tones (_d1 / _d2)"""
     lib = _TS_CUT.get("lib")
     if lib is None:
         lib = {}
@@ -11627,7 +11638,8 @@ def ts_cutout(key, n=0):
     if not es:
         return None
     e = es[n % len(es)]
-    p = os.path.join(DATA_DIR, "cutouts", e["file"])
+    f_ = (e.get("depth") or {}).get(str(depth)) if depth else None
+    p = os.path.join(DATA_DIR, "cutouts", f_ if f_ and os.path.isfile(os.path.join(DATA_DIR, "cutouts", f_)) else e["file"])
     sz = _TS_CUT.get(p)
     if sz is None:
         with open(p, "rb") as f:
@@ -11636,9 +11648,9 @@ def ts_cutout(key, n=0):
     return p, sz[0] / float(sz[1]), float(e.get("h_m") or 1.75)
 
 
-def ts_put_cutout(pg, key, x, y, k, n=0, flip=False, h_m=None):
+def ts_put_cutout(pg, key, x, y, k, n=0, flip=False, h_m=None, depth=0):
     """a cutout standing at page (x, y); returns its box or None"""
-    c = ts_cutout(key, n)
+    c = ts_cutout(key, n, depth)
     if not c:
         return None
     p, r, h0 = c
@@ -11646,6 +11658,69 @@ def ts_put_cutout(pg, key, x, y, k, n=0, flip=False, h_m=None):
     w = h * r
     pg.items.append(("image", x - w / 2.0, y, w, h, p, None, bool(flip), None))
     return (x - w / 2.0, y, x + w / 2.0, y + h)
+
+
+# v1.2 (Aras 16 Nov 00:00 UTC "the trees are no where to be seen. Use the trees like we use them in masterplan"):
+# the trees = his planted trees of the masterplan (MasterplanBase cache, the PLANTING layer: one round symbol = one
+# tree, centre and crown, species from the layer name; read as Sections v1.21-v1.26 reads them), each drawn with our
+# asset cutout of its species at its sourced mature height: on the cut (within 4 m of the line) and behind it (up to
+# 200 m, in the library's depth tones _d1 from 40 m, _d2 from 100 m), far to near with the houses.
+TS_MP_CACHE = os.path.join(BERGAMA, "cached", "bergama_masterplanbase", "masterplan.json")
+TS_TREE_H_M = {"stone_pine": 27.5, "plane": 15.0, "ash": 20.0, "willow": 20.0, "olive": 11.5, "tamarisk": 9.5}
+#   v1.6 (Aras 16 Nov 04:01 TR "do the assets at median scale of that assets respectively"): each tree at its asset's
+#   own median height = h_m of our asset library (Data/cutouts/cutouts.json = src/common/plants.py "middle of the
+#   sourced mature range; half of it where only a maximum is sourced"): plane 15 ("up to 30 m" S68, S69), ash 20
+#   ("40-45m" maximum S7), olive 11.5 ("8-15 m" S72), stone pine 27.5 ("25-30 m" S74), tamarisk 9.5 ("4-15 m" S9b);
+#   willow drawn with the ash cutout at the ash's 20 m. People at the library's 1.75 m (seated 1.30, child 1.15).
+#   (was: Van den Berk midpoints, Sections v1.26)
+TS_TREE_KEY = {"willow": "ash"}     # no willow cutout in our library (Data/cutouts/README.md): the ash cutout stands in
+TS_TREE_NEAR_M, TS_TREE_BACK_M = 4.0, 200.0   # Sections TREE_NEAR_M + 1 and TREE_BACK_M
+
+
+def ts_mp_trees(log):
+    """[(x, y, crown dia m, species)] of his planted trees from the MasterplanBase cache (once per run)"""
+    if "trees" in _TS_CUT:
+        return _TS_CUT["trees"]
+    raw = []
+    try:
+        with open(TS_MP_CACHE, encoding="utf-8") as f:
+            J = json.load(f)
+        _TS_CUT["Wm"] = J.get("matrix")                  # v1.8: master.svg units -> survey m (for the key maps)
+        _TS_CUT["svgbox"] = J.get("svg_box")             # v1.9: site_alan in master.svg units (2,845 x 529 m)
+        for key, pieces in J.get("layers", {}).items():
+            kl = key.lower()
+            if u"planting" not in kl or u"rosemary" in kl:
+                continue
+            sp = key.split("/")[-1].lower().replace(u"trees_", u"")
+            for p in pieces:
+                q = p[4]
+                if p[0] in ("r", "a", "s") and len(q) >= 3:
+                    xs, ys = [v[0] for v in q], [v[1] for v in q]
+                    dia = max(max(xs) - min(xs), max(ys) - min(ys))
+                    rnd = min(max(xs) - min(xs), max(ys) - min(ys)) / max(dia, 1e-6)
+                    if 1.0 <= dia <= 25.0 and rnd >= 0.6:
+                        raw.append(((max(xs) + min(xs)) / 2.0, (max(ys) + min(ys)) / 2.0, dia, sp))
+    except (IOError, OSError, ValueError) as ex:
+        log.append(u"FLAG masterplan trees: no MasterplanBase cache %s (%s): no trees" % (TS_MP_CACHE, ex))
+    cells = {}                                          # one tree per 1.5 m (symbol parts merged, largest kept)
+    for x, y, dia, sp in sorted(raw, key=lambda t: -t[2]):
+        k_ = (int(x // 1.5), int(y // 1.5))
+        if any((k_[0] + i, k_[1] + j) in cells for i in (-1, 0, 1) for j in (-1, 0, 1)):
+            continue
+        cells[k_] = (x, y, dia, sp)
+    out = list(cells.values())
+    sps = {}
+    for t in out:
+        sps[t[3]] = sps.get(t[3], 0) + 1
+    log.append(u"masterplan trees: %d from the PLANTING layer (%s); heights %s m (sourced, see TS_TREE_H_M)" % (
+        len(out), u", ".join(u"%s %d" % kv for kv in sorted(sps.items())),
+        u", ".join(u"%s %.1f" % kv for kv in sorted(TS_TREE_H_M.items()))))
+    _TS_CUT["trees"] = out
+    return out
+
+
+def ts_tree_h(sp, dia):
+    return TS_TREE_H_M.get(sp, min(14.0, max(5.0, 1.3 * dia)))
 
 
 def ts_clip_poly(R, xa, xb):
@@ -11707,6 +11782,9 @@ def ts_cache_items(its, dx, dy, xa, xb, layers, images, log_n):
         if t == "poly":
             if it[6] not in layers:
                 continue
+            if (u"%s" % it[2]).upper() == TS_STONE_FILL:       # v1.8 (Aras 01:11 "remove whatever the heck this is")
+                log_n.append(1)                                  # Sections' "tas" stones: grey ovals, never drawn
+                continue
             rings = [ts_clip_poly([(p[0] + dx, p[1] + dy) for p in R], xa, xb) for R in it[1]]
             rings = [R for R in rings if len(R) >= 3]
             if rings:
@@ -11742,6 +11820,40 @@ def ts_window(cj, sj, s_th, Wm):
     c = 0.5 * (a + b) if b - a <= Wm else s_th
     lo = max(w0, min(w1 - Wm, c - Wm / 2.0))
     return lo, lo + Wm
+
+
+# v1.9 (Aras 16 Nov 02:00 UTC "make all houses as gray silohouttes for sections"): every house, cut or behind, is a
+# plain grey silhouette (its survey height, standing on its ground); greys ours: cut, behind < 60 m, behind further
+TS_SIL = ("9E9E9E", "BDBDBD", "D6D6D6")
+
+
+def ts_silhouette(xa, xb, gy, h_m, k, col):
+    """one house as a flat grey silhouette: from its seat on the ground (sf_seat_box) up h_m, no windows or roof"""
+    xa, xb = min(xa, xb), max(xa, xb)
+    y0 = sf_seat_box(xa, xb, gy)
+    return [("poly", [(xa, y0), (xb, y0), (xb, y0 + h_m * k), (xa, y0 + h_m * k)], col, None, 0.0)]
+
+
+def ts_unwall(V, wl, name, log):
+    """v1.8 (Aras 16 Nov 01:10 UTC "n2b topography looks so wrong ... ground line looks off there"): Sections v1.30.x
+    puts its walled-channel bed (flat bed at the cut's lowest point, vertical wall faces; meant for cuts ACROSS the
+    stream) on every cut whose low point is in the walled-reach height band, also on the B cuts that run along the bank
+    and never cross the stream (N1-B, N2-B, N3-B, N4-B). Here that stretch goes back to a straight line between the
+    survey ground at its two ends (the pre-wall ground Sections replaced is not in its cache: APPROXIMATE, the same
+    straight fill its TIN draws between survey points)"""
+    sL, sR = float(wl[0]), float(wl[1])
+    atL = [p for p in V if abs(p[0] - sL) < 1e-6]
+    atR = [p for p in V if abs(p[0] - sR) < 1e-6]
+    left = [p for p in V if p[0] < sL - 1e-6]
+    right = [p for p in V if p[0] > sR + 1e-6]
+    zL = atL[0][1] if atL else (left[-1][1] if left else None)
+    zR = atR[-1][1] if atR else (right[0][1] if right else None)
+    if zL is None or zR is None:
+        return V
+    log.append(u"%s: v1.8 Sections' walled bed s %.1f-%.1f m (flat %+.2f) taken out: this cut does not cross the stream; "
+               u"ground there a straight line %+.2f to %+.2f (APPROXIMATE)" % (name, sL, sR, float(wl[2]) if len(wl) > 2
+                                                                              else zL, zL, zR))
+    return left + [(sL, zL), (sR, zR)] + right
 
 
 def ts_prof(V, lo, hi):
@@ -11789,9 +11901,16 @@ def ts_draw(name, cj, sj, cut_items, den, season, log, sky_mm):
     """one cut (season None = the node look: mean yearly flow) -> (TsSec, levels [(key, z)], note)"""
     k = 1000.0 / den
     V = [(float(p[0]), float(p[1])) for p in cj["surface"]]
+    if cj.get("walled") and not (sj and sj.get("slope") is not None):
+        V = ts_unwall(V, cj["walled"], name, log)          # v1.8: no walled bed on a cut that misses the stream
     s_th = float(sj["bed_low"][0]) if sj and sj.get("bed_low") else float(cj["channel"][0])
     z_th = float(cj["z_th"])
-    lo, hi = ts_window(cj, sj, s_th, (TS_W - 2 * TS_M - TS_MARKS_W) / k)
+    ch0 = [(s_, z_) for s_, z_ in V if abs(s_ - s_th) <= TS_CHANNEL_M]
+    if ch0:                                               # v1.5: the bed = the lowest survey ground in the channel
+        s_th, zb_h = min(ch0, key=lambda q: q[1])
+    else:
+        zb_h = z_th
+    lo, hi = ts_window(cj, sj, s_th, TS_WIN_M)            # v1.5: TS_WIN_M round the stream / proposals, then fitted
     if hi - lo < cj["window"][1] - cj["window"][0] - 0.5:
         log.append(u"%s: window s %.0f-%.0f m of %.0f-%.0f m drawn at 1:%d (the rest does not fit the A3 width)" % (
             name, lo, hi, cj["window"][0], cj["window"][1], den))
@@ -11803,8 +11922,8 @@ def ts_draw(name, cj, sj, cut_items, den, season, log, sky_mm):
     gy = sf_gy(S.P(prof))
     # ---- levels: the fill (mean yearly flow, or the season's) and the maximum recorded gauge level
     slope = sj.get("slope") if sj else None
-    bed, fill, maxrec, fill_key = z_th, None, None, "mean"
-    crosses = lo + 1.0 < s_th < hi - 1.0
+    bed, fill, maxrec, fill_key = zb_h, None, None, "mean"
+    crosses = lo + 1.0 < s_th < hi - 1.0 and bool(slope and slope > 0)
     if slope and slope > 0:
         maxrec = ts_level_cached(cj, TS_Q_MAXREC)            # v1.1: from Sections' own levels (its hydraulic cut)
         if season is None:
@@ -11815,28 +11934,54 @@ def ts_draw(name, cj, sj, cut_items, den, season, log, sky_mm):
             if v is None:
                 log.append(u"FLAG %s %s: no %s level in the Sections cache: no water drawn" % (name, season[0], season[2]))
         else:
-            bed, fill, fill_key = z_th - TS_STRIP_D, z_th, "strip"       # summer: the strip holds stored water
+            bed, fill, fill_key = zb_h - TS_STRIP_D, zb_h, "strip"       # summer: the strip holds stored water
     else:
         log.append(u"FLAG %s: no bed slope in sections.json (the cut does not cross the stream or the bed rises): no "
                    u"water levels" % name)
+    if fill is not None and fill <= bed + 0.005:
+        log.append(u"FLAG %s: the %s level %+.2f is not over the bed %+.2f: no water fill" % (name, fill_key, fill, bed))
+        fill = None
     lv = []
     if maxrec is not None:
         lv.append(("maxrec", maxrec))
     if fill is not None:
         lv.append((fill_key, fill))
-    if fill_key != "strip":
+    if fill_key != "strip" and crosses:                  # v1.8: no "bed" mark on a cut that misses the stream
         lv.append(("bed", bed))
-    # ---- houses behind (v18.1 elevations, far to near), our proposals behind, the asset trees behind
-    nb = 0
+    # ---- houses behind (v18.1 elevations) and his planted trees behind (v1.2), far to near
+    nb = ntb = 0
     dry = (maxrec if maxrec is not None else z_th + 2.0)
-    for b in sorted(cj.get("bld") or [], key=lambda d: -float(d.get("behind_m") or 0.0)):
-        if b.get("cut") or not b.get("h"):
+    trees_cut, back = [], []
+    if sj and sj.get("A") and sj.get("B"):
+        A, B = sj["A"], sj["B"]
+        L = math.hypot(B[0] - A[0], B[1] - A[1]) or 1.0
+        ux, uy = (B[0] - A[0]) / L, (B[1] - A[1]) / L
+        for x_, y_, dia_, sp_ in ts_mp_trees(log):
+            dx_, dy_ = x_ - A[0], y_ - A[1]
+            s_, o_ = dx_ * ux + dy_ * uy, -dx_ * uy + dy_ * ux     # Sections Cut.su: o > 0 = behind (the look side)
+            if not (lo + 1.0 <= s_ <= hi - 1.0):
+                continue
+            if abs(o_) <= TS_TREE_NEAR_M:
+                trees_cut.append((s_, sp_, ts_tree_h(sp_, dia_)))
+            elif 0.0 < o_ <= TS_TREE_BACK_M:
+                back.append((o_, "tree", (s_, sp_, ts_tree_h(sp_, dia_))))
+    for b in cj.get("bld") or []:
+        if not b.get("cut") and b.get("h"):
+            back.append((float(b.get("behind_m") or 0.0), "house", b))
+    for d_, kind, b in sorted(back, key=lambda t: -t[0]):
+        if kind == "tree":
+            s_, sp_, h_ = b
+            g = ps_z_at(prof, s_)                               # its ground: the cut ground at s (ASSUMED)
+            if g < dry:
+                continue                                        # never over the channel
+            if ts_put_cutout(pg, TS_TREE_KEY.get(sp_, sp_) if sp_ in TS_TREE_H_M else "plane", S.X(s_), S.Y(g), k,
+                             n=int(s_ * 7), flip=int(s_) % 2 == 1, h_m=h_, depth=0 if d_ < 40.0 else (1 if d_ < 100.0 else 2)):
+                ntb += 1
             continue
         a_, b_ = max(lo, b["s"][0]), min(hi, b["s"][1])
         if b_ - a_ < 3.0 or min(ps_z_at(prof, a_ + (b_ - a_) * i / 6.0) for i in range(7)) < dry:
             continue
-        d_ = float(b.get("behind_m") or 0.0)
-        S.put(sf_back_house(S.X(a_), S.X(b_), gy, float(b["h"]), k, layer=1 if d_ < 60.0 else 2, d_m=d_))
+        S.put(ts_silhouette(S.X(a_), S.X(b_), gy, float(b["h"]), k, TS_SIL[1] if d_ < 60.0 else TS_SIL[2]))
         nb += 1
     mp_ = cut_items.get("map") or {}
     dx = dy = 0.0
@@ -11848,9 +11993,12 @@ def ts_draw(name, cj, sj, cut_items, den, season, log, sky_mm):
     elif cut_items:
         log.append(u"FLAG %s: the Sections cache has no 1:%d drawing: no proposals, no trees" % (name, den))
     nt = [0]
-    pg.items += ts_cache_items(its, dx, dy, 0.0, S.w, TS_CACHE_BACK, ("houses behind",), nt)
+    pg.items += ts_cache_items(its, dx, dy, 0.0, S.w, TS_CACHE_BACK, (), nt)        # v1.2: trees from the masterplan
     # ---- the cut: layered earth (v18.1), the water, the maximum recorded line
-    S.put(sct_ground(S.P(prof), 0.0, k, "earth"))
+    # v1.9 (Aras 16 Nov 02:02 UTC "remove the gradient and make the ground as a box that is empty in the middle"):
+    # the cut ground = one outlined box (surface on top, down to the drawing's base), white inside, no layered fill
+    gp = S.P(prof)
+    pg.poly([[(gp[0][0], 0.0)] + gp + [(gp[-1][0], 0.0)]], fill="FFFFFF", stroke=COL["ink_dark"], lw=0.35)
     if fill is not None and fill > bed + 0.005 and crosses:
         ch = [p for p in prof if abs(p[0] - s_th) <= TS_CHANNEL_M]
         wl = water_section(S.P(ch), k, S.Y, bed=bed, avg=fill, q100=maxrec, q500=None, fill_ground=False,
@@ -11877,7 +12025,16 @@ def ts_draw(name, cj, sj, cut_items, den, season, log, sky_mm):
                 nr += 1
             s += 0.8
     # ---- our proposals on the cut and the trees on it (Sections' drawing), cut houses like the houses behind
-    pg.items += ts_cache_items(its, dx, dy, 0.0, S.w, TS_CACHE_FRONT, ("trees",), nt)
+    pg.items += ts_cache_items(its, dx, dy, 0.0, S.w, TS_CACHE_FRONT, (), nt)
+    ntc = 0                                                     # v1.2: his planted trees on the cut
+    for s_, sp_, h_ in sorted(trees_cut):
+        g = ps_z_at(prof, s_)
+        if fill is not None and g < fill + 0.10:
+            continue                                            # not in the water
+        bx = ts_put_cutout(pg, TS_TREE_KEY.get(sp_, sp_) if sp_ in TS_TREE_H_M else "plane", S.X(s_),
+                           sf_seat_x(gy, S.X(s_), 0.3 * k), k, n=int(s_ * 7), flip=int(s_) % 2 == 1, h_m=h_)
+        if bx:
+            ntc += 1
     for it in pg.items:
         if it[0] == "image" and u"cutouts" in (u"%s" % it[5]) and it[2] <= S.Y(gmax) + 2.0:
             S.obst.append((it[1], it[2], it[1] + it[3], it[2] + it[4], 0))
@@ -11889,7 +12046,7 @@ def ts_draw(name, cj, sj, cut_items, den, season, log, sky_mm):
         a_, b_ = max(lo, b["s"][0]), min(hi, b["s"][1])
         if b_ - a_ < 1.0:
             continue
-        sh = sf_back_house(S.X(a_), S.X(b_), gy, float(b["h"]), k, layer=1, d_m=0.0)
+        sh = ts_silhouette(S.X(a_), S.X(b_), gy, float(b["h"]), k, TS_SIL[0])
         S.put(sh)
         cuts_b.append((a_, b_))
         ys = [p_[1] for s_ in sh if s_[0] == "poly" for p_ in s_[1]]
@@ -11898,7 +12055,7 @@ def ts_draw(name, cj, sj, cut_items, den, season, log, sky_mm):
         nc += 1
     # ---- people: our asset cutouts on the plan's walks, squares, terraces, cycle paths and green, dry ground only
     np_ = 0
-    dry_p = (fill if fill is not None else z_th) + 0.30
+    dry_p = (fill if fill is not None else bed) + 0.30
     for a, b, lab in cj.get("parts") or []:
         keys, gap = TS_PEOPLE.get(lab, ((), 0.0))
         if not keys:
@@ -11916,6 +12073,23 @@ def ts_draw(name, cj, sj, cut_items, den, season, log, sky_mm):
                     np_ += 1
                 i += 1
             s += gap * (0.75 + 0.5 * rg.random())
+    # v1.8 (Aras 16 Nov 01:17 UTC "i want trees that are in proper places"): no more assumed trees every 10 m on
+    # green spans; the only trees are his masterplan PLANTING trees at their own positions (on the cut / behind it)
+    ntg = 0
+    # ---- v1.5: people on Sections' own people stations (s, figure, flip), dry and flat ground, off cut houses
+    for st in cj.get("people") or []:
+        s, ix, fl = float(st[0]), int(st[1]), bool(st[2])
+        if not (lo + 1.0 <= s <= hi - 1.0):
+            continue
+        g = ps_z_at(prof, s)
+        flat = abs(ps_z_at(prof, s + 0.6) - ps_z_at(prof, s - 0.6)) < 0.6
+        if g >= dry_p and flat and not any(x - 0.5 <= s <= y + 0.5 for x, y in cuts_b):
+            bx = ts_put_cutout(pg, TS_PEOPLE_ALL[ix % len(TS_PEOPLE_ALL)], S.X(s), sf_seat_x(gy, S.X(s), 0.25 * k),
+                               k, n=ix, flip=fl)
+            if bx:
+                S.obst.append(bx + (0,))
+                np_ += 1
+    log.append(u"%s: v1.8 trees only where his masterplan has them (no spacing rule), people %d" % (name, np_))
     # ---- numbers: one per proposal kind, on its widest span in the window
     best = {}
     for a, b, lab in cj.get("parts") or []:
@@ -11929,17 +12103,17 @@ def ts_draw(name, cj, sj, cut_items, den, season, log, sky_mm):
     bb = ps_bbox(pg.items)
     S.y_top = max(bb[3], S.Y(gmax) + sky_mm)
     if crosses:
-        S.inset = (s_th - 6.0, s_th + 6.0, z_th - 0.6, z_th + 2.4, u"the stream's edge")
+        S.inset = (s_th - 6.0, s_th + 6.0, bed - 0.6, bed + 2.4, u"the stream's edge")
     elif best:
         lab, (a, b) = max(best.items(), key=lambda t: t[1][1] - t[1][0])
         m = 0.5 * (a + b)
         g = ps_z_at(prof, m)
         S.inset = (m - 6.0, m + 6.0, g - 0.6, g + 2.4, lab.lower())
-    log.append(u"%s%s: 1:%d, s %.0f-%.0f m, bed %+.2f, %s; houses %d behind / %d cut; proposals %s; cutouts from the "
-               u"Sections cache %d, rushes %d, people %d" % (
+    log.append(u"%s%s: 1:%d, s %.0f-%.0f m, bed %+.2f, %s; houses %d behind / %d cut; proposals %s; masterplan trees %d "
+               u"on the cut / %d behind, rushes %d, people %d" % (
                    name, u" " + season[0] if season else u"", den, lo, hi, z_th,
                    u", ".join(u"%s %+.2f" % (k_, v_) for k_, v_ in lv), nb, nc,
-                   u", ".join(sorted(best)) or u"none", nt[0], nr, np_))
+                   u", ".join(sorted(best)) or u"none", ntc, ntb, nr, np_))
     return S, lv
 
 
@@ -11948,57 +12122,287 @@ def ts_row(name, cj, sj, cut_items, den, season, page, log, sky_mm):
     PS_SCALE, PS_INSET_SCALE, PS_INSET_K = den, TS_INSET_DEN, 1000.0 / TS_INSET_DEN
     S, lv = ts_draw(name, cj, sj, cut_items, den, season, log, sky_mm)
     S.page = page
-    try:
-        ps_inset(S, log)
-    except Exception as ex:
-        log.append(u"FLAG %s: zoom inset not drawn: %s: %s" % (name, type(ex).__name__, ex))
+    # v1.7 / CanopySections v1.2 (Aras 16 Nov 04:07 TR "do not include zoomed in version of the sections in the
+    # section"): no zoom inset
     bb = ps_bbox(S.pg.items)
     return dict(S=S, lv=lv, name=name, season=season, h=max(bb[3], S.y_top or 0.0), w=S.w)
 
 
+def ts_scale_items(items, f, dx, dy, den_txt=None):
+    """v1.3: items scaled by f about the origin and moved by (dx, dy), line widths, dashes and text sizes KEPT (they
+    are print sizes); images scaled; the inset's "1:200" words re-written to the scale it now prints at"""
+    def T(p):
+        return (dx + f * p[0], dy + f * p[1])
+    out = []
+    for it in items:
+        k_ = it[0]
+        if k_ == "poly":
+            out.append(("poly", [[T(p) for p in r] for r in it[1]]) + tuple(it[2:]))
+        elif k_ == "line":
+            out.append(("line", [T(p) for p in it[1]]) + tuple(it[2:]))
+        elif k_ == "circle":
+            out.append(("circle", dx + f * it[1], dy + f * it[2], it[3] * f) + tuple(it[4:]))
+        elif k_ == "text":
+            t = it[1]
+            if den_txt:
+                t = t.replace(u"1:%d" % TS_INSET_DEN, den_txt).replace(u"1:{:,}".format(TS_INSET_DEN), den_txt)
+            out.append(("text", t, dx + f * it[2], dy + f * it[3]) + tuple(it[4:]))
+        elif k_ == "image":
+            out += ps_xform([it], f, dx, dy)
+    return out
+
+
+def ts_den(k):
+    """the printed scale 1:n of k page mm per m, n rounded to 10 (to 50 from 1:1,000)"""
+    n = 1000.0 / k
+    r = 50.0 if n >= 1000.0 else 10.0
+    return int(round(n / r) * r)
+
+
+# ---- v1.8 KEY MAP (Aras 16 Nov 01:10 UTC "please include keymaps on the top right (from masterplan)"): top right of
+# each page a small crop of his masterplan drawing (master.svg as drawn, inside the working area, the node plan crops
+# NodesCommon cached in cached/bergama_node_crops/<N>.png), one small JPEG (TS_KM_PX px wide), the page's cuts marked
+# by two end arrows each (looking side) with their names, north arrow and scale bar. S4 has no node crop: Edge / Chrome
+# renders master.svg once for it (cached in cached/bergama_12sectionsRhino/, like NodesCommon svg_crop).
+TS_KM_H, TS_KM_WMAX = 25.0, 130.0           # mm, key map box height / widest (v1.9: the whole site_alan strip)
+TS_KM_PX = 1400                             # px, width of the key map picture (light: one small JPEG)
+TS_KM_STRIP_PX = 2800                       # px, width of the cached render of the whole site_alan strip
+TS_KM_PAD = 0.12                            # crop margin round the cut lines, share of their extent
+TS_KM_DIR = os.path.join(BERGAMA, "cached", TS_FOLDER)
+TS_KM_CROPS = os.path.join(BERGAMA, "cached", "bergama_node_crops")
+TS_KM_SVG = os.path.join(BERGAMA, "Data", "assets", "plan", "master.svg")
+TS_KM_WA = os.path.join(BERGAMA, "cached", "bergama_basemap", "basemap_layers.json")
+TS_KM_BROWSERS = (r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+                  r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+                  r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+                  r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe")
+
+
+def ts_km_px(Wm, M):
+    """survey m -> picture px: inverse of the MasterplanBase matrix (svg -> survey), then the crop's svg -> px"""
+    a, b, c, d, e, f = Wm
+    det = a * d - b * c
+
+    def px(x, y):
+        X, Y = x - e, y - f
+        sx, sy = (d * X - c * Y) / det, (-b * X + a * Y) / det
+        return (M[0] * sx + M[2] * sy + M[4], M[1] * sx + M[3] * sy + M[5])
+    return px
+
+
+def ts_km_render(key, box, log):
+    """v1.9 (Aras 02:00 UTC "keymaps in site_alan borders in a proper way"): master.svg rendered by Edge / Chrome over
+    exactly the site_alan strip (MasterplanBase svg_box, master.svg units, as he drew it), white paper; nothing outside
+    the strip. Cached. Returns (png, matrix_px) or None"""
+    import subprocess
+    if not os.path.exists(TS_KM_SVG):
+        log.append(u"FLAG key map: %s missing: no key map" % TS_KM_SVG)
+        return None
+    x0, y0, x1, y1 = [float(v) for v in box]
+    sc = TS_KM_STRIP_PX / (x1 - x0)                       # px per svg unit
+    PW, PH = int(round((x1 - x0) * sc)), int(round((y1 - y0) * sc))
+    M = (sc, 0.0, 0.0, sc, -x0 * sc, -y0 * sc)
+    clip = u""
+    st = os.stat(TS_KM_SVG)
+    stamp = u"%d/%d/%s/%dx%d" % (st.st_size, int(st.st_mtime), u",".join(u"%.4f" % v for v in M), PW, PH)
+    png, js = os.path.join(TS_KM_DIR, u"km_%s.png" % key), os.path.join(TS_KM_DIR, u"km_%s.json" % key)
+    try:
+        if os.path.exists(png) and json.load(open(js, encoding="utf-8")).get("stamp") == stamp:
+            return png, M
+    except Exception:
+        pass
+    br = next((p_ for p_ in TS_KM_BROWSERS if os.path.exists(p_)), None)
+    if br is None:
+        log.append(u"FLAG key map %s: no Edge / Chrome found: no key map" % key)
+        return None
+    clip = u""
+    with open(TS_KM_SVG, encoding="utf-8") as f_:
+        txt = f_.read()
+    i0 = txt.index("<svg")
+    i1 = txt.index(">", i0) + 1
+    j1 = txt.rindex("</svg>")
+    head = (u'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="%dpx" '
+            u'height="%dpx" viewBox="0 0 %d %d"><rect width="%d" height="%d" fill="#ffffff"/>' % (PW, PH, PW, PH, PW, PH))
+    if clip:
+        head += (u'<defs><clipPath id="km_wa"><path clip-rule="evenodd" d="%s"/></clipPath></defs>'
+                 u'<g clip-path="url(#km_wa)">' % clip)
+    head += u'<g transform="matrix(%.9f %.9f %.9f %.9f %.6f %.6f)">' % M
+    if not os.path.isdir(TS_KM_DIR):
+        os.makedirs(TS_KM_DIR)
+    wrap = os.path.join(TS_KM_DIR, u"km_%s_wrap.svg" % key)
+    with open(wrap, "w", encoding="utf-8") as f_:
+        f_.write(txt[:i0])
+        f_.write(head)
+        f_.write(txt[i1:j1])
+        f_.write(u"</g></g></svg>" if clip else u"</g></svg>")
+    del txt
+    if os.path.exists(png):
+        os.remove(png)
+    t0 = time.time()
+    try:
+        subprocess.run([br, "--headless=new", "--disable-gpu", "--hide-scrollbars", "--force-device-scale-factor=1",
+                        "--default-background-color=FFFFFFFF", "--virtual-time-budget=120000",
+                        "--window-size=%d,%d" % (PW, PH), "--screenshot=%s" % png, "file:///" + wrap.replace("\\", "/")],
+                       timeout=280, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    except Exception as ex_:
+        log.append(u"FLAG key map %s: the browser failed (%s)" % (key, ex_))
+    try:
+        os.remove(wrap)
+    except Exception:
+        pass
+    if not os.path.exists(png) or os.path.getsize(png) < 1000:
+        log.append(u"FLAG key map %s: no picture came out of %s" % (key, os.path.basename(br)))
+        return None
+    with open(js, "w", encoding="utf-8") as f_:
+        json.dump({"stamp": stamp, "px": [PW, PH], "matrix_px": list(M)}, f_)
+    log.append(u"key map %s: master.svg rendered %d x %d px, %.0f s" % (key, PW, PH, time.time() - t0))
+    return png, M
+
+
+def ts_key_map(pg, key, cuts, x1, y1, log):
+    """the key map in the top right corner (right edge x1, top y1, page mm); cuts = [(label, A, B)] survey m.
+    Returns its height in mm (0 when none is drawn)"""
+    Wm = _TS_CUT.get("Wm")
+    if not Wm:
+        ts_mp_trees(log)
+        Wm = _TS_CUT.get("Wm")
+    if not Wm or not cuts:
+        log.append(u"FLAG key map %s: no MasterplanBase matrix: no key map" % key)
+        return 0.0
+    box = _TS_CUT.get("svgbox")
+    if not box:
+        log.append(u"FLAG key map %s: no site_alan box (MasterplanBase svg_box): no key map" % key)
+        return 0.0
+    r = ts_km_render(u"site_alan", box, log)
+    if not r:
+        return 0.0
+    src, M = r
+    px = ts_km_px(Wm, M)
+    P = [px(*p) for _l, A, B in cuts for p in (A, B)]
+    try:
+        import clr
+        clr.AddReference("System.Drawing")
+        from System.Drawing import Bitmap, Graphics, Rectangle, Color, GraphicsUnit
+        from System.Drawing.Imaging import ImageFormat
+        from System.Drawing.Drawing2D import InterpolationMode
+        im = Bitmap(src)
+        IW, IH = im.Width, im.Height
+        cx0, cy0, cw, ch = 0, 0, IW, IH                  # v1.9: the whole site_alan strip
+        bw = min(TS_KM_WMAX, TS_KM_H * cw / float(ch))
+        bh = bw * ch / float(cw)
+        OW = TS_KM_PX
+        OH = max(1, int(round(OW * ch / float(cw))))
+        out = Bitmap(OW, OH)
+        g = Graphics.FromImage(out)
+        g.Clear(Color.White)
+        g.InterpolationMode = InterpolationMode.HighQualityBicubic
+        g.DrawImage(im, Rectangle(0, 0, OW, OH), Rectangle(cx0, cy0, cw, ch), GraphicsUnit.Pixel)
+        g.Dispose()
+        im.Dispose()
+        if not os.path.isdir(TS_KM_DIR):
+            os.makedirs(TS_KM_DIR)
+        jpg = os.path.join(TS_KM_DIR, u"keymap_site_alan.jpg")
+        out.Save(jpg, ImageFormat.Jpeg)
+        out.Dispose()
+    except Exception as ex_:
+        log.append(u"FLAG key map %s: picture not made (%s: %s)" % (key, type(ex_).__name__, ex_))
+        return 0.0
+    bx0, by0 = x1 - bw, y1 - bh
+
+    def pgp(x, y):
+        q = px(x, y)
+        return (bx0 + (q[0] - cx0) / cw * bw, y1 - (q[1] - cy0) / ch * bh)
+    pg.items.append(("image", bx0, by0, bw, bh, jpg, None, False, None))
+    ink = COL["ink_dark"]
+    pg.poly([rect(bx0, by0, x1, y1)], fill=None, stroke=ink, lw=0.3)   # v1.9: the site_alan border
+    for lab, A, B in cuts:                                # two end arrows each, looking side (Sections: o > 0)
+        pc = ps_clip_line([pgp(*A), pgp(*B)], (bx0, by0, x1, y1))     # v1.9: ends at the site_alan border
+        if not pc:
+            log.append(u"FLAG key map %s: cut %s lies outside site_alan: not marked" % (key, lab))
+            continue
+        pa, pb = pc[0][0], pc[-1][-1]
+        L = math.hypot(pb[0] - pa[0], pb[1] - pa[1]) or 1.0
+        t = ((pb[0] - pa[0]) / L, (pb[1] - pa[1]) / L)
+        Ls = math.hypot(B[0] - A[0], B[1] - A[1]) or 1.0
+        q = pgp(A[0] - (B[1] - A[1]) / Ls * 10.0, A[1] + (B[0] - A[0]) / Ls * 10.0)
+        lk = (q[0] - pa[0], q[1] - pa[1])
+        n_ = math.hypot(*lk) or 1.0
+        lk = (lk[0] / n_, lk[1] / n_)
+        for P0, sg in ((pa, 1.0), (pb, -1.0)):
+            pg.line([P0, (P0[0] + sg * t[0] * 3.0, P0[1] + sg * t[1] * 3.0)], ink, 0.5, cap=0)
+            m_ = (P0[0] + sg * t[0] * 0.9, P0[1] + sg * t[1] * 0.9)
+            pg.poly([[(m_[0] - t[0] * 0.8, m_[1] - t[1] * 0.8), (m_[0] + t[0] * 0.8, m_[1] + t[1] * 0.8),
+                      (m_[0] + lk[0] * 1.6, m_[1] + lk[1] * 1.6)]], fill=ink, stroke=None, lw=0.0)
+            pg.text(lab, P0[0] - sg * t[0] * 1.8 - lk[0] * 1.6, P0[1] - sg * t[1] * 1.8 - lk[1] * 1.6 - 0.9,
+                    6.5 * PT, ink, bold=True, align="C", halo="FFFFFF")
+    o_ = pgp(*cuts[0][1])                                 # north arrow (survey +y) and scale bar, bottom left
+    n1 = pgp(cuts[0][1][0], cuts[0][1][1] + 100.0)
+    nv = (n1[0] - o_[0], n1[1] - o_[1])
+    kmm = math.hypot(*nv) / 100.0                         # page mm per m
+    nn = math.hypot(*nv) or 1.0
+    nv = (nv[0] / nn, nv[1] / nn)
+    c_ = (bx0 + 4.0, by0 + 6.5)
+    pg.line([(c_[0] - nv[0] * 2.2, c_[1] - nv[1] * 2.2), (c_[0] + nv[0] * 2.2, c_[1] + nv[1] * 2.2)], ink, 0.3)
+    tip = (c_[0] + nv[0] * 3.2, c_[1] + nv[1] * 3.2)
+    pg.poly([[tip, (c_[0] + nv[0] * 1.6 - nv[1] * 0.8, c_[1] + nv[1] * 1.6 + nv[0] * 0.8),
+              (c_[0] + nv[0] * 1.6 + nv[1] * 0.8, c_[1] + nv[1] * 1.6 - nv[0] * 0.8)]], fill=ink, stroke=None, lw=0.0)
+    pg.text(u"N", tip[0] + nv[0] * 1.6, tip[1] + nv[1] * 1.6 - 0.8, 6.0 * PT, ink, bold=True, align="C", halo="FFFFFF")
+    ps_put(pg, sf_scale_bar(bx0 + 8.0, by0 + 3.2, kmm, max_mm=min(18.0, bw * 0.3)))
+    log.append(u"key map %s: site_alan strip %s, %.0f x %.0f mm, cuts %s" % (key, os.path.basename(src), bw, bh,
+                                                            u", ".join(l for l, _a, _b in cuts)))
+    return bh
+
+
 def ts_page(title, sub, rows_in, out_name, log):
-    """one A3 page: the rows stacked at the largest standard scale that fits, the list and legend under them"""
-    for den in TS_DENS:
-        sky = TS_SKY_MM[0] if len(rows_in) <= 2 else TS_SKY_MM[1]
-        rows = [ts_row(n_, cj, sj, ci.get(str(den)) or {}, den, sea, out_name, log, sky) for n_, cj, sj, ci, sea in rows_in]
-        need = 14.0 + sum(r["h"] + 12.0 for r in rows) + 24.0
-        if need <= TS_H - 2 * TS_M or den == TS_DENS[-1]:
-            break
-        log.append(u"%s: rows need %.0f mm at 1:%d (page %.0f): 1:%d" % (out_name, need, den, TS_H - 2 * TS_M,
-                                                                         TS_DENS[TS_DENS.index(den) + 1]))
-    if need > TS_H - 2 * TS_M:
-        log.append(u"FLAG %s: rows need %.0f mm at 1:%d, the page has %.0f mm: the bottom runs over" % (
-            out_name, need, den, TS_H - 2 * TS_M))
+    """one A3 page. v1.3 (Aras 16 Nov 00:02 UTC "scale to fit"): every cut drawn whole at 1:500, then the rows scaled
+    by ONE factor so the widest fills the A3 width or the rows fill its height; the scale words and bars give the
+    scale it prints at; the list and legend under them"""
+    den = 500
+    sky = TS_SKY_MM[0] if len(rows_in) <= 2 else TS_SKY_MM[1]
+    rows = [ts_row(n_, cj, sj, ci.get(str(den)) or {}, den, sea, out_name, log, sky) for n_, cj, sj, ci, sea in rows_in]
+    fixed = (TS_KM_H + 3.0) + 12.0 * len(rows) + 24.0      # v1.8: the rows start under the key map (was 14.0)
+    f = min((TS_W - 2 * TS_M - TS_MARKS_W) / max(r["w"] for r in rows),
+            (TS_H - 2 * TS_M - fixed) / sum(r["h"] for r in rows))
+    k_eff = (1000.0 / den) * f
+    log.append(u"%s: scaled to fit A3: x %.3f of 1:%d = about 1:%d" % (out_name, f, den, ts_den(k_eff)))
+    need = fixed + f * sum(r["h"] for r in rows)
     pg = Page(TS_W, TS_H)
     ink, ink2 = COL["ink_dark"], COL["ink2"]
     y = TS_H - TS_M - 4.5
     pg.text(title, TS_M, y, 12.0 * PT, ink, bold=True)
     pg.text(sub, TS_M, y - 5.0, 7.5 * PT, COL["ink"])
-    y -= 10.0
+    km_cuts, seen = [], set()                            # v1.8: key map top right, the page's cut(s)
+    for n_, _cj, sj_, _ci, _sea in rows_in:
+        if n_ not in seen and sj_ and sj_.get("A") and sj_.get("B"):
+            seen.add(n_)
+            km_cuts.append((n_.split("-")[-1] if "-" in n_ else n_, tuple(sj_["A"]), tuple(sj_["B"])))
+    ts_key_map(pg, rows_in[0][0].split("-")[0], km_cuts, TS_W - TS_M, TS_H - TS_M, log)
+    y = TS_H - TS_M - TS_KM_H - 3.0
     num = {}
     spare = (TS_H - 2 * TS_M - need) / float(len(rows) + 1) if need < TS_H - 2 * TS_M else 0.0
     pal = _wat_pal()
     cols = {"maxrec": pal["q100"], "mean": SEC["hatch"], "season": SEC["hatch"], "strip": SEC["hatch"]}
+    inset_txt = u"1:%d" % ts_den(f * 1000.0 / TS_INSET_DEN)
     for r in rows:
         S = r["S"]
         y -= spare
         ttl = r["season"][1] if r["season"] else r["name"]
         pg.text(ttl, TS_M, y - 3.0, 9.0 * PT, ink, bold=True)
         sea_w = (u" · water: %s" % r["season"][3]) if r["season"] else u""   # its level is marked at the right
-        pg.text(u"%s · 1:%d%s" % (u"looking %s" % S.look if getattr(S, "look", None) else r["name"], int(1000.0 / S.k),
-                                  sea_w), TS_W - TS_M, y - 3.0, 7.0 * PT, ink2, align="R")
+        pg.text(u"%s · about 1:%d on A3%s" % (u"looking %s" % S.look if getattr(S, "look", None) else r["name"],
+                                              ts_den(k_eff), sea_w), TS_W - TS_M, y - 3.0, 7.0 * PT, ink2, align="R")
         top = y - 5.0
-        dx, dy = TS_M, top - r["h"]
-        for it in ps_xform(S.pg.items, 1.0, dx, dy):
-            pg.items.append(it)
+        h = r["h"] * f
+        dx, dy = TS_M, top - h
+        pg.items += ts_scale_items(S.pg.items, f, dx, dy, inset_txt)
         for x, yy, lab in S.marks:
             if lab not in num:
                 num[lab] = len(num) + 1
-            ps_put(pg, mk_marker(dx + x, dy + yy, num[lab], TS_ACCENT, 7.0)[0])
-        fr = (dx, dy, dx + S.w, dy + r["h"])
-        ps_put(pg, sf_level_marks(fr, r["lv"], side="R", y_of=lambda v, _S=S, _d=dy: _d + _S.Y(v), size=PS_LBL,
+            ps_put(pg, mk_marker(dx + f * x, dy + f * yy, num[lab], TS_ACCENT, 7.0)[0])
+        fr = (dx, dy, dx + S.w * f, dy + h)
+        ps_put(pg, sf_level_marks(fr, r["lv"], side="R", y_of=lambda v, _S=S, _d=dy: _d + f * _S.Y(v), size=PS_LBL,
                                   cols=cols, page=r["name"]))
-        ps_put(pg, sf_scale_bar(dx, dy - 1.2, S.k, den=int(round(1000.0 / S.k)), max_mm=40.0))
+        ps_put(pg, sf_scale_bar(dx, dy - 1.2, k_eff, den=ts_den(k_eff), max_mm=40.0))
         y = dy - 7.0
     # the numbered list and the legend under the rows
     y = max(TS_M + 14.0, y - 2.0)
@@ -12014,7 +12418,7 @@ def ts_page(title, sub, rows_in, out_name, log):
     leg = [("water", u"water: mean yearly flow 0.66 m³/s (seasons: that season's flow), calculated"),
            ("maxrec", u"max. recorded: Ilıca gauge record 203 m³/s (2016, DSİ yearbook 2021) area-scaled to 137 m³/s, "
                       u"calculated level"),
-           (SCT["earth"], u"earth"), (SF_BACK["fill"], u"houses, cut and behind")]
+           ("FFFFFF", u"ground, cut"), (TS_SIL[1], u"houses, cut and behind")]
     x = TS_M
     for kind, lab in leg:
         w = 6.2 + fm_width(lab, 6.5) + 5.0
@@ -12025,7 +12429,7 @@ def ts_page(title, sub, rows_in, out_name, log):
             pg.line([(x, cy), (x + 5.0, cy)], pal["q100"], 0.3, dash=[1.2, 0.6])
         else:
             pg.poly([rect(x, cy - 1.0, x + 5.0, cy + 1.0)], fill=pal["sec"] if kind == "water" else kind,
-                    stroke=COL["faint"], lw=0.1)
+                    stroke=COL["ink_dark"] if kind == "FFFFFF" else COL["faint"], lw=0.25 if kind == "FFFFFF" else 0.1)
         pg.text(lab, x + 6.2, y, 6.5 * PT, COL["ink"])
         x += w
     path = os.path.join(bg_output(TS_FOLDER), out_name)
