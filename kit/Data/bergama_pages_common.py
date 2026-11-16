@@ -25,7 +25,7 @@ Items are the Basemap writer's tuples (page mm, y up):
 """
 import os, re, json, math, time, glob
 
-PC_VERSION = "v3.45"  # v3.45 (Aras 16 Nov 00:47 UTC masterplan colours "look more weird"): the masterplan picture lossless (no JPEG) and colour-managed (MuPDF ICC on, his file's profiles honoured); a FLAG when master.pdf holds CMYK colour (save it from an RGB document); v3.44 (Aras 16 Nov 00:41 UTC: he links the presentation PDFs in Illustrator, unworkable since v3.41): his master.pdf goes into every page PDF as ONE picture (MuPDF, 300 dpi on the sheet, cut to its clip, JPEG + soft-mask edge), no longer his whole Illustrator file as a form; the presentation SVG links that picture as <slide>_masterplan.png; v3.43 (Aras 16 Nov 00:38 UTC slide 5 masterplan black + "illustrator is now in a non workable state"): the presentation SVG no longer turns his master.pdf into SVG vectors; each placed masterplan is rendered by MuPDF to <slide>_masterplan.png (300 dpi, transparent outside its clip) next to the SVG and linked at its place in the drawing order; v3.42: pc_svg_viewbox defined (v3.41 called it and stopped with a NameError); v3.41 (Aras 15 Nov 23:10 UTC "master pdf saved"): pc_masterplan places HIS Illustrator PDF Data/assets/plan/master.pdf (artboard = master.svg) cut to the working area; the browser print only when there is none; the placing fits any PDF page size onto master.svg's viewBox (checked: same proportions); v3.40 (Aras 15 Nov 21:58 UTC "also transparancy thing"): presentation SVG colours always plain hex with fill-/stroke-opacity (rgba() and 8-digit hex converted; MuPDF already writes hex + fill-opacity); v3.39 (Aras 15 Nov 21:56 UTC "illustrator cant read every data in svg so you might need to convert those aswell"): the presentation SVG made Illustrator-safe (fonts named Helvetica / Arial, Inkscape attributes dropped, a FLAG for any mask / filter / style / foreignObject); v3.38 (Aras 15 Nov 21:55 UTC): presentation keeps BOTH <slide>.pdf and the A3 <slide>.svg; v3.37 (Aras 15 Nov 21:54 UTC "make every drawing in A3 as .svg ... exchange pdf's in presentation with .svg's"): pc_present writes output/presentation/<slide>.svg (the finished page PDF turned into SVG by PyMuPDF, A3, pictures embedded) beside the PDF; v3.36 (Aras 15 Nov 20:45-20:50 UTC "many of the things from masterplan is missing", "river fill is failed ... we lost ground fills", "take chromium svg reader"): pc_masterplan pastes master.svg as the laptop's Chromium (Edge / Chrome headless) prints it to PDF (pc_mp_print, once per master.svg), placed in the page PDF as a form cut to the working area at the masterplan's place in the drawing order (pc_mp_place, PyMuPDF) and as a linked image in the SVG; without a browser or PyMuPDF the vector pieces stay (FLAG); v3.35 (Aras 15 Nov 19:48 UTC "much much faster"): pc_fast_load, the MapBase and MasterplanBase caches parsed once a Rhino session (marshal copy in sticky, same values and log lines); v3.34 v3.34 (Aras 15 Nov 17:06-17:07 UTC "pull inside of the working area exactly from .svg like cut and paste" / "Make that for every drawing except slide 1", standing): pc_masterplan pastes master.svg inside the working area only: every layer (his existing ev-yol too), his own colours, cut to the working-area outline (clip PC_CLIP_WA = the map frame AND the working area, even-odd), over a paper-white fill of the working area that hides the base map; outside it each page keeps its own context; M.wa keeps the page rings and pc_write adds the clip; paste=False = the v3.29 behaviour; v3.33 (Aras 15 Nov 15:57 UTC "make these blue and red lines thinner like scale the lines according to the drawing size please across all drawings"): pc_stroke_k(w, h) = the stroke factor of a drawing w x h mm (sqrt of its area over PC_STROKE_REF, 0.35-1.0), pc_stroke(lw, k) applies it; v3.32 v3.32 (Aras 15 Nov 14:46 + his Archicad S-01 screenshot 15:02 UTC): pc_cut_mark in Archicad's section marker look (filled triangle on the cut at each end pointing the view, thin stub + dot + dash inward, name turned along the cut beyond the end, regular weight); v3.31 v3.31 (Aras 15 Nov 14:56 UTC "center the numbers in the boundries", standing): pc_text_c centres a mark's letters by their true Helvetica widths (no 5 % bold estimate); pc_cut_mark names use it; v3.30: pc_photos takes PNGs (SVG mime by extension) and an optional 6th item True = placed UNDER the drawing (PDF overlay off; SVG first in the file), for Page01Axo v4's Rhino 3D capture; v3.29 (Aras 15 Nov 14:45 UTC): pc_write puts the working-area dashes (layer study_area) on top of every other item ("make our working area dashed line as the most foreground line"); pc_masterplan draws master.svg (MasterplanBase cache, vector) on a map, for maps that use his masterplan as their base; v3.28: pc_text_c, a mark letter centred on its glyph box (Helvetica cap height 0.718 em: baseline = centre - 0.359 x size; Aras 15 Nov 13:50 UTC "letters are not centered in the boxes"); the loop badge numbers use it; v3.27: no white box behind any name (Aras 15 Nov 13:44 UTC "dont have a opaque background for texts in any single of the drawings"): Labels.put halo = pc_halo, a thin white text-shaped outline (8 white copies 0.1-0.25 mm round the name), no box; v3.26: pc_mapbase logs the fill rings read / in view per layer (MapBase v1.8 mb_fill_log; Aras 07:46 "you might be skipping somewhere in the fills"); v3.25: pc_mapbase a05 bridges a warm dark grey 7A7468 at 0.18 mm (run 1: black 0.3 mm bridge lines were the heaviest ink on the pale base); v3.24: pc_mapbase a05 streets a pale warm grey F5F3EE (MapBaseCheck run 1: white streets on white houses read as one white mass in the old town; houses stay white), the street-edge lines cut to the network (MapBase v1.7); v3.23: pc_mapbase context make-up (Aras 15 Nov 06:03-06:05 "too many stray lines ... houses fills are overlapping ... Roads are not clear"; "thousand times better as house designs" = the 13 Nov A05 house look): houses white with a pale outline (MapBase v1.6 adds the crisp grey shadow to the lower left and drops wall / edge pieces under 3 m); streets white on a darker ground with darker edges; walls lighter; style key "a05": False keeps the old look; v3.22: pc_dg_kit to DIAGRAM_STYLE v2 (ground 3 x other weights, pale-accent terraces, arches silhouette);  v3.21: v3.21: pc_dg_kit dashes at item[6] (Basemap writer), dash_at=4 for the Sections writer;  v3.20: v3.20: pc_dg_kit, the diagram kit of library/diagram_style/DIAGRAM_STYLE.md (Aras 21:30 UTC "all the diagrams are awful"); v3.19: v3.18 undone (the writer keeps a line's clip at item[4]: those lines were really unclipped); v3.17: SiteMap ring + b (survey box), pc_site_den, pc_north_deg, pc_sheet cols + span (legend columns beside a site_alan strip); v3.16: pc_loop names=True (stop names on the map), every stop outside the frame gets an edge arrow, the stream walk in either loop order (loop numbered from Asklepion, Aras 16:26); v3.15: SiteMap / pc_site_map (the map frame = site_alan turned flat, Aras 16:17 UTC "KEEP EVERY DRAWING STRICTLY IN SITE_ALAN"), pc_loop edge arrows to stops outside it, pc_north_items; v3.14: pc_cut_mark = two end arrows, no line between (Aras 16:05 UTC); v3.13: v3.13: pc_mp_data (MasterplanBase: the masterplan SVG cached in survey m); v3.12: pc_cut_mark, the R01 cut symbol (two arrows, Aras 15:37 UTC); v3.11: pc_loop (the heritage loop, one code for the heritage and the transit map; Aras 15:31) and pc_station_name; v3.10: pc_a3_den / pc_a3 (a map page fitted and centred on A3 or a slide panel, Aras 15:25-15:27 UTC); v3.9: no sources in the drawings (Aras 15:23 UTC): pc_nosrc on MapBase legend rows, empty credit skipped; v3.8: a name with no free place goes where it overlaps least (run 7); v3.7: Labels.block_line / block_items (names keep off lines: run 6 review); v3.6: the outside Python runs hidden (no console window, Aras 14 Nov 12:57 UTC); v3.5: frame check skips items with any clip id; pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
+PC_VERSION = "v3.46"  # v3.46 (Aras 16 Nov 01:26 UTC "the white mask has been dissappeared please use the original masterplan that i have sent you without any changes"): his master.pdf page drawn by MuPDF as it is (his colours, white mask and transparency; nothing re-cut by the working area, no re-masking) and placed by the map matrix, clip = the map frame only; fixes v3.44-3.45 picking another form of the page (slide 6 empty) ; v3.45 (Aras 16 Nov 00:47 UTC masterplan colours "look more weird"): the masterplan picture lossless (no JPEG) and colour-managed (MuPDF ICC on, his file's profiles honoured); a FLAG when master.pdf holds CMYK colour (save it from an RGB document); v3.44 (Aras 16 Nov 00:41 UTC: he links the presentation PDFs in Illustrator, unworkable since v3.41): his master.pdf goes into every page PDF as ONE picture (MuPDF, 300 dpi on the sheet, cut to its clip, JPEG + soft-mask edge), no longer his whole Illustrator file as a form; the presentation SVG links that picture as <slide>_masterplan.png; v3.43 (Aras 16 Nov 00:38 UTC slide 5 masterplan black + "illustrator is now in a non workable state"): the presentation SVG no longer turns his master.pdf into SVG vectors; each placed masterplan is rendered by MuPDF to <slide>_masterplan.png (300 dpi, transparent outside its clip) next to the SVG and linked at its place in the drawing order; v3.42: pc_svg_viewbox defined (v3.41 called it and stopped with a NameError); v3.41 (Aras 15 Nov 23:10 UTC "master pdf saved"): pc_masterplan places HIS Illustrator PDF Data/assets/plan/master.pdf (artboard = master.svg) cut to the working area; the browser print only when there is none; the placing fits any PDF page size onto master.svg's viewBox (checked: same proportions); v3.40 (Aras 15 Nov 21:58 UTC "also transparancy thing"): presentation SVG colours always plain hex with fill-/stroke-opacity (rgba() and 8-digit hex converted; MuPDF already writes hex + fill-opacity); v3.39 (Aras 15 Nov 21:56 UTC "illustrator cant read every data in svg so you might need to convert those aswell"): the presentation SVG made Illustrator-safe (fonts named Helvetica / Arial, Inkscape attributes dropped, a FLAG for any mask / filter / style / foreignObject); v3.38 (Aras 15 Nov 21:55 UTC): presentation keeps BOTH <slide>.pdf and the A3 <slide>.svg; v3.37 (Aras 15 Nov 21:54 UTC "make every drawing in A3 as .svg ... exchange pdf's in presentation with .svg's"): pc_present writes output/presentation/<slide>.svg (the finished page PDF turned into SVG by PyMuPDF, A3, pictures embedded) beside the PDF; v3.36 (Aras 15 Nov 20:45-20:50 UTC "many of the things from masterplan is missing", "river fill is failed ... we lost ground fills", "take chromium svg reader"): pc_masterplan pastes master.svg as the laptop's Chromium (Edge / Chrome headless) prints it to PDF (pc_mp_print, once per master.svg), placed in the page PDF as a form cut to the working area at the masterplan's place in the drawing order (pc_mp_place, PyMuPDF) and as a linked image in the SVG; without a browser or PyMuPDF the vector pieces stay (FLAG); v3.35 (Aras 15 Nov 19:48 UTC "much much faster"): pc_fast_load, the MapBase and MasterplanBase caches parsed once a Rhino session (marshal copy in sticky, same values and log lines); v3.34 v3.34 (Aras 15 Nov 17:06-17:07 UTC "pull inside of the working area exactly from .svg like cut and paste" / "Make that for every drawing except slide 1", standing): pc_masterplan pastes master.svg inside the working area only: every layer (his existing ev-yol too), his own colours, cut to the working-area outline (clip PC_CLIP_WA = the map frame AND the working area, even-odd), over a paper-white fill of the working area that hides the base map; outside it each page keeps its own context; M.wa keeps the page rings and pc_write adds the clip; paste=False = the v3.29 behaviour; v3.33 (Aras 15 Nov 15:57 UTC "make these blue and red lines thinner like scale the lines according to the drawing size please across all drawings"): pc_stroke_k(w, h) = the stroke factor of a drawing w x h mm (sqrt of its area over PC_STROKE_REF, 0.35-1.0), pc_stroke(lw, k) applies it; v3.32 v3.32 (Aras 15 Nov 14:46 + his Archicad S-01 screenshot 15:02 UTC): pc_cut_mark in Archicad's section marker look (filled triangle on the cut at each end pointing the view, thin stub + dot + dash inward, name turned along the cut beyond the end, regular weight); v3.31 v3.31 (Aras 15 Nov 14:56 UTC "center the numbers in the boundries", standing): pc_text_c centres a mark's letters by their true Helvetica widths (no 5 % bold estimate); pc_cut_mark names use it; v3.30: pc_photos takes PNGs (SVG mime by extension) and an optional 6th item True = placed UNDER the drawing (PDF overlay off; SVG first in the file), for Page01Axo v4's Rhino 3D capture; v3.29 (Aras 15 Nov 14:45 UTC): pc_write puts the working-area dashes (layer study_area) on top of every other item ("make our working area dashed line as the most foreground line"); pc_masterplan draws master.svg (MasterplanBase cache, vector) on a map, for maps that use his masterplan as their base; v3.28: pc_text_c, a mark letter centred on its glyph box (Helvetica cap height 0.718 em: baseline = centre - 0.359 x size; Aras 15 Nov 13:50 UTC "letters are not centered in the boxes"); the loop badge numbers use it; v3.27: no white box behind any name (Aras 15 Nov 13:44 UTC "dont have a opaque background for texts in any single of the drawings"): Labels.put halo = pc_halo, a thin white text-shaped outline (8 white copies 0.1-0.25 mm round the name), no box; v3.26: pc_mapbase logs the fill rings read / in view per layer (MapBase v1.8 mb_fill_log; Aras 07:46 "you might be skipping somewhere in the fills"); v3.25: pc_mapbase a05 bridges a warm dark grey 7A7468 at 0.18 mm (run 1: black 0.3 mm bridge lines were the heaviest ink on the pale base); v3.24: pc_mapbase a05 streets a pale warm grey F5F3EE (MapBaseCheck run 1: white streets on white houses read as one white mass in the old town; houses stay white), the street-edge lines cut to the network (MapBase v1.7); v3.23: pc_mapbase context make-up (Aras 15 Nov 06:03-06:05 "too many stray lines ... houses fills are overlapping ... Roads are not clear"; "thousand times better as house designs" = the 13 Nov A05 house look): houses white with a pale outline (MapBase v1.6 adds the crisp grey shadow to the lower left and drops wall / edge pieces under 3 m); streets white on a darker ground with darker edges; walls lighter; style key "a05": False keeps the old look; v3.22: pc_dg_kit to DIAGRAM_STYLE v2 (ground 3 x other weights, pale-accent terraces, arches silhouette);  v3.21: v3.21: pc_dg_kit dashes at item[6] (Basemap writer), dash_at=4 for the Sections writer;  v3.20: v3.20: pc_dg_kit, the diagram kit of library/diagram_style/DIAGRAM_STYLE.md (Aras 21:30 UTC "all the diagrams are awful"); v3.19: v3.18 undone (the writer keeps a line's clip at item[4]: those lines were really unclipped); v3.17: SiteMap ring + b (survey box), pc_site_den, pc_north_deg, pc_sheet cols + span (legend columns beside a site_alan strip); v3.16: pc_loop names=True (stop names on the map), every stop outside the frame gets an edge arrow, the stream walk in either loop order (loop numbered from Asklepion, Aras 16:26); v3.15: SiteMap / pc_site_map (the map frame = site_alan turned flat, Aras 16:17 UTC "KEEP EVERY DRAWING STRICTLY IN SITE_ALAN"), pc_loop edge arrows to stops outside it, pc_north_items; v3.14: pc_cut_mark = two end arrows, no line between (Aras 16:05 UTC); v3.13: v3.13: pc_mp_data (MasterplanBase: the masterplan SVG cached in survey m); v3.12: pc_cut_mark, the R01 cut symbol (two arrows, Aras 15:37 UTC); v3.11: pc_loop (the heritage loop, one code for the heritage and the transit map; Aras 15:31) and pc_station_name; v3.10: pc_a3_den / pc_a3 (a map page fitted and centred on A3 or a slide panel, Aras 15:25-15:27 UTC); v3.9: no sources in the drawings (Aras 15:23 UTC): pc_nosrc on MapBase legend rows, empty credit skipped; v3.8: a name with no free place goes where it overlaps least (run 7); v3.7: Labels.block_line / block_items (names keep off lines: run 6 review); v3.6: the outside Python runs hidden (no console window, Aras 14 Nov 12:57 UTC); v3.5: frame check skips items with any clip id; pc_mb_lib (MapBase as a library, any projection), pc_sheet north angle, pc_photos (JPEGs into PDF / SVG), pc_write photos / clips; v3.3: pc_frame_check (FLAG map ink outside the map frame); v3.2: context houses cut to the map frame
 PC_NOWIN = 0x08000000 if os.name == "nt" else 0   # v3.6: CREATE_NO_WINDOW for the review-PNG / photo subprocesses
 PC_DATA = os.path.join("Data", "bergama_access_heritage.json")
 PC_CENTRE = os.path.join("Data", "selinos_centreline.json")
@@ -1110,47 +1110,41 @@ n = sum(len(MARK.findall(d.xref_stream(x))) for x in xs)
 if not n:
     print("masterplan print placed 0 time(s)")
     sys.exit(0)
-t = fitz.open(pdf)                                       # 1) a copy: his PDF as a form at the stand-in, nothing else
-tp = t[0]
-tp.show_pdf_page(tp.rect, s, 0, keep_proportion=False, overlay=True)
-name = [x[1] for x in tp.get_xobjects() if x[2] == 0][-1]
-for x in tp.get_contents():
-    if x not in xs:
-        t.update_stream(x, b"")
-a, b, c, dd, e, f = spec["A"]                            # A: master.svg units (y down) -> page mm
-Wp, Hp = tp.rect.width, tp.rect.height                   # the form = the PDF page stretched over this page
-A = (a * vbw / Wp, b * vbw / Wp, -c * vbh / Hp, -dd * vbh / Hp, c * vbh + e, dd * vbh + f)
-DO = b"q %s cm /%s Do Q\n" % (" ".join("%.6f" % v for v in A).encode(), name.encode())
-for x in xs:                                             # every other mark drawn invisible; the clips stay
-    st = MARK.sub(lambda m: HOLD, t.xref_stream(x))
-    st = re.sub(rb"(?m)^(f\*?|B\*?|S)$", b"n", st)
-    st = re.sub(rb"(?m)^S Q$", b"n Q", st)
-    st = re.sub(rb"BT .*?ET\n", b"", st, flags=re.S)
-    st = re.sub(rb"/[A-Za-z]+\d+ Do", b"", st)
-    t.update_stream(x, st.replace(HOLD, DO))
-bb = fitz.Rect()
-for e_ in tp.get_bboxlog():
-    bb |= fitz.Rect(e_[1])
-bb &= tp.rect
-if bb.is_empty:
+# v3.46 (Aras 16 Nov 01:26 UTC "use the original masterplan that i have sent you without any changes"): his master.pdf
+# page itself drawn by MuPDF (his colours, his white mask, his transparency: nothing re-cut, re-masked or recoloured),
+# only the part that falls on this page, PNG_DPI on the sheet, lossless with its own alpha; placed by the map matrix
+a, b, c, dd, e, f = spec["A"]                            # A: master.svg units (y down) -> page mm (y up)
+kx, ky = vbw / sr.width, vbh / sr.height                 # his PDF page pt (y down) -> master.svg units
+
+
+def P(x, y):
+    u, v = x * kx, y * ky
+    return (a * u + c * v + e, b * u + dd * v + f)
+det = a * dd - b * c
+k = 72.0 / 25.4                                          # the writer draws in mm after a 72/25.4 scale
+Wm, Hm = pg.rect.width / k, pg.rect.height / k
+R = fitz.Rect()
+for X, Y in ((0, 0), (Wm, 0), (Wm, Hm), (0, Hm)):
+    u = (dd * (X - e) - c * (Y - f)) / det
+    v = (-b * (X - e) + a * (Y - f)) / det
+    R |= fitz.Point(u / kx, v / ky)
+R &= fitz.Rect(0, 0, sr.width, sr.height)
+if R.is_empty:
     print("NOTE the masterplan lies outside the drawing: not placed")
     sys.exit(3)
-pix = tp.get_pixmap(dpi=PNG_DPI, alpha=True, clip=bb)
-t.close()
-rgb = fitz.Pixmap(pix, 0)
-al = fitz.Pixmap(None, pix)
-msk = fitz.Pixmap(fitz.csGRAY, al.width, al.height, al.samples, 0)
-pix = al = None
-keep = set(xs)                                           # 2) the page: the picture at the stand-in
-xr = pg.insert_image(bb, stream=rgb.tobytes("png"), mask=msk.tobytes("png"))   # v3.45: lossless (no JPEG)
+z = (a * a + b * b) ** 0.5 * kx / 25.4 * PNG_DPI         # px per PDF pt for PNG_DPI on the sheet
+if R.width * R.height * z * z > 90e6:
+    z = (90e6 / (R.width * R.height)) ** 0.5
+pix = s[0].get_pixmap(matrix=fitz.Matrix(z, z), clip=R, alpha=True)
+keep = set(xs)
+xr = pg.insert_image(pg.rect, stream=pix.tobytes("png"))
 nm = [x[7] for x in pg.get_images(full=True) if x[0] == xr][0]
 for x in pg.get_contents():
     if x not in keep:
         d.update_stream(x, b"")
-k = 72.0 / 25.4                                          # the writer draws in mm after a 72/25.4 scale
-H = pg.rect.height
-IM = b"%%mp\nq %.4f 0 0 %.4f %.4f %.4f cm /%s Do Q\n" % (bb.width / k, bb.height / k, bb.x0 / k, (H - bb.y1) / k,
-                                                         nm.encode())
+p0, px_, py_ = P(R.x0, R.y1), P(R.x1, R.y1), P(R.x0, R.y0)   # image unit square: (0,0) = his bottom-left
+IM = b"%%mp\nq %.6f %.6f %.6f %.6f %.6f %.6f cm /%s Do Q\n" % (
+    px_[0] - p0[0], px_[1] - p0[1], py_[0] - p0[0], py_[1] - p0[1], p0[0], p0[1], nm.encode())
 n = 0
 for x in xs:
     st2, k_ = MARK.subn(lambda m: IM, d.xref_stream(x))
@@ -1160,8 +1154,8 @@ d.save(pdf + ".tmp", garbage=3, deflate=True)
 d.close()
 import os
 os.replace(pdf + ".tmp", pdf)
-print("masterplan print placed %d time(s) (one picture %d x %d px, %d dpi, %.1f MB page)" % (
-    n, rgb.width, rgb.height, PNG_DPI, os.path.getsize(pdf) / 1e6))
+print("masterplan print placed %d time(s) (his master.pdf as it is, %d x %d px, %.0f dpi, %.1f MB page)" % (
+    n, pix.width, pix.height, z / ((a * a + b * b) ** 0.5 * kx / 25.4), os.path.getsize(pdf) / 1e6))
 """
 
 
@@ -1239,7 +1233,7 @@ def pc_masterplan(M, log, lim=None, paste=True):
         if A_:
             b_ = M.box
             items.append(("poly", [[(b_[0], b_[1]), (b_[2], b_[1]), (b_[2], b_[3]), (b_[0], b_[3])]], PC_MP_MARK, None,
-                          0.0, None, "mp/master_print", 1, None, PC_CLIP_WA))
+                          0.0, None, "mp/master_print", 1, None, PC_CLIP))  # v3.46: his whole file, his own white mask
             M.mp_place = (pr_[0], A_, pr_[1], os.path.join(pc_root(), MPn["MP_SVG"]))
             log.append(u"masterplan (master.svg) pasted inside the working area (%d ring(s)) as Chromium prints it: "
                        u"every picture, texture, gradient and clip of his file, base map hidden under it" % len(wa))
@@ -1486,13 +1480,13 @@ d = fitz.open(sys.argv[1])
 xs = d[0].get_contents()
 H = d[0].rect.height
 k = 72.0 / 25.4
-IM = re.compile(rb"%mp\nq ([-0-9.]+) 0 0 ([-0-9.]+) ([-0-9.]+) ([-0-9.]+) cm /(\w+) Do Q\n")
+IM = re.compile(rb"%mp\nq ([-0-9.]+) ([-0-9.]+) ([-0-9.]+) ([-0-9.]+) ([-0-9.]+) ([-0-9.]+) cm /(\w+) Do Q\n")
 info = dict((x[7], x) for x in d[0].get_images(full=True))
 imgs = []
 for x in xs:
     for m in IM.finditer(d.xref_stream(x)):
-        w, h, x0, y0 = [float(v) for v in m.groups()[:4]]
-        im = info.get(m.group(5).decode())
+        A_, B_, C_, D_, E_, F_ = [float(v) for v in m.groups()[:6]]
+        im = info.get(m.group(7).decode())
         if not im:
             continue
         pm = fitz.Pixmap(d, im[0])
@@ -1500,8 +1494,8 @@ for x in xs:
             pm = fitz.Pixmap(pm, fitz.Pixmap(d, im[1]))
         png = os.path.splitext(sys.argv[2])[0] + ("_masterplan.png" if not imgs else "_masterplan%d.png" % (len(imgs) + 1))
         pm.save(png)
-        imgs.append((os.path.basename(png), fitz.Rect(x0 * k, H - (y0 + h) * k, (x0 + w) * k, H - y0 * k), pm.width,
-                     pm.height))
+        imgs.append((os.path.basename(png), (k * A_, -k * B_, -k * C_, k * D_, k * (C_ + E_), H - k * (D_ + F_)),
+                     pm.width, pm.height))
 cnt = [0]
 def _stand(m):                                       # the vector SVG gets a tiny stand-in where each picture was
     cnt[0] += 1
@@ -1511,8 +1505,8 @@ for x in xs:
 s = d[0].get_svg_image(text_as_path=False)
 for i, img in enumerate(imgs):
     pat = r'<path[^>]*fill="#fffe%02x"[^>]*/>' % (i + 1)
-    tag = ('<image x="%.3f" y="%.3f" width="%.3f" height="%.3f" preserveAspectRatio="none" xlink:href="%s"/>'
-           % (img[1].x0, img[1].y0, img[1].width, img[1].height, img[0]))
+    tag = ('<image x="0" y="0" width="1" height="1" preserveAspectRatio="none" transform="matrix(%.6f %.6f %.6f %.6f '
+           '%.4f %.4f)" xlink:href="%s"/>' % (img[1] + (img[0],)))
     s, n_ = re.subn(pat, lambda m: tag, s, count=1)
     print("masterplan linked as %s (%d x %d px)" % (img[0], img[2], img[3]) if n_ else
           "NOTE masterplan picture %d not placed in the SVG" % (i + 1))
