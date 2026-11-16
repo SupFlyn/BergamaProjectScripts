@@ -107,6 +107,7 @@ bergama_12sectionsRhino: Data/bergama_palette.py  # hand, 16 Nov
 bergama_12sectionsRhino: Data/cutouts/  # hand, 16 Nov
 bergama_12sectionsRhino: Data/section_lines.json  # hand, 16 Nov
 bergama_12sectionsRhino: cached/bergama_sections/  # hand, 16 Nov (Sections first)
+bergama_12sectionsRhino: cached/bergama_masterplanbase/masterplan.json  # hand, 16 Nov (v1.2 trees)
 bergama_basemap: Data/bergama_style.json  # hand, 12 Nov
 bergama_basemap: Data/selinos_centreline.json  # hand, 12 Nov (the river surface)
 bergama_plan_base: Data/selinos_centreline.json  # hand, 12 Nov (the river surface, through the Basemap code)
