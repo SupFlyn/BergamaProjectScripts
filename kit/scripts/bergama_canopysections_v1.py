@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-# CURRENT VERSION: bergama_canopySections_v1.py = CanopySections v1 (16 Nov 2026): one APPROXIMATE section through each
+# CURRENT VERSION: bergama_canopysections_v1.py = CanopySections v1 (16 Nov 2026): one APPROXIMATE section through each
 # canopy of his masterplan (kanopi triangles, MasterplanBase cache), across its short axis, in the 12sectionsRhino look;
-# levels relative to the deck. Writes output/bergama_canopySections/Canopy_sections_p<n>.pdf (A3, 3 per page).
+# levels relative to the deck. Writes output/bergama_canopysections/Canopy_sections_p<n>.pdf (A3, 3 per page).
 # Needs Data/bergama_12sectionsRhino_data.py, Data/cutouts/, cached/bergama_masterplanbase/masterplan.json.
-# HOW WE KNOW IT WORKS: "CanopySections v1" under the component; one log line per canopy (C1 ...) and one per PDF page.
+# HOW WE KNOW IT WORKS: "canopysections v1" under the component; one log line per canopy (C1 ...) and one per PDF page.
 # CURRENT VERSION: bergama_12sectionsRhino_v1_3.py = 12sectionsRhino v1.3 (scale to fit A3); v1.2 (his masterplan trees on and behind the cuts); v1.1 (levels from the Sections cache); v1 (16 Nov 2026): the 12 node sections N1-A ... N6-B
 # and the four-seasons cut S4 in the look of booklet pp.13-15 (ProposalSections v18.1, copied whole; its own W1-W4
 # main is kept but no longer called). Trees and people: our asset library only (Data/cutouts). Water: mean yearly flow
@@ -131,9 +131,9 @@ import types as _types
 
 # ---- SETTINGS ----
 VERSION = "v1"  # CanopySections v1 (16 Nov 2026): a copy of 12sectionsRhino v1.3 with its own main (see "CanopySections v1" near the end). Notes of 12sectionsRhino: v1.3 v1.3 (Aras 16 Nov 00:02 UTC "scale to fit"): each page drawn whole and scaled to fill the A3 (one factor per page; scale words, bars and inset scale give the printed scale); v1.2: v1.2 (Aras 16 Nov 00:00 UTC "the trees are no where to be seen"): his masterplan trees (PLANTING layer) on and behind each cut as our species cutouts at sourced heights; v1.1: v1.1 (16 Nov, run 1): mean and max recorded levels interpolated from the levels Sections calculated (log Q), never under the bed; 12sectionsRhino v1 (16 Nov 2026): copy of ProposalSections v18.1 with a new main (see "12sectionsRhino v1" near the end). Earlier notes = ProposalSections:   # v18.1 1 Nov 21:40 (Aras 19:33): every layout check that stopped the run (text size, lines, column width, rows, legend room) is a WARNING line and an orange warning; 6.00 pt no longer counts as under 6.0; v18 1 Nov 20:55: text collisions are orange warnings with one WARNING line each, the run goes on (Aras 1 Nov 17:11 + 18:52); v17 (round 4 S7): p13a + p13b at 1:250, one text placer, markers, one trigger file; v16.4 fix 1 Nov 08:30: only the component's own inputs can start it (a True setting inside the script no longer does); v16.3 fix 1 Nov 08:20: chain trigger keyed to each solve (Rhino keeps globals), so the chain continues after ZoneBase; v16.2 fix 1 Nov: a pasted or rewired component no longer runs by itself (chain trigger notes the wire on its first solve)
-GH_LABEL = "CanopySections"
-OUT_FOLDER = "bergama_canopySections"
-LOG_NAME = "bergama_canopySections_log.txt"
+GH_LABEL = "canopysections"
+OUT_FOLDER = "bergama_canopysections"
+LOG_NAME = "bergama_canopysections_log.txt"
 OUT_NAME = "Bergama_proposal_sections_{}.pdf"
 STYLES = (("a", "A"),)                                # v13 (Aras 31 Oct): style a only, one sheet ..._A.pdf
 
@@ -12250,7 +12250,7 @@ main = ts_main
 #          within 3 m of the line (else a fold every ~7 m), facets alternating low / high; the timber louvre layer
 #          under the skin, Y-shaped steel columns under the low folds, a timber deck on a flat datum (+0.00), people.
 #          Levels are RELATIVE to the deck: the site ground, the stream and its flood levels are NOT in this drawing.
-#   writes output/bergama_canopySections/Canopy_sections_p1.pdf, _p2.pdf ... (A3, three canopies per page, scaled
+#   writes output/bergama_canopysections/Canopy_sections_p1.pdf, _p2.pdf ... (A3, three canopies per page, scaled
 #          to fit like 12sectionsRhino v1.3)
 # Heights (the AcBuild / Sections canopy rules): louvre underside at the valley 2.30 m over the deck (DfT Inclusive
 # Mobility 2021 s.3.2 "Generally, this should be a minimum of 2300mm"); louvre 0.30, skin 0.10 (design intent,
@@ -12259,7 +12259,7 @@ main = ts_main
 # Glazed rooms are NOT drawn: AcBuild puts them only where the floor is at least Q500 + 0.60 m, and this drawing has
 # no flood level (Sections v1.28.6 rule).
 CS_VERSION = "v1"
-CS_FOLDER = "bergama_canopySections"
+CS_FOLDER = "bergama_canopysections"
 CS_CLEAR, CS_LOUVRE, CS_SKIN, CS_RISE, CS_MAX_DEG = 2.30, 0.30, 0.10, 0.60, 8.0
 CS_FORK, CS_ARM, CS_DECK = 0.6, 2.5, 0.12
 CS_BAY = 7.0                      # m: fold spacing where his triangle corners give none (AcBuild 4-10 m columns)
@@ -12527,7 +12527,7 @@ if "ghenv" in globals():
         _k += ":" + str(ghenv.Component.InstanceGuid)   # noqa: F821
     except Exception:
         pass
-    _pressed, _why, _btn = trig_should_run("bergama_canopySections_chain")   # v17 (round 4 S1): one trigger file
+    _pressed, _why, _btn = trig_should_run("bergama_canopysections_chain")   # v17 (round 4 S1): one trigger file
     TRIG_WHY[0] = _why
     if _sc.sticky.get(_k + "_ver") != VERSION:     # v8: a newly pasted version shows itself at once, idle
         for _s in ("_status", "_done"):
