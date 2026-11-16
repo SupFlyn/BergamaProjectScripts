@@ -1,125 +1,125 @@
 {
- "what": "v7 (16 Nov 2026 01:4x UTC): N2-B moved 20 m onto the bank top (see changes). v6 (15 Nov 2026 22:2x UTC, Aras 22:10 'move the node 6 to the building that is across the river' + 22:15 screenshot 'n6 will be here' = his faceted-roof 'desings' building, u 1943-2099, v 301-381): N6 = strip u 1861-2181 (same 320 x 465 m) centred on that building; N6-A square to the stream through its middle, N6-B along its bank 30 m off the centreline, frame end to frame end. nodes_v5/lines_v5 = before. v5 (15 Nov 2026 15:2x UTC): N3 west end to u 705 so it reaches into the working area. v4 (15 Nov 2026, Aras 08:46 UTC 'yes' to moving N5 and N6 so the master.svg buildings sit inside them): N5 = strip u 1400-1795, N6 = u 1795-2115 (same v as v3); N5-A / N6-A cross the stream square to it through the building frames' middles (u 1699 / 2022), N5-B / N6-B run along the bank 12 / 30 m off the centreline at the frame ends (never crossing it), all edge to edge. nodes_v3/lines_v3 = before. v3 (15 Nov 2026, Aras approved the defaults 04:58 UTC: node frames apart and inside his masterplan drawing): every frame kept inside the masterplan drawing's frame (site_alan strip, 2,845 x 529 m, from the MasterplanBase cache matrix + svg_box); N1 cut to the strip's width; N5 and N6 slid across the strip (same size) to its far edge; N3 slid 51 m upstream and N4 starts where N3 ends and stops where N5 starts (no overlap); each A/B line re-run from frame edge to frame edge on the same line. nodes_v2/lines_v2 = before. Panel Review II section lines N1-A ... N6-B and node frames N1-N6 in survey coordinates (m). v2 (Aras 14 Nov 16:12-16:13 UTC: 'two section lines dont look at the same way ... if they are cross sections it is even better ... Section should cross all of the zone area at least'; 'shift this one aswell it is out of our working area'): A = square to the stream at the old A's stream point, from node frame edge to frame edge, looking downstream; B = parallel to the local stream direction (crossing A at right angles), 25-45 m off the stream on the frame-centre side where it stays out of the water inside the frame, frame edge to frame edge, looking at the stream. Both stay inside their node frame. lines_v1 = the 11 Nov lines (all looked the same way, some ran past the frame).",
+ "what": "v8 (16 Nov 2026 03:4x UTC, Aras 03:34 'move the nodes and their section lines and their respective zooms to the places that they are on map'): every node frame centred on its slide-6 pin (Slide06 log 'node pins mid working area'), A through the pin square to the stream (centreline tangent within 40 m), B along the stream on the pin's side, 30 m off (N2 50 m, bank top) or further until it neither crosses nor comes within 20 m of the centreline; frame edge to frame edge. nodes_v7 / lines_v7 = before. v7 (16 Nov 2026 01:4x UTC): N2-B moved 20 m onto the bank top (see changes). v6 (15 Nov 2026 22:2x UTC, Aras 22:10 'move the node 6 to the building that is across the river' + 22:15 screenshot 'n6 will be here' = his faceted-roof 'desings' building, u 1943-2099, v 301-381): N6 = strip u 1861-2181 (same 320 x 465 m) centred on that building; N6-A square to the stream through its middle, N6-B along its bank 30 m off the centreline, frame end to frame end. nodes_v5/lines_v5 = before. v5 (15 Nov 2026 15:2x UTC): N3 west end to u 705 so it reaches into the working area. v4 (15 Nov 2026, Aras 08:46 UTC 'yes' to moving N5 and N6 so the master.svg buildings sit inside them): N5 = strip u 1400-1795, N6 = u 1795-2115 (same v as v3); N5-A / N6-A cross the stream square to it through the building frames' middles (u 1699 / 2022), N5-B / N6-B run along the bank 12 / 30 m off the centreline at the frame ends (never crossing it), all edge to edge. nodes_v3/lines_v3 = before. v3 (15 Nov 2026, Aras approved the defaults 04:58 UTC: node frames apart and inside his masterplan drawing): every frame kept inside the masterplan drawing's frame (site_alan strip, 2,845 x 529 m, from the MasterplanBase cache matrix + svg_box); N1 cut to the strip's width; N5 and N6 slid across the strip (same size) to its far edge; N3 slid 51 m upstream and N4 starts where N3 ends and stops where N5 starts (no overlap); each A/B line re-run from frame edge to frame edge on the same line. nodes_v2/lines_v2 = before. Panel Review II section lines N1-A ... N6-B and node frames N1-N6 in survey coordinates (m). v2 (Aras 14 Nov 16:12-16:13 UTC: 'two section lines dont look at the same way ... if they are cross sections it is even better ... Section should cross all of the zone area at least'; 'shift this one aswell it is out of our working area'): A = square to the stream at the old A's stream point, from node frame edge to frame edge, looking downstream; B = parallel to the local stream direction (crossing A at right angles), 25-45 m off the stream on the frame-centre side where it stays out of the water inside the frame, frame edge to frame edge, looking at the stream. Both stay inside their node frame. lines_v1 = the 11 Nov lines (all looked the same way, some ran past the frame).",
  "source": "nodes_sections_v2.json (section lines layer v3, 11 Nov 2026, units of B19_setB_layers2.1), placed by its plan frame (277.504, 5742.594, 7514.18 x 1397.44 units = site_alan 2,844.97 x 529.09 m, 2.641215 units per m)",
  "lines": {
   "N1-A": [
    [
-    29947.39,
-    32697.6
+    29963.94,
+    32742.96
    ],
    [
-    29527.17,
-    32375.22
+    29582.06,
+    32375.04
    ]
   ],
   "N1-B": [
    [
-    29886.68,
-    32386.37
+    29922.1,
+    32419.67
    ],
    [
-    29639.77,
-    32708.2
+    29640.32,
+    32712.14
    ]
   ],
   "N2-A": [
    [
-    29889.54,
-    32402.75
+    29955.75,
+    32597.85
    ],
    [
-    29807.47,
-    32159.63
+    29918.25,
+    32206.15
    ]
   ],
   "N2-B": [
    [
-    30118.07,
-    32235.92
+    30044.63,
+    32312.55
    ],
    [
-    29814.26,
-    32338.47
+    29801.18,
+    32335.85
    ]
   ],
   "N3-A": [
    [
-    30195.07,
-    32105.59
+    30207.27,
+    32122.69
    ],
    [
-    29978.4,
-    31962.48
+    29980.73,
+    31991.31
    ]
   ],
   "N3-B": [
    [
-    30159.63,
-    31964.67
+    30160.82,
+    31961.31
    ],
    [
-    30060.2,
-    32115.21
+    30042.4,
+    32165.5
    ]
   ],
   "N4-A": [
    [
-    30306.31,
-    32046.22
+    30272.65,
+    31943.43
    ],
    [
-    30049.45,
-    31867.09
+    30059.35,
+    31712.57
    ]
   ],
   "N4-B": [
    [
-    30250.01,
-    31830.91
+    30254.84,
+    31775.61
    ],
    [
-    30157.8,
-    31963.13
+    30110.79,
+    31908.69
    ]
   ],
   "N5-A": [
    [
-    30749.04,
-    31518.44
+    30718.16,
+    31532.89
    ],
    [
-    30493.46,
-    31227.49
+    30385.83,
+    31333.1
    ]
   ],
   "N5-B": [
    [
-    30411.8,
-    31572.34
+    30463.27,
+    31616.47
    ],
    [
-    30662.9,
-    31267.39
+    30669.37,
+    31273.64
    ]
   ],
   "N6-A": [
    [
-    31012.37,
-    31333.14
+    30924.9,
+    31214.46
    ],
    [
-    30780.36,
-    30886.73
+    30673.1,
+    30791.54
    ]
   ],
   "N6-B": [
    [
-    30731.71,
-    31239.05
+    30730.82,
+    31154.75
    ],
    [
-    31014.63,
-    31058.93
+    31021.86,
+    30981.47
    ]
   ]
  },
@@ -128,20 +128,20 @@
    "name": "Neighbourhoods (Upper + Lower)",
    "corners": [
     [
-     29814.57,
-     32855.36
+     29844.89,
+     32884.37
     ],
     [
-     30075.55,
-     32545.38
+     30105.87,
+     32574.39
     ],
     [
-     29670.8,
-     32204.62
+     29701.12,
+     32233.63
     ],
     [
-     29409.82,
-     32514.6
+     29440.14,
+     32543.61
     ]
    ]
   },
@@ -149,20 +149,20 @@
    "name": "Cultural Heritage",
    "corners": [
     [
-     29945.88,
-     32450.18
+     29960.36,
+     32601.73
     ],
     [
-     30123.31,
-     32239.43
+     30137.79,
+     32390.98
     ],
     [
-     29899.17,
-     32050.72
+     29913.65,
+     32202.27
     ],
     [
-     29721.73,
-     32261.47
+     29736.21,
+     32413.02
     ]
    ]
   },
@@ -170,20 +170,20 @@
    "name": "Bazaar",
    "corners": [
     [
-     30100.07,
-     32218.41
+     30117.79,
+     32228.97
     ],
     [
-     30249.79,
-     32040.58
+     30267.51,
+     32051.14
     ],
     [
-     30052.49,
-     31874.47
+     30070.21,
+     31885.03
     ],
     [
-     29902.77,
-     32052.3
+     29920.49,
+     32062.86
     ]
    ]
   },
@@ -191,20 +191,20 @@
    "name": "Archaeological Site",
    "corners": [
     [
-     30285.64,
-     32070.77
+     30222.62,
+     32002.85
     ],
     [
-     30410.96,
-     31921.92
+     30347.94,
+     31854.0
     ],
     [
-     30172.39,
-     31721.06
+     30109.38,
+     31653.15
     ],
     [
-     30047.07,
-     31869.91
+     29984.06,
+     31801.99
     ]
    ]
   },
@@ -212,20 +212,20 @@
    "name": "Settled Housing",
    "corners": [
     [
-     30582.6,
-     31716.14
+     30571.25,
+     31707.39
     ],
     [
-     30837.0,
-     31413.97
+     30825.65,
+     31405.22
     ],
     [
-     30544.09,
-     31167.36
+     30532.74,
+     31158.61
     ],
     [
-     30289.69,
-     31469.53
+     30278.34,
+     31460.78
     ]
    ]
   },
@@ -233,20 +233,20 @@
    "name": "Industrial Area",
    "corners": [
     [
-     30942.31,
-     31416.36
+     30873.81,
+     31275.14
     ],
     [
-     31148.41,
-     31171.56
+     31079.91,
+     31030.34
     ],
     [
-     30792.69,
-     30872.08
+     30724.19,
+     30730.86
     ],
     [
-     30586.6,
-     31116.87
+     30518.1,
+     30975.65
     ]
    ]
   }
@@ -630,7 +630,8 @@
   "15 Nov 2026 08:5x UTC (Aras 08:46 'yes'): N5 u 1132-1531 -> 1400-1795, N6 u 2026-2343 -> 1795-2115 (master.svg bina_cerceve buildings at u 1605-1793 and 1939-2105, measured by the building-ideas thread +/-10 m); N5-A, N5-B, N6-A, N6-B redrawn; strip = basemap Frame of site_alan (FRAME_COPY), u from the west",
   "15 Nov 2026 15:2x UTC (Aras 15:14 'all the nodes are indeed in our working area', 15:14 'if your notes clashes update it to be carried to the inside of the area'): N3 Bazaar u 758-937 -> 705-937 (west end as library/node_ideas_2026-11-15/NODE_IDEAS.md, u 705); the v4 N3 frame lay wholly in the gap of the working area (Basemap calisma, u 735-981 along the strip, the covered stretch); now it overlaps the west working-area ring by 30 m at the upstream tunnel mouth. Lines unchanged (N3-A, N3-B stay inside). nodes_v4 = before",
   "15 Nov 2026 22:2x UTC (Aras 22:10 + 22:15 screenshot): N6 u 1795-2115 -> 1861-2181, centred on his faceted-roof 'desings' building (u 1943-2099, v 301-381); N6-A, N6-B redrawn",
-  "16 Nov 2026 01:4x UTC (Aras 01:40 'take the n2b section somewhere else'): N2-B moved 20 m away from the stream onto the bank top (same direction, same look), re-clipped to the N2 frame and 0.8 m shorter at each end (so Sections leaves out the old line's Archicad background, length differs > 1 m). The old line ran 0-30 m beside the stream at s 103-146 m and dropped into a 61-65 m survey dip (DXF NOKTA_TAKEOMETRI) 4-6 m below the beds up- and downstream (unverified). On the new line a TIN of the course DXF heights reads 87 to 71 m with no dip. lines_v6 = before."
+  "16 Nov 2026 01:4x UTC (Aras 01:40 'take the n2b section somewhere else'): N2-B moved 20 m away from the stream onto the bank top (same direction, same look), re-clipped to the N2 frame and 0.8 m shorter at each end (so Sections leaves out the old line's Archicad background, length differs > 1 m). The old line ran 0-30 m beside the stream at s 103-146 m and dropped into a 61-65 m survey dip (DXF NOKTA_TAKEOMETRI) 4-6 m below the beds up- and downstream (unverified). On the new line a TIN of the course DXF heights reads 87 to 71 m with no dip. lines_v6 = before.",
+  "16 Nov 2026 03:4x UTC: v8 node move to the pins: N1: frame and lines moved 42 m to the pin; A 530 m through the pin square to the stream; B 406 m long, 70 m off the stream on the pin's side; N2: frame and lines moved 152 m to the pin; A 393 m through the pin square to the stream; B 245 m long, 50 m off the stream on the pin's side; N3: frame and lines moved 21 m to the pin; A 262 m through the pin square to the stream; B 236 m long, 30 m off the stream on the pin's side; N4: frame and lines moved 93 m to the pin; A 314 m through the pin square to the stream; B 196 m long, 30 m off the stream on the pin's side; N5: frame and lines moved 14 m to the pin; A 388 m through the pin square to the stream; B 400 m long, 95 m off the stream on the pin's side; N6: frame and lines moved 157 m to the pin; A 492 m through the pin square to the stream; B 339 m long, 50 m off the stream on the pin's side"
  ],
  "nodes_v3": {
   "N1": {
@@ -1169,6 +1170,256 @@
    [
     29795.6,
     32323.66
+   ]
+  ]
+ },
+ "nodes_v7": {
+  "N1": {
+   "name": "Neighbourhoods (Upper + Lower)",
+   "corners": [
+    [
+     29814.57,
+     32855.36
+    ],
+    [
+     30075.55,
+     32545.38
+    ],
+    [
+     29670.8,
+     32204.62
+    ],
+    [
+     29409.82,
+     32514.6
+    ]
+   ]
+  },
+  "N2": {
+   "name": "Cultural Heritage",
+   "corners": [
+    [
+     29945.88,
+     32450.18
+    ],
+    [
+     30123.31,
+     32239.43
+    ],
+    [
+     29899.17,
+     32050.72
+    ],
+    [
+     29721.73,
+     32261.47
+    ]
+   ]
+  },
+  "N3": {
+   "name": "Bazaar",
+   "corners": [
+    [
+     30100.07,
+     32218.41
+    ],
+    [
+     30249.79,
+     32040.58
+    ],
+    [
+     30052.49,
+     31874.47
+    ],
+    [
+     29902.77,
+     32052.3
+    ]
+   ]
+  },
+  "N4": {
+   "name": "Archaeological Site",
+   "corners": [
+    [
+     30285.64,
+     32070.77
+    ],
+    [
+     30410.96,
+     31921.92
+    ],
+    [
+     30172.39,
+     31721.06
+    ],
+    [
+     30047.07,
+     31869.91
+    ]
+   ]
+  },
+  "N5": {
+   "name": "Settled Housing",
+   "corners": [
+    [
+     30582.6,
+     31716.14
+    ],
+    [
+     30837.0,
+     31413.97
+    ],
+    [
+     30544.09,
+     31167.36
+    ],
+    [
+     30289.69,
+     31469.53
+    ]
+   ]
+  },
+  "N6": {
+   "name": "Industrial Area",
+   "corners": [
+    [
+     30942.31,
+     31416.36
+    ],
+    [
+     31148.41,
+     31171.56
+    ],
+    [
+     30792.69,
+     30872.08
+    ],
+    [
+     30586.6,
+     31116.87
+    ]
+   ]
+  }
+ },
+ "lines_v7": {
+  "N1-A": [
+   [
+    29947.39,
+    32697.6
+   ],
+   [
+    29527.17,
+    32375.22
+   ]
+  ],
+  "N1-B": [
+   [
+    29886.68,
+    32386.37
+   ],
+   [
+    29639.77,
+    32708.2
+   ]
+  ],
+  "N2-A": [
+   [
+    29889.54,
+    32402.75
+   ],
+   [
+    29807.47,
+    32159.63
+   ]
+  ],
+  "N2-B": [
+   [
+    30118.07,
+    32235.92
+   ],
+   [
+    29814.26,
+    32338.47
+   ]
+  ],
+  "N3-A": [
+   [
+    30195.07,
+    32105.59
+   ],
+   [
+    29978.4,
+    31962.48
+   ]
+  ],
+  "N3-B": [
+   [
+    30159.63,
+    31964.67
+   ],
+   [
+    30060.2,
+    32115.21
+   ]
+  ],
+  "N4-A": [
+   [
+    30306.31,
+    32046.22
+   ],
+   [
+    30049.45,
+    31867.09
+   ]
+  ],
+  "N4-B": [
+   [
+    30250.01,
+    31830.91
+   ],
+   [
+    30157.8,
+    31963.13
+   ]
+  ],
+  "N5-A": [
+   [
+    30749.04,
+    31518.44
+   ],
+   [
+    30493.46,
+    31227.49
+   ]
+  ],
+  "N5-B": [
+   [
+    30411.8,
+    31572.34
+   ],
+   [
+    30662.9,
+    31267.39
+   ]
+  ],
+  "N6-A": [
+   [
+    31012.37,
+    31333.14
+   ],
+   [
+    30780.36,
+    30886.73
+   ]
+  ],
+  "N6-B": [
+   [
+    30731.71,
+    31239.05
+   ],
+   [
+    31014.63,
+    31058.93
    ]
   ]
  }
