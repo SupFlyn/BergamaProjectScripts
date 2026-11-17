@@ -3,7 +3,9 @@
 happens bring it foreground and show the error in bold red and show the log dir in the screen aswell").
 Started windowless by run_acbuild.bat (pyw). Runs the newest scripts/bergama_acbuild_v*.py in plain Python (only
 Archicad open), writes its log as usual, and only if the run ends in an ERROR (or crashes) pops a window to the front:
-the error in bold red, the log folder path, and buttons to open the folder / the log. A clean run shows nothing.
+the error in bold red, the log folder path, and buttons to open the folder / the log.
+v2 (Aras 17 Nov 12:33 UTC): a clean run ends with the same window in green: finish time, the summary line
+(elements, sections, FLAG count) and whether the project was saved.
 """
 import glob, os, re, runpy, traceback
 
@@ -18,16 +20,17 @@ def newest():
     return max(fs, key=lambda p: [int(x) for x in re.findall(r"\d+", os.path.basename(p))]) if fs else None
 
 
-def show_error(title, text):
-    """the error window: always on top, brought to the front, error in bold red, log folder shown"""
+def show_error(title, text, head=u"AcBuild: ERROR", colour="#C00000"):
+    """the error window: always on top, brought to the front, error in bold red, log folder shown
+    (v2: also the end-of-run window, in green)"""
     import tkinter as tk
     w = tk.Tk()
-    w.title(u"AcBuild: ERROR")
+    w.title(head)
     w.attributes("-topmost", True)
     w.configure(padx=18, pady=14)
-    tk.Label(w, text=title, fg="#C00000", font=("Segoe UI", 16, "bold"), justify="left",
+    tk.Label(w, text=title, fg=colour, font=("Segoe UI", 16, "bold"), justify="left",
              wraplength=900).pack(anchor="w")
-    tk.Label(w, text=text, fg="#C00000", font=("Consolas", 10, "bold"), justify="left",
+    tk.Label(w, text=text, fg=colour, font=("Consolas", 10, "bold"), justify="left",
              wraplength=900).pack(anchor="w", pady=(8, 10))
     tk.Label(w, text=u"Log folder: " + LOG_DIR, font=("Segoe UI", 11, "bold"), justify="left").pack(anchor="w")
     tk.Label(w, text=u"Full log: " + LOG_FILE + u"\nLast steps: " + PROGRESS, font=("Segoe UI", 10),
@@ -79,6 +82,13 @@ def main():
         show_error(u"%s stopped with an error" % os.path.basename(f),
                    head + u"\n\n" + u"\n".join(res.splitlines()[1:])[-1200:] +
                    (u"\n\nLast steps:\n" + last_progress() if last_progress() else u""))
+    else:                                                  # v2 (Aras 17 Nov 12:33 UTC): a window at the end of the run
+        import time
+        lines = [l for l in res.splitlines() if l.strip()]
+        saved = [l for l in lines if l.startswith(u"Archicad project saved") or u"project not saved" in l]
+        show_error(u"%s finished at %s" % (os.path.basename(f), time.strftime("%H:%M")),
+                   (lines[-1] if lines else u"") + (u"\n" + saved[-1] if saved else u""),
+                   head=u"AcBuild: finished", colour="#2E7D32")
 
 
 if __name__ == "__main__":
