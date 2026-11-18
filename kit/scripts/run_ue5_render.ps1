@@ -5,14 +5,14 @@ Add-Type -AssemblyName System.Windows.Forms
 $bg = Join-Path $env:USERPROFILE 'Downloads\Bergama'
 $cu = Join-Path $bg 'cached\bergama_ue5'
 New-Item -ItemType Directory -Force -Path $cu | Out-Null
-function Pick($title, $filter, $dir) {
+function Pick($title, $filter, $dir, $multi = $false) {
     $o = New-Object System.Windows.Forms.OpenFileDialog
-    $o.Title = $title; $o.Filter = $filter
+    $o.Title = $title; $o.Filter = $filter; $o.Multiselect = $multi
     if ($dir -and (Test-Path $dir)) { $o.InitialDirectory = $dir }
     if ($o.ShowDialog() -ne 'OK') { Write-Host 'Cancelled.'; exit 1 }
-    return $o.FileName
+    if ($multi) { return $o.FileNames } else { return $o.FileName }
 }
-$fbx = Pick 'Pick the Archicad FBX of the model' 'FBX (*.fbx)|*.fbx' (Join-Path $bg 'archicad')
+$fbx = Pick 'Pick the Archicad FBX file(s) - several allowed (Ctrl+click), one per area' 'FBX (*.fbx)|*.fbx' $(if (Test-Path (Join-Path $cu 'fbx')) { Join-Path $cu 'fbx' } else { Join-Path $bg 'archicad' }) $true
 Set-Content -Encoding UTF8 (Join-Path $cu 'fbx_path.txt') $fbx
 $pf = Join-Path $cu 'uproject.txt'; $up = $null
 if (Test-Path $pf) { $up = (Get-Content $pf -Raw).Trim() }
@@ -31,7 +31,7 @@ Set-Content -Encoding UTF8 $ef $ed
 $py = Get-ChildItem (Join-Path $bg 'scripts\bergama_ue5_render_v*.py') -ErrorAction SilentlyContinue |
       Sort-Object LastWriteTime | Select-Object -Last 1 -ExpandProperty FullName
 if (-not $py) { Write-Host 'No bergama_ue5_render_v*.py in Downloads\Bergama\scripts.'; exit 1 }
-Write-Host "FBX     $fbx"
+Write-Host ("FBX     " + ($fbx -join "; "))
 Write-Host "Project $up"
 Write-Host "Editor  $ed"
 Write-Host "Script  $py"
