@@ -102,3 +102,5 @@ Data/heritage_photos/
 scripts/bergama_slide04_systems_v1_6.py
 Data/water_balance_results_default.json
 Data/water_balance_key_figures.json
+scripts/bergama_open3d_v1.py
+run_open3d.bat
