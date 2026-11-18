@@ -104,3 +104,5 @@ Data/water_balance_results_default.json
 Data/water_balance_key_figures.json
 scripts/bergama_open3d_v1.py
 run_open3d.bat
+scripts/bergama_seo_off_v1.py
+run_seo_off.bat
