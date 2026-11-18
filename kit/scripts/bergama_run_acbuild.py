@@ -9,7 +9,8 @@ v2 (Aras 17 Nov 12:33 UTC): a clean run ends with the same window in green: fini
 """
 import glob, os, re, runpy, traceback
 
-ROOT = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
+_BG = os.path.join(os.path.expanduser("~"), "Downloads", "Bergama")
+ROOT = os.path.join(_BG, "Project Files") if os.path.isdir(os.path.join(_BG, "Project Files", "scripts")) else _BG   # 18 Nov: new layout
 LOG_DIR = os.path.join(ROOT, "logs")
 LOG_FILE = os.path.join(LOG_DIR, "bergama_acbuild_site_log.txt")
 PROGRESS = os.path.join(LOG_DIR, "bergama_acbuild_progress.txt")
