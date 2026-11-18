@@ -1,4 +1,4 @@
-# Bergama UE5 render launcher (18 Nov 2026), called by run_ue5_render.bat (keep both in the same folder).
+# Bergama UE5 render launcher (18 Nov 2026), called by Downloads\Bergama\run_ue5_render.bat; this file lives in Downloads\Bergama\scripts.
 # Pick the Archicad FBX; UE 5.8 opens the project and runs the newest Downloads\Bergama\scripts\bergama_ue5_render_v*.py.
 # Asked once and kept in cached\bergama_ue5: the .uproject, and UnrealEditor.exe when not in C:\Program Files\Epic Games\UE_5.8*.
 Add-Type -AssemblyName System.Windows.Forms
