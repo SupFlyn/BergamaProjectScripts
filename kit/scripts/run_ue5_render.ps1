@@ -12,7 +12,7 @@ function Pick($title, $filter, $dir, $multi = $false) {
     if ($o.ShowDialog() -ne 'OK') { Write-Host 'Cancelled.'; exit 1 }
     if ($multi) { return $o.FileNames } else { return $o.FileName }
 }
-$fbx = Pick 'Pick the Archicad FBX file(s) - several allowed (Ctrl+click), one per area' 'FBX (*.fbx)|*.fbx' (Join-Path $bg 'archicad') $true
+$fbx = Pick 'Pick the Archicad FBX file(s) - several allowed (Ctrl+click), one per area' 'FBX (*.fbx)|*.fbx' $(if (Test-Path (Join-Path $cu 'fbx')) { Join-Path $cu 'fbx' } else { Join-Path $bg 'archicad' }) $true
 Set-Content -Encoding UTF8 (Join-Path $cu 'fbx_path.txt') $fbx
 $pf = Join-Path $cu 'uproject.txt'; $up = $null
 if (Test-Path $pf) { $up = (Get-Content $pf -Raw).Trim() }

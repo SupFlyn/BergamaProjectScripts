@@ -182,6 +182,8 @@ def open_level():
 
 def import_model():
     srcs = [f for f in FBXS if os.path.isfile(f)]          # v1.5: the picked FBX files win (several = one per area)
+    if not srcs:                                          # v1.5: else every FBX in cached/bergama_ue5/fbx/
+        srcs = sorted(glob.glob(os.path.join(BERGAMA_ROOT, "cached", "bergama_ue5", "fbx", "*.fbx")))
     if not srcs:
         srcs = [UDS] if os.path.isfile(UDS) else ([FBX] if os.path.isfile(FBX) else [])
     if not srcs:
