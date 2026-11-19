@@ -2572,6 +2572,13 @@ def build_selinos(ac, miss, log, xy, z0, tin, ox, oy, rects, inside, contours, p
 # ================================================================ v1.30 the existing town ground (Aras 15 Nov 20:41 "what
 # about roads ?", "and etc."): the MapBase street region, parks, kerbs, walls and ancient walls in the cut rectangles
 MB_FILE = os.path.join(BERGAMA_ROOT, "cached", "bergama_mapbase", "mapbase.json")
+TOWN_SKIRT = "SolidBodyWithSkirt"   # v1.83 (Aras 19 Nov 09:08-09:09 "dont draw parts like this", "every thing that you
+                            # draw should be realistic", "with real thickness"): roads, parks and pavements are Mesh
+                            # BODIES from their top down to TOWN_UNDER_M under their lowest point (were 0-thickness skins)
+TOWN_RELIEF_MAX_M = 1.5     # v1.83: m, a piece whose top rises more than this is quartered (body depth <= ~1.8 m, ASSUMED)
+TOWN_MIN_M2 = 10.0          # v1.83: m2, a road / park piece smaller than this after cutting is left out
+TOWN_SLIVER_M = 1.0         # v1.83: m, a road / park piece thinner than this on average (2 x area / perimeter) is left out
+N_SLIVER = [0]
 TOWN_CELL_SPLIT = True      # v1.83: a road / park cell Archicad refuses is made again as its four quarters
 TOWN_CELL_MIN_M = 25.0      # v1.83: m, the smallest quarter tried
 TOWN_CELL_M = 200.0         # v1.83: 200 (was 50; Aras 19 Nov 09:02 larger road surfaces); v1.75: 50 (was 20), the ground tile size; m: the street region / parks are built in cells this size (each with its holes)
@@ -3440,7 +3447,7 @@ def build_town(ac, miss, log, xy, z0, tin, ox, oy, rects, inside):
                 low = min(zs_) - TOWN_UNDER_M
                 lo_z = min(zs_)
                 zq = lambda q: (gz(q) if gz(q) is not None else lo_z)
-                d_ = dict(level=round(low - z0 + TOWN_LIFT_M, 3), skirtType="SurfaceOnlyWithoutSkirt", skirtLevel=0.05,
+                d_ = dict(level=round(low - z0 + TOWN_LIFT_M, 3), skirtType=TOWN_SKIRT, skirtLevel=0.05,
                           ridges="AllSmooth", polygonCoordinates=[dict(xy(q), z=round(zq(q) - low, 3)) for q in P],
                           _mat=kind)
                 if Hs:
@@ -3575,6 +3582,10 @@ def build_town(ac, miss, log, xy, z0, tin, ox, oy, rects, inside):
                     H_ = [h for h in hls if all(_inpoly(q, P) for q in h[::max(1, len(h) // 12)])]   # v1.83: wholly inside
                     if abs(area(P)) - sum(abs(area(h)) for h in H_) < 1.0:
                         continue                           # a cell all town block: nothing to pave
+                    per_ = sum(math.hypot(b_[0] - a_[0], b_[1] - a_[1]) for a_, b_ in zip(P, P[1:] + P[:1]))
+                    if per_ > 0 and (2.0 * abs(area(P)) / per_ < TOWN_SLIVER_M or abs(area(P)) < TOWN_MIN_M2):
+                        N_SLIVER[0] += 1                   # v1.83 (Aras 19 Nov 09:08 "dont draw parts like this"):
+                        continue                           # no thin flaps left over from cutting a piece at an edge
                     P = dens2_(P)                          # v1.83: a point every TOWN_EDGE_M along the cell's edge
                     gs = [z for z in [gz(q) for q in P + [cc]] if z is not None]
                     if not gs:
@@ -3583,7 +3594,7 @@ def build_town(ac, miss, log, xy, z0, tin, ox, oy, rects, inside):
                     ti_ = [(int((q[0] - TILE_G[0]) // TILE_G[2]), int((q[1] - TILE_G[1]) // TILE_G[2])) for q in P + [cc]]
                     lift_ = TOWN_LIFT_M                    # v1.78: heights from the built ground (no tile error)
                     zq = lambda q, gs=gs: (gz(q) if gz(q) is not None else min(gs))
-                    d_ = dict(level=round(low - z0 + lift_, 3), skirtType="SurfaceOnlyWithoutSkirt", skirtLevel=0.05,   # v1.56
+                    d_ = dict(level=round(low - z0 + lift_, 3), skirtType=TOWN_SKIRT, skirtLevel=0.05,   # v1.83: a body
                               ridges="AllSmooth", polygonCoordinates=[dict(xy(q), z=round(zq(q) - low, 3)) for q in P],
                               _mat=kind)
                     sub_ = []
@@ -3604,15 +3615,24 @@ def build_town(ac, miss, log, xy, z0, tin, ox, oy, rects, inside):
                     data.append(d_)
                     cen.append((sum(q[0] for q in P) / len(P), sum(q[1] for q in P) / len(P)))
                     kinds.append(kind)
-                    cell_of.append((c, i, j))
+                    zz_ = [v["z"] for v in d_["polygonCoordinates"]] + [v["coordinates"][0]["z"] for v in sub_]
+                    cell_of.append((c, i, j, max(zz_) - min(zz_) > TOWN_RELIEF_MAX_M and c / 2.0 >= TOWN_CELL_MIN_M - 1e-6))
                     n_cell += 1
     cells_(TOWN_CELL_M)
     road_g = list(REG_G)                                  # v1.78: the outline meshes
     if data[data_r:] and "CreateMeshes" not in miss:    # v1.56: Mesh-tool skins ON the ground (no body, no cut)
         c = TOWN_CELL_M
-        g_ = ac.create("CreateMeshes", "meshesData", data[data_r:], u"town ground: roads + parks on the surveyed ground (%.0f m cells)" % c)
+        def mk_(lo, what_):                               # v1.83: a too-steep piece is not sent but quartered
+            ix_ = [k for k in range(lo, len(data)) if not cell_of[k - data_r][3]]
+            r_ = ac.create("CreateMeshes", "meshesData", [data[k] for k in ix_], what_) if ix_ else []
+            out_ = [None] * (len(data) - lo)
+            for k, g in zip(ix_, r_):
+                out_[k - lo] = g
+            return out_
+        g_ = mk_(data_r, u"town ground: roads + parks as bodies on the ground (%.0f m cells)" % c)
         # v1.83 (Aras 19 Nov 09:02 "make the road parking surfaces larger where you can without comprimising quality"):
-        # 200 m cells; a cell Archicad refuses is made again as its four quarters (100, 50, 25 m), so no road goes missing
+        # 200 m cells; a cell Archicad refuses, or whose body would be deeper than TOWN_RELIEF_MAX_M on a slope, is made
+        # again as its four quarters (100, 50, 25 m), so no road goes missing and no body is metres deep in a section
         g_ = list(g_)
         while TOWN_CELL_SPLIT and c / 2.0 >= TOWN_CELL_MIN_M - 1e-6 and not all(g_):
             only = set((kinds[data_r + k], cell_of[k][1], cell_of[k][2]) for k, g in enumerate(g_) if not g)
@@ -3623,18 +3643,17 @@ def build_town(ac, miss, log, xy, z0, tin, ox, oy, rects, inside):
             g_ = [g_[k] for k in keep_]
             n0, c = len(data), c / 2.0
             cells_(c, only)
-            g_ += list(ac.create("CreateMeshes", "meshesData", data[n0:], u"town ground: refused cells as %.0f m quarters"
-                                 % c) if data[n0:] else [])
+            g_ += mk_(n0, u"town ground: refused or steep cells as %.0f m quarters" % c)
         log.append(u"town ground (v1.83): road + park cells as large as Archicad takes them: " + u", ".join(
             u"%.0f m x %d" % (cz, sum(1 for o, g in zip(cell_of, g_) if g and o[0] == cz))
-            for cz in sorted(set(o[0] for o in cell_of), reverse=True)) + u"; %d refused at %.0f m" % (
-            sum(1 for g in g_ if not g), c))
+            for cz in sorted(set(o[0] for o in cell_of), reverse=True)) + u"; %d refused at %.0f m; %d thin flaps left out" % (
+            sum(1 for g in g_ if not g), c, N_SLIVER[0]))
         made += [g for g in g_ if g]
         road_g += [(g, [(q["x"] + ox, q["y"] + oy) for q in d["polygonCoordinates"]]) for g, d, k in
                    zip(g_, data[data_r:], kinds[data_r:]) if g and k == "road"]
         log.append(u"town ground: %d road cells (%d town blocks cut out as holes), %d park cells: Mesh bodies, top = the "
-                   u"surveyed ground every %.1f m, as skins %.2f m over it (v1.56: no body under them, which on a slope was a box "
-                   u"metres deep in the sections; they do not cut the ground)" % (
+                   u"ground's own heights (not every %.1f m since v1.83), as bodies %.2f m over it reaching down under their lowest "
+                   u"point (v1.83; steep pieces quartered so no body is metres deep)" % (
                        sum(1 for k in kinds[data_r:] if k == "road"), n_hole, sum(1 for k in kinds[data_r:] if k == "park"), TOWN_PT_M,
                        TOWN_LIFT_M))
     # ---- kerbs and walls (survey lines) as Walls on the ground, in pieces of at most LINE_SEG_M
@@ -3777,7 +3796,7 @@ def build_town(ac, miss, log, xy, z0, tin, ox, oy, rects, inside):
             continue
         lo_ = min(zs) + KERB_H - PAV_T_M                   # v1.45: a Mesh skin, kerb height over the ground
         zc_ = [((gz(q) if gz(q) is not None else min(zs)) + KERB_H) for q in P_]
-        pav.append(dict(level=round(lo_ - z0, 3), skirtType="SurfaceOnlyWithoutSkirt", skirtLevel=0.02, ridges="AllSmooth",   # v1.56
+        pav.append(dict(level=round(lo_ - z0, 3), skirtType=TOWN_SKIRT, skirtLevel=0.02, ridges="AllSmooth",   # v1.56
                         polygonCoordinates=[dict(xy(q), z=round(z_ - lo_, 3)) for q, z_ in zip(P_, zc_)], _mat="pavement"))
     if pav and "CreateMeshes" not in miss:
         gp_ = ac.create("CreateMeshes", "meshesData", pav, u"pavements (Mesh skins sewn to the roads at the kerb)")
