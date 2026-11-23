@@ -4,6 +4,7 @@ v2 (Aras 23 Nov 21:11 UTC "run this same script in both pc's ... do a speed comp
 window, saving and closing"): every step is timed and written to cached\bergama_archicad_site\speed_<PC>_<time>.json;
 after the build: a timed save, a timed quit, a timed reopen of the built file, a timed 3D window, a timed quit.
   py -3 bergama_build_next_v2.py build --from Bergama_AC_v1.96.pln     a given source file (default: the newest)
+  ... --acbuild bergama_acbuild_v2_02.py                                a given AcBuild version from main
 (v1 text below)
 Aras 23 Nov 20:41 UTC: "we do that launcher idea for your use just in case", "do the indexing and pointing to that so
 you can run that". It does the know-how note's run recipe (library/_index/knowhow/archicad_acbuild.md) in one go:
@@ -39,6 +40,7 @@ PORTS = range(19723, 19744)
 OPEN_WAIT_MIN = 30          # minutes for Archicad to open the project (the v1.96 file is 868.5 MB)
 QUIT_WAIT_MIN = 10
 FROM = []                   # v2: --from source pln name
+PIN = []                    # v2: --acbuild <bergama_acbuild_vX_YY.py> (default: the newest on main)
 T = {}                      # v2: step -> seconds
 MEM = {}                    # v2: step -> Archicad working set (GB) after it
 TYPES = ("Wall", "Column", "Beam", "Window", "Door", "Object", "Lamp", "Slab", "Roof", "Mesh", "Zone",
@@ -66,6 +68,10 @@ def fetch_newest():
                                 timeout=60) as f:
         items = json.loads(f.read().decode("utf-8"))
     ac = [i for i in items if re.match(r"bergama_acbuild_v[\d_]+\.py$", i["name"])]
+    if PIN:                                        # --acbuild <name>: that version from main, not the newest
+        ac = [i for i in ac if i["name"] == PIN[0]]
+        if not ac:
+            raise RuntimeError(u"%s is not on GitHub main" % PIN[0])
     top = max(ac, key=lambda i: vkey(i["name"]))
     dst = os.path.join(SCRIPTS, top["name"])
     if os.path.isfile(dst):
@@ -249,6 +255,8 @@ def build():
     try:
         acb = fetch_newest()
     except Exception as ex:                        # no internet: the newest copy already on this PC
+        if PIN and u"not on GitHub main" in u"%s" % ex:
+            raise
         acb = max(glob.glob(os.path.join(SCRIPTS, "bergama_acbuild_v*.py")), key=vkey)
         say(u"FLAG GitHub not reached (%s): using %s already on this PC" % (ex, os.path.basename(acb)))
     if archicad_running() or find_ac():
@@ -313,6 +321,8 @@ def main():
     args = sys.argv[1:]
     if u"--from" in args:
         FROM.append(args[args.index(u"--from") + 1])
+    if u"--acbuild" in args:
+        PIN.append(args[args.index(u"--acbuild") + 1])
     mode = (args[0] if args and not args[0].startswith(u"--") else u"build").lower()
     with open(STATUS, "w", encoding="utf-8") as f:
         f.write(u"%s  build_next v2 started (%s)\n" % (time.strftime("%H:%M:%S"), mode))
