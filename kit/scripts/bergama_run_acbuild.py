@@ -18,7 +18,10 @@ PROGRESS = os.path.join(LOG_DIR, "bergama_acbuild_progress.txt")
 
 def newest():
     fs = glob.glob(os.path.join(ROOT, "scripts", "bergama_acbuild_v*.py"))
-    return max(fs, key=lambda p: [int(x) for x in re.findall(r"\d+", os.path.basename(p))]) if fs else None
+    def k_(p):                                     # 24 Nov: letter versions, v2_09 < v2_09a < v2_09z < v2_09aa
+        m = re.search(r"v(\d+)_(\d+)([a-z]*)\.py$", os.path.basename(p))
+        return [int(m.group(1)), int(m.group(2)), len(m.group(3)), m.group(3)] if m else [-1, -1, 0, u""]
+    return max(fs, key=k_) if fs else None
 
 
 def show_error(title, text, head=u"AcBuild: ERROR", colour="#C00000"):
