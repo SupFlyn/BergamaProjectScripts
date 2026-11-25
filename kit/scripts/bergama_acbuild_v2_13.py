@@ -251,6 +251,9 @@ class AC(object):
     def create(self, name, key, items, what):
         """v1.82: timed per step (log only); v1.83: the site_alan rule (_in_site) on every element first"""
         t0_ = time.time()
+        if name == "CreateWalls" and REF_OUTSIDE:         # v2.13: every wall's reference line on a face
+            for d_ in items:
+                _ref_outside(d_)
         try:
             keep_ix, items2 = _in_site(name, items, what, self.log)
             self.last_drop = set()
@@ -337,7 +340,8 @@ class AC(object):
         """items in chunks; [(guid or None)] in input order; errors counted and logged once"""
         out, err = [], []
         lab = next((m for w, m in LABEL_MAT if what.startswith(w)), None)      # v1.18: his legend material
-        plain = [dict((k, v) for k, v in it.items() if k != "_mat") if isinstance(it, dict) else it for it in items]
+        plain = [dict((k, v) for k, v in it.items() if not str(k).startswith("_")) if isinstance(it, dict) else it
+                 for it in items]                         # v2.13: every own "_" key stays here (_mat, _rev, _inside)
         if name in MAT_CMDS and MAT_ID:
             items = [dict(p_, buildingMaterialId=MAT_ID[m_]) if (m_ in MAT_ID and "buildingMaterialId" not in p_) else p_
                      for p_, m_ in zip(plain, [(it.get("_mat") or lab) if isinstance(it, dict) else None for it in items])]
@@ -853,6 +857,54 @@ def _wcomp(b):
     if b.get("fab") in HERITAGE_FABS or k not in COMP_ID:
         return {}
     return dict(structureType="Composite", compositeId=COMP_ID[k])
+
+
+REF_OUTSIDE = True       # v2.13 (Aras 25 Nov 17:38 UTC "the referance line should be consistent please look back at older
+# note"; 09:18 UTC "use outside core whenever you can where you can use outside face"): no wall keeps a Center reference
+# line: it moves to the outside face (the core's outside face on a composite wall), the body staying where it was
+REF_N = [0, 0, 0]        # v2.13: walls moved from Center, of them drawn the other way round, outside side by the ground
+
+
+def _ref_outside(d):
+    """v2.13: a Center wall's reference line moved onto its outside face (body unchanged): outside = away from d's
+    "_inside" point (a building's middle) if it has one, else the lower ground side (a bank / retaining wall's open face),
+    else the right of beg->end; the line is drawn so that Archicad puts the body on the inner side (WALL_SIDE); "_rev" is
+    set when the wall now runs the other way (window offsets from its start must be mirrored)"""
+    if d.get("referenceLineLocation") != "Center" or "begCoordinate" not in d or not d.get("thickness"):
+        return d
+    a, b = d["begCoordinate"], d["endCoordinate"]
+    dx_, dy_ = b["x"] - a["x"], b["y"] - a["y"]
+    L_ = math.hypot(dx_, dy_)
+    if L_ < 1e-6:
+        return d
+    t2 = float(d["thickness"]) / 2.0
+    rx, ry = dy_ / L_, -dx_ / L_                          # the right of a->b
+    mx, my = (a["x"] + b["x"]) / 2.0, (a["y"] + b["y"]) / 2.0
+    side = 1.0                                            # +1: outside on the right
+    ins = d.pop("_inside", None)
+    if ins is not None:
+        side = -1.0 if (ins[0] - mx) * rx + (ins[1] - my) * ry > 0 else 1.0
+    elif GZ_AC[0] is not None:
+        zr_ = GZ_AC[0]((mx + rx * (t2 + 0.6), my + ry * (t2 + 0.6)))
+        zl_ = GZ_AC[0]((mx - rx * (t2 + 0.6), my - ry * (t2 + 0.6)))
+        if zr_ is not None and zl_ is not None and abs(zr_ - zl_) > 0.05:
+            side = 1.0 if zr_ < zl_ else -1.0
+            REF_N[2] += 1
+    ox_, oy_ = rx * side * t2, ry * side * t2
+    A_ = dict(a, x=round(a["x"] + ox_, 4), y=round(a["y"] + oy_, 4))
+    B_ = dict(b, x=round(b["x"] + ox_, 4), y=round(b["y"] + oy_, 4))
+    body_left = WALL_SIDE[0] != "rev"                     # Archicad 30: the body left of beg->end (_wall_side)
+    rev = (side > 0) != body_left                         # outside on the right needs the body left of the line
+    d["begCoordinate"], d["endCoordinate"] = (B_, A_) if rev else (A_, B_)
+    d["referenceLineLocation"] = "CoreOutside" if d.get("structureType") == "Composite" else "Outside"
+    if rev:
+        d["_rev"] = True
+        REF_N[1] += 1
+    REF_N[0] += 1
+    return d
+
+
+GZ_AC = [None]           # v2.13: the ground height at an Archicad plan point (set in main)
 
 
 N_WACUT = [0]                                       # v2.11ae: cover areas cut at the working-area border
@@ -2946,11 +2998,13 @@ def build_nodes(ac, miss, log, xy, z0, NB):
                 for s in (-D / 2, D / 2):                 # v1.71: one wall per long side (was one per bay)
                     walls.append((dict(begCoordinate=xy(P(-L / 2, s)), endCoordinate=xy(P(L / 2, s)),
                                        zCoordinate=round(zp + j_ * hs - z0, 3), height=round(hs, 3), thickness=NB_WALL_M,
-                                       referenceLineLocation="Center"), gl_ or None))
+                                       referenceLineLocation="Center", _inside=(xy(P(0, 0))["x"], xy(P(0, 0))["y"])),
+                                  gl_ or None))
                 for t_ in (-L / 2, L / 2):
                     walls.append((dict(begCoordinate=xy(P(t_, -D / 2)), endCoordinate=xy(P(t_, D / 2)),
                                        zCoordinate=round(zp + j_ * hs - z0, 3), height=round(hs, 3), thickness=NB_WALL_M,
-                                       referenceLineLocation="Center"), None))
+                                       referenceLineLocation="Center", _inside=(xy(P(0, 0))["x"], xy(P(0, 0))["y"])),
+                                  None))
             for j, fl in enumerate(b.get("floors") or []):
                 t_ = -L / 2
                 for _n, a_ in fl[:-1]:
@@ -2985,9 +3039,12 @@ def build_nodes(ac, miss, log, xy, z0, NB):
         for g, (_w, gl) in zip(wg, walls):
             if not g or not gl:
                 continue
+            Lw_ = math.hypot(_w["endCoordinate"]["x"] - _w["begCoordinate"]["x"],
+                             _w["endCoordinate"]["y"] - _w["begCoordinate"]["y"])
             wins += [dict(ownerWallId={"guid": g}, width=round(max(1.0, ln - 0.8), 2),   # v1.71: each glass bay
                           height=round(hs_ - NB_GLASS_SILL_M - NB_GLASS_HEAD_M, 2),
-                          sillHeight=round(j * hs_ + NB_GLASS_SILL_M, 2), centerOffset=round(co_, 2))
+                          sillHeight=round(j * hs_ + NB_GLASS_SILL_M, 2),
+                          centerOffset=round((Lw_ - co_) if _w.get("_rev") else co_, 2))   # v2.13: drawn the other way
                      for co_, ln, nf_, hs_ in gl for j in range(nf_)]
         if wins and "CreateWindows" not in miss:
             made += [g for g in ac.create("CreateWindows", "windowsData", wins, u"node buildings: glazed bays") if g]
@@ -6416,6 +6473,115 @@ def _wall_morph_line(P, h, t, gz, xy, z0):
                                                      polygons=[dict(vertexIds=f_) for f_ in F]))
 
 
+MORPH_UNION = True       # v2.13: see _wall_morph_union
+
+
+def _wall_morph_union(lines, gz, xy, z0, log):
+    """v2.13 (Aras 25 Nov 17:37 UTC: walls not joining "is like millionth time ... it needs a proper fix"): the joints
+    are no longer made line by line: every Morph wall line becomes its plan strip (t wide about the line, mitred bends,
+    an end that touches another line run on by t/2 into it), the strips that touch are joined into one plan outline
+    (corners, T-junctions and crossings close by construction), and each joined outline is ONE Morph: a flat foot 0.3 m
+    under its lowest ground, its top h over the ground at every corner and every MORPH_STEP_M along its edges (top
+    triangulated inside the outline). Returns (morph data, lines left to the one-per-line way)"""
+    m_ = _shp()
+    import shapely as shp_
+    if m_ is None or not hasattr(shp_, "constrained_delaunay_triangles"):
+        log.append(u"FLAG survey walls (v2.13): shapely 2.1+ (constrained_delaunay_triangles) not found: one Morph per line")
+        return [], list(lines)
+    sh_, sg_ = m_[0], m_[1]
+    from shapely.geometry.polygon import orient as orient_
+    groups = {}
+    for P, h, t, mat in lines:
+        groups.setdefault((round(h, 3), round(t, 3), mat), []).append(P)
+    out, left, n_in, n_body = [], [], 0, 0
+    for (h, t, mat), Ps in groups.items():
+        Ls = [sg_.LineString(P) for P in Ps if len(P) >= 2]
+        Ls = [L for L in Ls if L.length >= 0.05]
+        if not Ls:
+            continue
+        tr_ = m_[3].STRtree(Ls)
+        strips = []
+        for k, L in enumerate(Ls):
+            cs = list(L.coords)
+            for e_ in (0, -1):                            # an end on another line runs on by t/2 into it
+                q = sg_.Point(cs[e_])
+                if any(int(j) != k and Ls[int(j)].distance(q) <= t for j in tr_.query(q.buffer(t))):
+                    a_, b_ = (cs[1], cs[0]) if e_ == 0 else (cs[-2], cs[-1])
+                    d_ = math.hypot(b_[0] - a_[0], b_[1] - a_[1]) or 1.0
+                    cs[e_] = (b_[0] + (b_[0] - a_[0]) / d_ * t / 2.0, b_[1] + (b_[1] - a_[1]) / d_ * t / 2.0)
+            strips.append(sg_.LineString(cs).buffer(t / 2.0, cap_style="flat", join_style="mitre", mitre_limit=2.0))
+        U = sh_.unary_union(strips)
+        for g in getattr(U, "geoms", [U]):
+            if g.geom_type != "Polygon" or g.area < 0.05:
+                continue
+            g = orient_(sh_.segmentize(g.simplify(0.01), MORPH_STEP_M), 1.0)
+            n_in += 1
+            try:
+                rings = [list(g.exterior.coords)[:-1]] + [list(r_.coords)[:-1] for r_ in g.interiors]
+                idx, V2 = {}, []
+                for R in rings:
+                    for q in R:
+                        k_ = (round(q[0], 4), round(q[1], 4))
+                        if k_ not in idx:
+                            idx[k_] = len(V2)
+                            V2.append(k_)
+                gs = [gz(q) for q in V2]
+                if any(z is None for z in gs):
+                    raise ValueError("ground unknown")
+                n_ = len(V2)
+                lo = round(min(gs) - 0.3 - z0, 3)
+                o_ = xy(V2[0])
+                V = []
+                for q in V2:                              # bottom 0..n-1
+                    c_ = xy(q)
+                    V.append(dict(x=round(c_["x"] - o_["x"], 4), y=round(c_["y"] - o_["y"], 4), z=lo))
+                for q, z in zip(V2, gs):                  # top n..2n-1
+                    c_ = xy(q)
+                    V.append(dict(x=round(c_["x"] - o_["x"], 4), y=round(c_["y"] - o_["y"], 4),
+                                  z=round(z + h - z0, 3)))
+                F = []
+                for R in rings:                           # sides: outward (exterior CCW, holes CW)
+                    for a, b in zip(R, R[1:] + R[:1]):
+                        ia, ib = idx[(round(a[0], 4), round(a[1], 4))], idx[(round(b[0], 4), round(b[1], 4))]
+                        if ia != ib:
+                            F.append([ia, ib, n_ + ib, n_ + ia])
+                T = shp_.constrained_delaunay_triangles(g)
+                nt_ = 0
+                for tri in getattr(T, "geoms", [T]):
+                    cs = list(tri.exterior.coords)[:3]
+                    ks = [idx.get((round(q[0], 4), round(q[1], 4))) for q in cs]
+                    if any(k_ is None for k_ in ks):
+                        raise ValueError("a triangle corner off the outline")
+                    ar_ = (cs[1][0] - cs[0][0]) * (cs[2][1] - cs[0][1]) - (cs[2][0] - cs[0][0]) * (cs[1][1] - cs[0][1])
+                    if abs(ar_) < 1e-9:
+                        continue
+                    if ar_ < 0:
+                        ks = [ks[0], ks[2], ks[1]]
+                    F.append([n_ + k_ for k_ in ks])     # top, counter-clockwise from above
+                    F.append([ks[0], ks[2], ks[1]])       # bottom, counter-clockwise from below
+                    nt_ += 1
+                if not nt_:
+                    raise ValueError("no top triangles")
+                # VALIDATE: every edge used twice (closed solid)
+                E = {}
+                for f_ in F:
+                    for a_, b_ in zip(f_, f_[1:] + f_[:1]):
+                        E[(a_, b_)] = E.get((a_, b_), 0) + 1
+                if any(E.get((b_, a_), 0) != c_ for (a_, b_), c_ in E.items()):
+                    raise ValueError("not a closed body")
+                out.append(dict(basePoint=dict(o_, z=0.0), _mat=mat, body=dict(
+                    bodyType="Solid", vertices=V, polygons=[dict(vertexIds=f_) for f_ in F])))
+                n_body += 1
+            except Exception:
+                for P in Ps:                              # this network: one Morph per line instead
+                    if sg_.LineString(P).intersects(g):
+                        left.append((P, h, t, mat))
+    log.append(u"survey walls (v2.13): %d Morph wall line(s) joined into %d plan outline(s) (every corner, T-junction "
+               u"and crossing closed by the join), each one Morph with its top following the ground; %d outline(s) "
+               u"left to one Morph per line (%d lines)" % (len(lines), n_body, n_in - n_body, len(left)))
+    return out, left
+
+
 def build_town(ac, miss, log, xy, z0, tin, ox, oy, rects, inside):
     """v1.30: the street region (one region with the town blocks as holes) and the parks as slabs per cell that the
     terrain shapes, kerbs and walls from the survey lines as Walls; only inside the cut rectangles (where the terrain is)"""
@@ -6758,6 +6924,7 @@ def build_town(ac, miss, log, xy, z0, tin, ox, oy, rects, inside):
     # (survey street net + his road / pavement pieces) and which survey wall lines make sense
     st_in, st_edge, w_ok = None, None, None
     morphs = []                                           # v2.10: survey walls as Morphs (outside the working area)
+    mo_lines = []                                         # v2.13: the Morph wall lines, joined after the loop
     n_wst, n_wsense = [0], [0]
     n_wh = [0]                                            # v2.11ae: wall pieces cut back at a house
     try:
@@ -6855,6 +7022,9 @@ def build_town(ac, miss, log, xy, z0, tin, ox, oy, rects, inside):
                     q0_ = P[e_]
                     q1_ = snap_(q0_)
                     P[e_] = tee_(q0_, li_) if q1_ is q0_ else q1_
+            if mo_all_ and MORPH_UNION:                   # v2.13: joined with every line it meets, after the loop
+                mo_lines.append((list(P), h, t, mat))
+                continue
             if mo_all_ and MORPH_LINE:                    # v2.12: the whole line as one mitred Morph
                 mo_ = _wall_morph_line(P, h, t, gz, xy, z0)
                 if mo_:
@@ -6929,6 +7099,20 @@ def build_town(ac, miss, log, xy, z0, tin, ox, oy, rects, inside):
                                           height=round(max(zs) + h - lo, 3), thickness=t, referenceLineLocation="Outside",
                                           _mat=mat))
                         n_by[key] = n_by.get(key, 0) + 1
+    if mo_lines:                                          # v2.13: every Morph wall network as one body
+        try:
+            mu_, n_fb_ = _wall_morph_union(mo_lines, gz, xy, z0, log)
+        except Exception as ex:
+            log.append(u"FLAG survey walls (v2.13): joined bodies not made (%s): one mitred Morph per line" % ex)
+            mu_, n_fb_ = [], list(mo_lines)
+        for mo_ in mu_:
+            morphs.append(mo_)
+            n_by["walls (Morph, joined)"] = n_by.get("walls (Morph, joined)", 0) + 1
+        for P_, h_, t_, mat_ in n_fb_:
+            mo_ = _wall_morph_line(P_, h_, t_, gz, xy, z0)
+            if mo_:
+                morphs.append(dict(mo_, _mat=mat_))
+                n_by["walls (Morph, one per line)"] = n_by.get("walls (Morph, one per line)", 0) + 1
     if morphs:
         gm_ = ac.create("CreateMorphs", "morphsData", morphs, u"kerbs + walls (survey lines, Morph)")
         made += [g for g in gm_ if g]
@@ -7759,6 +7943,7 @@ def main():
     log.append(u"Archicad origin = survey (%.0f, %.0f); heights absolute (m above sea level)" % (ox, oy))
     xy = lambda p: {"x": round(p[0] - ox, 3), "y": round(p[1] - oy, 3)}
     ORIGIN[:] = [ox, oy]                                  # v1.83: for the site_alan rule in every create
+    GZ_AC[0] = None                                       # v2.13: set once the ground is read
 
     # ---- rectangles, survey, buildings
     rects = []
@@ -7845,6 +8030,7 @@ def main():
             except Exception as ex:
                 log.append(u"FLAG survey cache not written (%s)" % ex)
     _smooth_flat(tin, contours, ox, oy, log)              # v2.11ag
+    GZ_AC[0] = lambda c, tin=tin: tin.z(c[0], c[1])        # v2.13: Archicad plan point = survey - (ox, oy) = tin's
     if _smooth_ground(tin, log):                          # v2.13: every survey height checked against the smoothed
         pts = [(p[0], p[1], tin.z(p[0] - ox, p[1] - oy) if tin.z(p[0] - ox, p[1] - oy) is not None else p[2])
                for p in pts]                              # ground (no raw bumps come back through the checks)
@@ -9130,6 +9316,9 @@ def main():
         except Exception as ex:
             import traceback
             log.append(u"FLAG town ground not built (%s: %s) %s" % (type(ex).__name__, ex, traceback.format_exc()[-400:]))
+        log.append(u"reference lines (v2.13): every wall on its outside face (core outside on composite walls); %d wall(s) "
+                   u"so far moved from Center with the body kept in place (%d drawn the other way round, %d by the lower "
+                   u"ground side)" % tuple(REF_N))
         try:                                              # v1.14: the node buildings
             made += build_nodes(ac, miss, log, xy, z0, NB)
         except Exception as ex:
