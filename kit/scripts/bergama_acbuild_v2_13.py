@@ -1328,6 +1328,8 @@ EXTRA_OPS = []                                    # v1.31: (guid, operation, poi
 GROUND_TILE_M = 25.0                              # v1.38: 25 m (v1.32: 150 m) so the ground can follow the cut strips
 GROUND_BEHIND_M = 200.0                           # v1.38: m of ground kept behind each cut line (ASSUMED: enough for the cut face)
 GROUND_SPOT_M = 4.0                               # v1.32: one survey height per this many m cell in the ground
+WA_GRID_M = 2.0          # v2.13: m, ONE even ground grid in the working area, not thinned (mixed 8 m / 1 m facets read as
+N_WAGRID = [0]           # bumps; the smoothed ground needs no finer grid); outside it the coarsest grid within tolerance
 SMOOTH_GROUND = True     # v2.13 (Aras 25 Nov 17:25 UTC "smooth out the terrain as much as you can ... you can change settings"):
 SMOOTH_STEP_M = 2.0      # the survey ground sampled on this grid (m), blurred with a Gaussian of SMOOTH_SIGMA_M, each
 SMOOTH_SIGMA_M = 3.0     # height moved at most SMOOTH_MAX_DZ: the contour terraces and the triangle facets go, banks and
@@ -8628,7 +8630,11 @@ def main():
                     zs_ = [p[2] for p in tp_]
                     tol = max(GROUND_TOL_MIN, GROUND_TOL_F * (max(zs_) - min(zs_))) if zs_ else GROUND_TOL_MIN
                     pick, err_ = GROUND_GRIDS[-1], None
-                    for s_ in GROUND_GRIDS:
+                    wa_t_ = WA_GRID_M and WORK_RINGS and any(_inpoly(((x0 + x1) / 2.0, (y0 + y1) / 2.0), W_)
+                                                            for W_ in WORK_RINGS)
+                    if wa_t_:                             # v2.13: one even grid in the working area (no 8 m / 1 m mix)
+                        N_WAGRID[0] += 1
+                    for s_ in ((WA_GRID_M,) if wa_t_ else GROUND_GRIDS):
                         e_ = 0.0
                         for p in tp_:
                             fx, fy = (p[0] - gb[0]) / s_, (p[1] - gb[1]) / s_
@@ -8662,7 +8668,7 @@ def main():
                             if z_ is None:
                                 continue
                             g8 = GROUND_GRIDS[0]
-                            if GROUND_THIN and pick < g8:         # v1.54 (Desktop 3D crashed on 801,543 heights)
+                            if GROUND_THIN and pick < g8 and not wa_t_:   # v1.54 (Desktop 3D crashed on 801,543 heights)
                                 THIN[1] += 1
                                 fx8, fy8 = ix_ * pick / g8, iy_ * pick / g8
                                 if abs(fx8 - round(fx8)) > 1e-6 or abs(fy8 - round(fy8)) > 1e-6:   # not an 8 m node
@@ -8855,6 +8861,8 @@ def main():
         if ACC:                                           # v1.45: the accuracy reached, tile by tile
             from collections import Counter as _C
             cg_ = _C(a_[0] for a_ in ACC)
+            log.append(u"ground grid (v2.13): %d tile(s) in the working area on one even %.1f m grid (not thinned); the "
+                       u"others the coarsest grid within the tolerance of the smoothed ground" % (N_WAGRID[0], WA_GRID_M))
             log.append(u"ground accuracy (v1.45): %d tiles; grid %s; deviation from the survey max %.3f m, mean of the "
                        u"tile maxima %.3f m; tolerance +-%.0f %% of each tile's height range, at least %.2f m; %d tile(s) "
                        u"over it even at %.0f m (FLAG)" % (
