@@ -37,7 +37,7 @@ Works when: the log's first line is "TAPIR OK <version>" and Archicad's Navigato
 """
 import os, re, json, math, time, glob
 
-VERSION = "v2.11aa"   # v2.11aa (Aras 25 Nov 07:28 UTC "so fix those and start the run on laptop", 07:28 "that is v2.11aa"; from the v2.11 Desktop cold run): (a) node buildings still on a street after the 20 m search (v2.11: N4 101 m2, N6 16 m2) are tried turned up to 15 deg and moved up to 30 m; failing that, the spot with the least street under them if it halves the overlap (FLAG); (b) parks from 30 m2 (was 100: 4 of 31 got anything); a park with no tree from the grid gets one at its most inner point (1.5 m or more inside), one with no bench gets one mid its longest side; (c) after a SetStories timeout the stories are read back (that waits for Archicad) and compared, so the log says whether they are right; (d) the run time in the last line was the clock (a registration loop reused t0). v2.11 (Aras 24 Nov 22:24 UTC "implement the fixes", "do whatever you need to do troughout the night i want to see a working file when i wake up"; from the v2.10 cold run 24-25 Nov): (a) Morphs are listed in the model check (CLEAR_TYPES): v2.10 took all 2,664 survey-wall Morphs as vanished and made them twice more; (b) every Railing without a BGA Element ID is deleted in every file (RAIL_PURGE: all 4,958 were old Railing-tool balcony railings, only 2,601 were caught); (c) stories: not set in the proposal / context files (every element is on story 0), set in the master after its old elements are deleted, skipped when already right, 300 s limit (SetStories took 600 s in each file); (d) survey park pieces within 1 m joined into one park before furnishing, parks from 100 m2 (v2.10 furnished none); (e) his masterplan_Latest.svg read through MasterplanBase v1.10 (its new layer names answer to the old ones). v2.10 = all of Aras's v2.02 review, 24 Nov 17:29-17:51 UTC, in one version ("keep them together and push them together into a single change"): (a) three files: ..._proposal.pln (everything whose middle lies in his working area), ..._context.pln (the rest), the master (any other name: section helpers, sections, views, publishing, both files as Archicad hotlinks at 0,0) (SPLIT_FILES); (b) survey walls outside the working area and 5 m or more from every section line as one Morph per straight run whose top follows the ground (MORPH_WALLS); (c) survey walls: none inside a street (cut back to the part outside it), stand-alone lines (touching no house, lining no street, meeting no such wall) left out, one wall per straight run up to 0.60 m rise (was a step every 0.30 m); (d) node buildings moved whole off the streets (nearest clear spot within 20 m); (e) the grass is held at the surveyed height every 2 m along every cover edge (roads / paths no longer float or sink at their edges); (f) water: four season water bodies (winter, spring, summer = the 4.0 x 0.30 m strip held full, autumn), each on its own layer, levels = thalweg + that season's depth along the bed, never under the thalweg (it no longer breaks off), winter on; the summer strip is cut into the bed; (g) house walls: an open end runs onto another wall's end within 0.50 m (turning at most 10 degrees) or a short wall closes a 5-50 cm step to a parallel wall; (h) the survey parks get trees, benches, litter bins, lamps and picnic tables (Archicad library parts by name; all sizes and spacings ASSUMED); (i) "sometimes trees are created inside the buildings it should not happen, like they shouldnt collide"): a tree was checked only by its trunk point (0.5 m) and only against the surveyed houses; now its whole crown (radius 0.575 x its width, the +15 % size jitter included) must stay clear of every house wall and of the node buildings' footprints (buildings.json), else the tree is left out and counted in the log. v2.09 (Aras 24 Nov 17:16 UTC: "istinat duvarlari isaretli yerlerin hepsinde olmamali cunku onu gerektiren kot yok" = the retaining walls should not stand at every marked place, because the levels do not call for one there): along his istinaat lines a bank-wall piece is built only where the surveyed ground either side differs by RET_MIN_M (0.60 m, ASSUMED, the same rule as the other retaining walls) or more; level stretches get no wall (they got a 1.0 m wall before). v2.08 (Aras 24 Nov 16:53-16:54 UTC, his masterplan.svg layers: "doldurma is the generic green areas as before", "doldurma renk is fills and such to hide imperfections of drawings", "layer 50 is visual fixes for some green areas", "belki yesil ... decided to be all green areas"; asked whether to leave the fix layers out: "you can include them off with the green areas"): doldurma, Layer 49 and belki yesil are built as green (park) and no longer on "unsure" layers; Doldurma renk and Layer 50 are built as green pieces with the other green areas (top layer wins where pieces overlap, as before). v2.07 (24 Nov night, the v2.06 Desktop run: 169 house wall ends still meet no wall, 121 of them 5-50 cm short; 8 Element IDs not stamped with no reason given): (1) the wall-end snap also closes two more cases: a wall that stops short of a wall in line with it (parallel, same line within 5 cm) is run on to that wall's end, and two walls that both stop short of the corner where their lines cross (within 0.60 m) are both run on to that corner, the other end only when it meets no wall either. (2) when only part of a batch of Element IDs fails to stamp, the failed ones are tried again through the Archicad API and the first refusal is logged. (3) the QA report sorts the 5-50 cm wall ends further: parallel in line, parallel side by side, lines cross beyond the other wall, other. v2.06 (24 Nov night, the v2.05 Desktop run): (1) the 1,650 balcony railing objects were still taken as hand-edited (their stored box is off by more than 0.60 m, so v2.05's tolerance did not help) and made again each run; AcBuild's balcony railing objects (Object, part "houses") are now never locked: kept when their data is the same, and the v2.00 cleanup removes the doubled set. (2) 161 house wall ends stopped 5-50 cm short of another wall: before the walls are made, an end that meets no wall is moved onto the nearest non-parallel wall of the same height range within 0.50 m (a T-junction; move at most 0.60 m, ASSUMED), so the house is closed. (3) the "duplicate copies" log line counts per element type correctly. v2.05 (24 Nov night, the v2.04 Desktop run: all 1,650 balcony railing objects were taken as hand-edited, because their 3D box had moved more than 2 cm between runs without anyone touching them, so 1,650 new ones were made on top: Objects 2,119 -> 3,769): AcBuild's own GDL objects (railings, trees, furniture, lamps, people, cars) now count as hand-edited only when their box moved more than EDIT_TOL_OBJ_M 0.60 m (ASSUMED, as for walls); the doubled railings are removed by the v2.00 same-fingerprint cleanup on the next run. The QA report also sorts the wall ends that meet no wall by cause: another wall within 5 cm in plan but at another height, or the nearest wall 5-50 cm away, or farther. v2.04 (24 Nov night, the v2.03 QA report: 158 house wall ends meet no other wall): a side shared with a taller neighbour was left out whole when the neighbour's wall covered 80 % or more of it, so up to 20 % of the side stayed open (a hole in the house); now the part of the side the neighbour's wall does not cover (0.30 m or longer) is built as its own wall, storey by storey, without openings. v2.03 (24 Nov night, Aras 23 Nov 21:12 UTC "apply the fixes back to back"; v2.02 Desktop run on the v1.90 backup): (1) the 4,958 old Railing-tool railings were still not deleted ("0 ... deleted"): Archicad's Get3DBoundingBoxes gives no box for a Railing (it has no 3D body of its own, only its posts and rails do), so v1.98 never found one on a balcony; v2.03 takes the plan box from Tapir Get2DBoundingBoxes for every Railing without a 3D box and matches its centre to the balconies of this pass as before (height test skipped for those); the log counts both. (2) 1,282 solid links refused as "already linked" each run: such a refusal now counts as made (recorded, not retried, no FLAG). v2.02 (Aras 23 Nov 21:02 UTC research v2 archicad_3d_speed_v2.md + "also do fold in other fixes that you have found"): at the end of the run, before the save, a read-only QA report goes into the log and cached/bergama_archicad_site/qa_v2_02.json: (1) terrain-layer meshes of this pass that overlap in plan, counted by label pair with their area, so the 1,004 pairs of the v1.96 check can be told apart (expected: bank-zone covers and section ground strips over the 50 m tiles, by design); (2) house wall ends of this pass that meet no other wall (within 5 cm in plan, overlapping in height), with their place; (3) the GDL parameters of one placed tree of each library part, one house window and one door (research v2 Q3/Q16: the detail parameter names are NOT FOUND in the docs, so they are read from the model for the next version to set). Nothing in the model changes. v2.01 (Aras 23 Nov 20:50 UTC "i dont know that keeping the ram guard makes sense now after we found out that the problem was a unstable overclock"; v1.97 had stopped on the Desktop at 2.3 GB free before ground view N1-B): low free RAM no longer stops the run; it is logged once per step as a FLAG and the build goes on (Windows pages to disk: slower, not stopped). v2.00 (23 Nov read-only check of the v1.96 model: each section ground view and two historic bridges stood twice with the same fingerprint): before the build, AcBuild elements of the same kind with the same fingerprint (the same data) are reduced to one, the copies deleted; within a pass, the same data asked for twice gives one element, not two. The 1,004 overlapping terrain mesh pairs the check also found are not touched yet: their cause is not known. v1.99 (Aras 23 Nov "Also these could have happened on other places please do it"): after the build, every element without a BGA ID that is an exact twin of an element of this pass (same kind, 3D box within 5 cm on every side) is deleted as a leftover copy, for every element kind AcBuild makes (walls, slabs, meshes, roofs, objects, windows, doors, columns, beams, railings); elements without a twin are Aras's and stay; the log counts both. v1.98 (23 Nov read-only check of the v1.96 model: 4,958 Railing-tool balcony railings of earlier passes still stood next to the 1,650 new railing objects): the Railing tool never took the BGA Element ID, so AcBuild treated those railings as Aras's own and never removed them; a Railing without a BGA ID, about one railing high and centred within 0.6 m of a balcony of this pass, is now deleted as an old AcBuild balcony railing; every other Railing is left alone. v1.97 (Aras 23 Nov "Also like we need to optimize the model everywhere we can"): ground-cover pieces start from a 200 m grid (was 100 m); where the ground under a piece rises more than 1 m it is still quartered, to the same 100 / 50 / 25 m boxes as before, so only flat areas change: up to four pieces become one, with fewer seams and fewer meshes, the same top surface and the same body depth limit. v1.96 (Aras 23 Nov "And improve 3D viewing speed", "Yes without losing too much quality please"; the Desktop ran out of memory on ~1,650 Railing-tool balcony railings, which were also rebuilt on every pass): each balcony railing is one light GDL object "BGA Balcony Railing" (top and bottom rail, corner posts, bars every 0.12 m, 1.10 m high, same place and height), kept between passes like other objects; the Railing tool is used only if the object cannot be made. v1.95 (Aras 23 Nov "And improve 3D viewing speed", "Yes without losing too much quality please"): the ground tiles (50 m) carried a height every 1 m along every tile edge, far more than inside a tile; an edge now keeps a height only where the ground bends more than GROUND_EDGE_TOL_M (1 cm) away from a straight line, plus every cover crossing; both tiles of a shared edge test it in one fixed direction, so they keep the same points and no gap opens. v1.94 (Aras 23 Nov "try to those optimizations where you can like improve the file in overall"): the ground mesh under and around the covers (about 188,000 pinned heights in v1.88) keeps, along each straight outline edge, only the heights the shape needs: just outside an outline where the survey ground bends more than 2 cm, on the outline (the lowered ground under a piece) where it bends more than 1 cm, half the 2 cm gap under every piece, so the ground still never touches a cover; fewer ground triangles, smaller file, same look. v1.93 (Aras 23 Nov "The 3D was so lagging can you do some improvements on that please ?"; no quality loss, Aras 19 Nov): the ground-cover meshes (roads, pavements, parks, bank zones; about 5,200 pieces) carry only the heights that change their shape: along each outline edge a height point is kept only where the ground bends more than COVER_TOL_M (2 cm) away from a straight line (was every 2 m), and the inner height points (every 4 m) are left out where the whole piece lies within 2 cm of one plane; the drawn surface stays within 2 cm of the survey everywhere, with far fewer triangles in 3D. v1.92 (22 Nov laptop run: the save before the solid element operations ran past its 30 min wait, the build went on sending operations to a still-busy Archicad and it crashed, so nothing was saved): when a save runs past its wait, the build waits until Archicad answers again (up to 60 min) and saves once more; if the model is still not saved, no solid element operations this run (they stay in the pending list) and the run ends cleanly. v1.91 (Aras 22 Nov "I am pretty sure connection between walls are still bugged"): where a house leaves a shared side to its taller neighbour (v1.88), its two walls meeting that side ended in the air on its own reference line, short of the neighbour's wall (a gap of its outer skins, no junction); they now run on to the neighbour's wall reference line, so Archicad joins them as T-junctions; every house wall's foot and top are rounded to the millimetre first and its height is their difference (two separate roundings could leave a 1 mm step between sides or storeys). v1.90 (Aras 21 Nov 16:37 UTC card "Keep, lower to 1.0 m"): the survey boundary walls along the streets (SINIR_DUVAR, SINIR_HARAP_DUVAR) 1.0 m high (was 1.5 m), still ASSUMED. v1.89 (21 Nov, QA of the v1.88 Desktop run: only 25 of 63 lamps, Street Lamp 01 refused): a lamp is kept unless it stands inside a house (was: within its 1.2 m box of a wall or another object; the pole needs only 0.15 m) and the library lamp, when refused without a size, is tried again with the lamp size before AcBuild's own lamp; lamps left out are counted by reason; no tree whose crown reaches under or into a canopy (tree crowns cut through the canopy roofs). v1.88 (Aras 20 Nov 09:50-10:03, effort High: "fix roads and streets ... retry with a different approach", "just draw the landscape underneath it ... both are constructed in the same space it shouldnt", "same two object shouldn't be constructed in the same area", "you are mixing a lot of areas for what they are in the masterplan", "you are drawing road outlines as walls", "two walls in the same place", "slab extends to the outer face of the walls", "these lamps are wrong", canopy "walls are everywhere"): GROUND COVERS: every surface area (his masterplan surface layers in his drawing order, the survey roads + parks, the bank zones) is one set of non-overlapping pieces (the one he drew on top wins), each a Mesh body draped on the surveyed ground, and the ground mesh is lowered under every piece (no overlap, no solid element operation; needs shapely); his surface layers are no longer flat thin slabs; no kerb walls on the road edges; survey walls step with the slope (were metres-high flat-topped walls); a side shared by two houses gets one wall (the taller house's); the house ground slab ends at the inner wall face; canopy louvre slats fixed to the roof underside; survey lamp points within 3.2 m merged into one lamp, Archicad's Street Lamp turned to the nearest road; rosemary as Shrubs. v1.87 (Aras 19 Nov 09:21-09:22 "you need to have a slab and you should use it in core top and with core outside you need to turn those walls into house walls ... every wall should go from bottom link to top link core top's"): house walls are composite with their reference line on the core's outside face (the footprint pulled in by the outer skins, so the plaster face stays on the outline and the core lines meet at the corners), drawn so the body lies inside (side read from one test wall); floor slabs are composite with their reference plane on the core top; every storey wall runs from the core top of the slab below to the core top of the slab above. v1.86 (Aras 19 Nov 09:20 "run intersact command for every intersection": Archicad's Auto-Intersection is switched on at the start, so every junction is intersected as it is made; "their height changes ever so slightly so intersect command doest works"): every ground-floor wall of a house starts at the same height, the lowest ground under any of its sides (was each side at its own ground), so all walls of a storey share base and top and Archicad intersects them. v1.85 (Aras 19 Nov 09:16 "something is wrong with house drawings aswell please fix those aswell": wall layers showing at every corner, a line at every floor, a loose band at the roof): house walls on centre reference lines pulled in half a wall from the footprint, so they lie inside it and their lines meet at the corners (were outside-face lines); floor slabs and the flat roof inside the walls (were on the footprint, their edges on the facade); no cornice band. v1.84 (Aras 19 Nov 09:12-09:13 "respect the site_alan everywhere ... if something is half out half in dont draw it. It needs to be in the area +%90 so you can draw it with the cutted plane"): every element sent to Archicad is measured against site_alan: under 90 % inside (area, length or point) it is not made; 90 % or more, slabs / meshes are cut and walls / beams trimmed at the edge; houses the same on their footprint. v1.83 (Aras 19 Nov 09:00-09:06): ground heights only where the drawn ground would otherwise be more than +-0.30 m off the survey ("+-30 or even 40 should be fine"); road + park skins raised by the most the ground mesh can fold between its points, so the ground no longer covers them ("roads still dissappear under ground"), on the ground's own heights, in cells of 200 m that are quartered only where Archicad refuses one ("make the road parking surfaces larger"), cut to site_alan; one Railing per balcony ("balcony rails as one railing per balcony"; windows as they are); the real 3D library trees Tree Model Detailed / Pine Tree Model / Fronded Tree variable ("use rather high poly real 3d trees"); our node buildings + canopies built in the site file ("buildings and areas from our masterplan is not built": Bergama_buildings.pln never existed); houses off the modelled ground left out ("goes out of the topography"); road, park and pavement bodies, steep / thin / tiny road pieces handled ("with real thickness"). v1.82 (Aras 19 Nov 08:49 "can we do anything to make scripts run faster", "i dont want any quality loss with the changes"): the same model, faster: Archicad's Suspend Groups is on while old elements are deleted (v1.78 lost and rebuilt 3953 kept walls, 1666 windows and 26 doors when house-group members were deleted), and a "time by step" log line shows where the minutes go. (v1.80 / v1.81 withdrawn by Aras.) v1.79 (v1.78 run 19 Nov: the embedded GDL library call timed out after 15 min and all 803 trees were left out): Archicad's own library trees are now picked in every case (a plant word required, the species word at a word start, else the most detailed generic broadleaf / conifer / shrub of its group); the embedded AcBuild parts are not sent again when the project already holds them with the same scripts, and are used after a timed-out call if they arrived; a wall whose 3D box moved less than 0.60 m (Archicad trims walls at junctions with remade neighbours) is no longer locked as hand-edited (v1.78 locked 548 elements). v1.78 (Aras 19 Nov 07:22-07:25 "dont draw roads like this", "just draw them from outlines not like whole ground and just elevated where the part of the road is", "draw the roads properly", not slabs: they might collide with the houses' slabs): roads + parks are ONE Mesh-tool skin per outline (town blocks as holes) lying on the ground AS ARCHICAD BUILT IT (were 50 m cells lifted by the tile error, up to 0.6 m); no slab, no SEO. (07:20 "many of the houses are not closed off", 07:26 "Many of those houses misses walls and etc."; v1.77 kept 1551 roofs but only 588 were in the model): every element of the pass is looked up in the model after the old ones are deleted and again at the end; any that vanished is made again and FLAGged by type. (07:29 "Check the script for such gaps aswell"): house outlines tidied before anything is built: an edge under 0.30 m used to be skipped (a gap in the walls), now it is merged into its neighbours; spikes removed; a v1.76 corner move that would make the outline cross itself (Archicad then refused its roof / slabs) is not made. (07:20 07:21 "tree's are really bad as assets find something more detailed more proper looking"): walls (kerbs, survey walls, bank walls, retaining walls) are no longer broken where the ground under them changes height (LINE_RISE_M off): one wall per straight run; trees: the most detailed tree / shrub of Archicad's own loaded library matching each species (by name) is placed instead of AcBuild's simple GDL tree, which stays only where no library part matches. v1.77 (Aras 19 Nov 06:43 "join them aswell as long as lines are connected archicad does to connection itself"): T-junctions too: a kerb / survey wall line end that stops within SNAP_M of another such line (not at its end) is moved onto that line, so the reference lines touch and Archicad makes the joint. v1.76 (Aras 19 Nov 05:52 "make sure that script doesnt constructs items on top of each other", "items shouldn't collide", "their construction line (like the blue line) must always connect each other"): no collisions: overlapping survey houses no longer kept as they are (the smaller one's corners that lie inside its neighbour are moved onto the neighbour's wall line), no tree / furniture / person / car inside a house or on top of another object (trunks at least TREE_GAP_M apart, other objects by their own size), no kerb / survey wall / retaining wall piece through a house, no kerb on a bank wall line; reference lines meet: retaining walls mitred at their corners (were offset edge by edge, leaving gaps), kerb / survey wall ends within SNAP_M of another end joined to one point. v1.75 (Aras 18 Nov 13:23 UTC "also check other drawing rules such as these and make them correctly drawn", "like everything"): each historic bridge (Ulucami, Üç Kemer) is ONE element, a GDL object made for it with its real arch curves, piers and deck in one stone body (was up to 36 stacked slabs per arch + pier walls; the old way stays only as a fallback); road / park ground skins in 50 m cells, the ground tile size (were 20 m cells: about 6x fewer meshes). v1.74 (Aras 18 Nov 13:22 UTC, decision card: "Yes, wall down to ground"): on a slope the ground-floor wall of each house side now runs down to 5 cm under the surveyed ground at that side (its ends and middle), covering the grey raft edge, so the facade reads as one composite wall down to the ground; its door and windows keep their heights above the floor. v1.73 (Aras 18 Nov 13:20 UTC "multiple stacks on the walls should be it's own composite instead of different walls stacked", "these goes for anything that is composite"): the canopy stone plinth and timber deck, two slabs stacked on the same outline, are now ONE composite slab (Bergama floor - canopy: timber deck on stone plinth); walls, floors and roofs were composites already. v1.72 (Aras 18 Nov 13:17 UTC "this applies per story like if a object is divided into two different stories they should be divided"): one element per straight run WITHIN each storey: house walls one per side per storey again (v1.70 had them raft to eaves), frame columns one per storey again (v1.71 had them raft to roof), node building walls (long sides with their glass bays as windows, and ends) now one per side per storey (were full height). v1.71 (Aras 18 Nov 13:15 UTC "not just for that house for every single drawing"): the one-wall-per-straight-run rule also for the bank walls on his istinaat lines and the retaining walls along plinths / terraces / masterplan slabs, node building long walls (one wall per side, the glass bays as windows in it), house frame beams (one beam per grid line, not per span) and columns (one per grid point, raft to roof, not per storey); 13:16 "these apply for slabs, walls, beams and etc.": their 4 m test pieces next to each other become ONE wall (new wall only where its top would change by more than LINE_RISE_M or where a piece is not needed). v1.70 (Aras 18 Nov 13:12 UTC "draw a single wall or slab where you can", "there are a million walls"): one wall per straight side: house footprints drop survey points that lie within STRAIGHT_TOL_M of the line between their neighbours (the same footprint for walls, slabs, raft and roof), and each side is ONE wall from the raft to the eaves (was one wall per storey; windows stay per storey); survey kerbs / walls: straight runs merged the same way, no 6 m chopping (LINE_SEG_M off), new piece only where the ground rises more than 0.30 m along it (was 0.10 m). v1.69 (Aras 18 Nov 13:09-13:11 UTC "roads and bridges are fucked", "look at these roads"): roads were flat black (Archicad surface "Pavement - Asphalt Dark") with the ground poking through: roads now take the plain road grey 8C8B87 (no texture), and each road / park skin sits over the 50 m ground tile by that tile's own measured deviation from the survey (+3 cm), so the tile no longer shows through; bridges: arch soffits in 36 steps (was 12), and his bridge outline over a historic bridge (Ulucami, Üç Kemer) is no longer built as a second flat deck on top of the arches (it floated at the highest bank height). v1.68 (Aras 18 Nov 13:07 UTC "please add all the objects back trees and all and dont do the trees with slabs"): GDL objects on again (GDL_OBJECTS True: trees per species, street furniture, people, cars, made in the embedded library as in v1.62); trees are ONLY GDL objects: a tree whose object could not be made is left out and flagged, never built as trunk + crown slabs, and the old slab trees are deleted as leftovers. v1.67 (Aras 18 Nov 13:02 UTC "you'll also add everything that has been removed troughout the process right ?"): the per-section ground meshes are back (SECTION_BANDS True): the v1.65 test showed they were not why 3D hung (the solid links were), so the sections get their seamless ground again; their kerb / wall cuts follow the v1.66 rule (only near the section line). v1.66 (Aras 18 Nov 12:57-12:58 UTC: with all ~29,400 solid links removed the whole-site 3D opens after reopening; "seo off was the way to go", "keep that in mind troughout the next edits", "it is as little as possible"): solid element operations ONLY where they show: within SEO_CORR_M of a section line (the cut faces), the river bed bodies opening the ground into the channel, the river water cut by its bed, and the section slots; all other links (buried feet, plinths, kerbs, trunks, pavements away from the cuts: hidden inside the ground in 3D) are not made, and AcBuild's own older ones are removed. v1.65 (Aras 18 Nov 12:34 UTC: 3D stuck "Processing Elements" even with every BGA layer hidden; 12:35 "we can redraw it if needed"): TEST: no per-section ground meshes (SECTION_BANDS False): the 13 meshes (120,923 heights) and their cuts are deleted by this run, the v1.56 ground strips + slots come back on the section lines, section views go back to "BGA - all". v1.64: solid links that AcBuild made earlier but no longer wants (e.g. the v1.44-v1.60 kerb / wall cuts in the 50 m tiles, which v1.61 moved to the section grounds) are removed from the model; before, they stayed and kept the reopened 3D heavy. v1.63 (Aras 18 Nov 12:11 UTC "no dont bake objects the file is heavy enough"): no GDL objects at all (GDL_OBJECTS False): trees stay trunk + crown slabs as built so far, no street furniture, people or cars. v1.62 (Aras 18 Nov 11:50 UTC "what about the objects ?"): on 18 Nov every GDL object was refused ("The library part 'Bergama Olive.gsm' is not editable ... only a library part loaded from a writable file can be modified"), so trees stayed slab trees and there was no street furniture, people or cars; the objects are now made inside the project's embedded library with their scripts in one step (Tapir CreateLibraryParts, named "BGA <kind>"), the old folder route only as a fallback. v1.61 (Aras 18 Nov 11:42 UTC "i want to inspect whole 3d model"; full 3D ran 30+ min on one core): the ~16,000 survey kerb / wall pieces cut only the section views' own ground meshes (hidden in 3D), no longer the 50 m tiles that 3D shows, so most of the ~50,000 solid element operations drop out of 3D while the sections stay clean (no edge lines, Aras 11:43); in 3D their buried foot is inside the ground and unseen. v1.60 (Aras 18 Nov 10:27 UTC: only .bat files stay in Downloads\Bergama, everything else moves to Downloads\Bergama\Project Files): the root is "Project Files" when it holds scripts\, else Downloads\Bergama as before. v1.59 (Aras 18 Nov 09:56-09:58 UTC, N1-A PDF "this is fucked", "shaded is drawn semi properly", "thise vertical lines is still there"): uncut fill back to material colour, shaded (with the uniform pen colour fill Archicad drew the uncut walls and hills as white with no outlines, so only the window frames showed); the section views' own layer combination ("BGA - section <name>", tiles hidden) and override combination are now set on every run on every section view already in the View Map (v1.58 set them only on views it made, so a file with views from an earlier run kept the tiles and their seams). v1.58 (Aras 18 Nov 08:44 UTC "sections do draw each line between ground cells why is that ? Cant we fix that ? While keeping the file workable"): every 50 m ground tile is its own mesh and Archicad draws each mesh's outline, so the sections showed the tile grid on the ground behind the cut. Each of the 12 site sections now gets one ground mesh of its own over everything it sees (the cut line to 200 m behind, with the tiles' own heights inside it, so the same accuracy), on a hidden layer "BGA Ground view <name>"; its view uses the layer combination "BGA - section <name>" (tiles and the other views' ground hidden), so the section sees one seamless ground; plan, 3D and the other views keep the tiles; the v1.56 strips + slots are only made where a view mesh could not be. v1.57 (Aras 18 Nov 08:17 UTC: his Model Appearance screenshot; "use tree objects as 3D object according to the tree type"; "can we decrease both drawing time"; "i dont want some detail to get lost"): section uncut fill = uniform pen colour fill, non-shaded, window background, uncut pen 81 (also ends Illustrator's "unknown shading type"); fade distant = uncut fill on, uniform pen 102, window background; willow and tamarisk get their own 3D tree objects (were the general deciduous one); on a PC with more than 64 GB RAM the solid element operations go 200 per call (was 50) and the Element ID / layer calls 2000 per call; progress lines in the labelling step; nothing is left out. v1.56 (Aras 18 Nov 07:48 UTC "please make tree's out of objects also there are a lot of section drawing errors ... unkown shading type error when opening with illustrator"): the GDL objects are made, then the libraries reloaded and their scripts set again (18 Nov: "No loaded library part 'Bergama Olive.gsm'"); a section record from another project (0 sections listed and 0 AcBuild elements found in the open file) is dropped, so the sections and their View Map items are made fresh (18 Nov: 25 old sections looked for, View Map "Failed to clone"); the section settings stay Aras's own (16 Nov 11:22 screenshot: uncut Surface - Color Fill, Shaded); section stray lines (his N1-A PDF, 18 Nov): one ground strip per section line in a slot cut out of the 50 m tiles by a hidden slab (no tile seams), kerb / wall pieces short enough on slopes to rise at most 0.10 m (no tall posts), road / park cells and pavements as skins on the ground (no flat-bottomed boxes), cut survey houses drawn as one grey fill with pen 81 by the override combination "Bergama - sections" set on the section views. v1.55 (Aras 18 Nov 06:00 UTC "is there any patch have been missed ... optimizing the file for lower resource usage"): Element IDs are written with Tapir's own command first (the Archicad API call wants a typed value and refused all 23,052 on 17 Nov; it is now only the fallback, with its typed value), a GDL object that is not made logs Archicad's reason, the house frame line no longer calls every context house "masonry". v1.54 (Aras 17 Nov 13:55 UTC "yes please"): survey houses back in the site file (part "houses"), parts left to the other file logged as such (not "kept"), Element ID stamping falls back to Tapir and logs its error, the bridge loop no longer shadows bed(), the ground grid thinned to the heights the 8 m grid cannot give within the tile tolerance. v1.53 (Aras 17 Nov 12:33 UTC "auto save of the file"): the project is saved at the end of every run. v1.52 (Aras 17 Nov 12:16 UTC "make this bergama_Site file as the site file only, our canopies and our own buildings should be linked to it that way it would be easier to edit the buildings by hand and take drawings out of these"): two Archicad files from one script, chosen by the open project's name: Bergama_site.pln = the site (terrain, river, streets, survey houses, trees, furniture, his masterplan landscape pieces: terraces, seating tiers, bridges, bank walls) WITHOUT our canopies and node buildings; Bergama_buildings.pln (any name with "building") = ONLY our canopies + node buildings, same origin (taken from the site file's record), to be hotlinked into the site file at 0,0 (File > External Content > Place Hotlink, once by hand); each file has its own cache folder; solid element operations only between elements of the same file (the canopy plinths no longer cut the site ground); v1.51 (17 Nov 15:07-15:11 local: the v1.50 run built every element, then Archicad crashed in the solid element operations with 4.4 GB RAM free, before anything was labelled): the elements are labelled (BGA Element IDs), put on their layers and grouped FIRST, the project is saved (Tapir SaveProject; Aras gives the project a file name once), and only then the solid element operations are made, 50 per call with the RAM guard and a progress line each; the ones not made are kept in cached/bergama_archicad_site/seo_pending.json and the next run (in the reopened saved pln) makes them; the cut elements are labelled again and the project saved again at the end; v1.50 (17 Nov 14:56 local: Archicad 30 crashed at walls 7951-8100 while its 3D window was regenerating, and v1.49 then retried every chunk for minutes): when Archicad stops answering (connection refused / reset) the run stops at once with an ERROR (the launcher's red window), naming the step; v1.49 (option A for the Desktop's 24 GB, the v1.48 run stopped by its RAM guard at 14:44 with Archicad at 12 GB): CONTEXT_FRAMES = False: the existing survey houses get no RC columns / beams (inside their walls, invisible at site scale; about half of all elements); every house keeps its raft; the frames made so far are deleted as no longer wanted; a RAM-guard stop now stamps the elements made so far with their BGA Element ID before it ends (v1.48 stamped only at the end of a full pass, so its stopped run left its elements unlabelled: start that project fresh); v1.48 (Aras 17 Nov 11:10 UTC: Claude app, Rhino and Archicad crashed on the Desktop, 24 GB RAM; "something wrong with MCP connection"): run it standalone with only Archicad open (run_acbuild.bat: plain Python, survey from cached/bergama_survey/survey.json, no Rhino, no MCP); Tapir chunks 150 elements (was 400) and ground tiles 15 per call (was 40); a RAM guard before every Tapir call: under MIN_FREE_GB = 3 GB free it waits 120 s, then stops cleanly (FLAG; the next run resumes through the BGA IDs); logs/bergama_acbuild_progress.txt gets one line per call as it happens (the main log is only written at the end), so a crash leaves its last step on disk; v1.47 (Aras 17 Nov 09:58-10:37 UTC "just use latest masterplan version", "base of off that masterplan only": his laptop-Desktop masterplan.svg of 15 Nov 19:06, md5 9a344ff22724396ed846b31b9d2d633e, placed as Data/assets/plan/masterplan.svg -> MasterplanAI -> master.svg -> MasterplanBase -> masterplan.json, the only masterplan AcBuild reads): its layers checked against AcBuild: araba_yolu and doldrurma (were not built) now built on "BGA ? unsure" layers; his planting willows, olives and tamarisks (were skipped: no size) built as GDL trees (olive 5 m sourced; willow 10 m, tamarisk 4 m ASSUMED, FLAG); "normal" unsure layer dropped (not in the file); v1.46 (Aras 17 Nov 09:54 UTC "do the things that you need to do": research pack v3 R1-R10 folded in, Data/research_pack_v3_combined_2026-11-16.md): beams 0.25 x 0.54 m (TBDY 7.4.1.1, 3 x slab; was 0.40), columns 0.30 m confirmed (TBDY 7.3.1.1); pitched roofs 18.3 deg = 33 % (Bergama KAIP 6.5.16; was 30 deg); traditional houses get KAIP windows 0.80 x 1.60 m and doors 1.20 x 2.20 m; balcony rail 1.10 m (Planli Alanlar Md. 38(1)); pavement build-up 0.27 m (SECONDARY); ancient walls 4.0 m (press); plane 30 m, stone pine 15 m (vdberk lower end); kerb, garden wall, olive height, seating 12 x 30 now sourced; everything NOT FOUND stays ASSUMED; v1.45 (Aras 16 Nov 11:46-12:06 UTC): ONLY the site_alan square is built (MapBase frame; "i dont want anything that would be a burden to the pc and process out of the site_alan"): ground tiles clipped to it, buildings, streets, river, trees and objects inside it, everything AcBuild made outside it deleted; the ground per tile as coarse as the survey allows within +-2 % of the tile's height range (never under 0.05 m) on a 8 / 4 / 2 / 1 m grid of survey-TIN heights, every deviation logged ("keep it at the sweet spot"); pavements are Mesh-tool skins sewn to the road meshes at the kerb ("multiple meshes sewed together"); bank zones: grass skins between the survey top- and toe-of-slope lines (SEV_UST / SEV_ALT), cutting the ground; every tree (his planting, the survey trees, every survey olive symbol) a simplified real-life GDL object per species ("not cartoon ... sweet spot"); street furniture in 3D from the survey symbols (lamps, fountains, bus stops, statues, monuments, flag poles, minarets) as GDL objects; people and cars from his assets layer (shapes grouped and sorted by size); every element on a BGA layer of its part, layer combinations, one group per house, a per-part rebuild switch (cached/bergama_archicad_site/parts.txt); survey stairs on "BGA Stairs * existing (survey)"; sizes of objects ASSUMED; v1.44 (Aras 16 Nov 11:37-11:40 "columns should be travelling two floors they should be linked by the upper floor", "single beam travelling all across the grid"): house walls and frame columns one per storey (floor slab top to the next slab / roof), beams one per span between columns; windows, doors and balconies on their own storey's wall; (Aras 16 Nov 11:37 "proper ways of drawing ... to give the calculations right in the end and make it more properly displayed"): every Bergama building material gets an Archicad connection priority (MAT_PRIO: structure over masonry over screed over insulation over finishes; ground and water lowest), so junctions of walls, slabs, columns, beams and the ground clean up by material; (Aras 16 Nov 11:36 "why not meshes for bodies like water and such ?"): the river water is one Mesh body per river outline (was 5 m slab cells stepping down the river): its top = the season water level down the river, points every WATER_CELL_M, its body down to under the bed; the river bed body cuts it, so water stands only above the bed; (Aras 16 Nov 11:35 "you do have the real floor count information of somekind"): the survey's own floor-count labels (YAZI_KAT_ADEDI, 11,261 texts) give each footprint they stand in its floor count (was: the MapBase count, 7,131 houses without one); (Aras 11:25 "the stairs should follow the real survey data where possible") the survey building stairs (BINA_MERDIVEN, 17,392 step-edge lines with their heights) are grouped into flights and built tread by tread (Slab tool, top = the surveyed step height, down to the ground, cutting it); (Aras 16 Nov 11:33 "nothing should sink into ground if something is in ground it MUST use solid element operations"): every element that reaches below the surveyed ground cuts it: house walls whose foot is under the ground (uphill sides), survey kerbs and walls (dropped in v1.32 for speed; the tile index makes them cheap now), boulders and reed beds (ground and river bed), tree trunks; the log counts every kind; (Aras 16 Nov 11:32 "also roads should be the same way so does the pavement around it"): road and park cells are Mesh-tool bodies whose top is the surveyed ground (points every TOWN_PT_M, town blocks as holes), 0.30 m under its lowest point, and they cut the ground (SEO; was a slab shaped by the terrain); pavements from the survey kerb lines: a Slab-tool strip from each kerb piece to the nearest building face on its side (at most PAV_MAX_M, ASSUMED), top = kerb top, PAV_T_M build-up (ASSUMED); it cuts the ground and the road under it; (Aras 16 Nov 11:31 "3D should look like a real life site"): the materials outside his legend take the textured Archicad surfaces of the project (REAL_SURF: stucco, brick, concrete, clay roof tiles, asphalt, grass, earth, gravel, foliage, bark, water); his legend materials keep his colours; tree crowns foliage, trunks bark, water cells water; (Aras 16 Nov 11:31 "river sohuld be a proper river bed drawing with solid element operations rather than setting a slab and calling it a day"): a river bed body per river outline (Mesh tool, gravel): its top = the channel: the thalweg of each river section line (Sections cache z_th, linear between them down the river) at the centreline (Data/selinos_centreline.json), rising to the surveyed ground at his outline (parabolic cross-section ASSUMED), never above the surveyed ground; it cuts every ground tile upwards (SEO), so the ground opens into a real channel; plinths and terraces cut it, it cuts the water; the water cells reach down to the bed; (Aras 16 Nov 11:21 "sections dont cut trough the meshes"; found 11:31: v1.41 gave every Bergama material the cut fill "Solid + Dot & Dashed" in pen 1 (the first fill named "solid"), so cuts drew a pattern, not a hatch): each material gets the Archicad fill of what it is (ground Earth, concrete Structural Concrete, brick Common Brick, stone Rubble / Cut Stone, insulation Rigid Insulation, timber Wood ...), others the solid Foreground fill; (Aras 11:30 "give me a override that show those walls as a single solid hatch") the graphic override rule "Bergama - walls as one solid poche" (walls: cut fill Foreground solid, pen 21, no skin separators) in the combination "Bergama - solid walls"; (Aras 16 Nov 11:30 UTC "try to use generic composites like slum houses should have a one slum house composite, planned low rise need a composite that is for itself ... do good educated guesses accordingly what is highly used in turkey"): Archicad composites per MapBase fabric (regular = planned low-rise RC frame + hollow brick + EPS, block = apartment RC frame + AAC + EPS, selfbuilt = gecekondu pumice block, traditional = rubble stone + lime plaster (masonry: no RC frame), large = public RC frame + AAC + EPS), RC floor, clay-tile pitched roof and gravel flat roof composites; rafts, columns and beams in reinforced concrete; every layer thickness ASSUMED (educated guess of common Turkish practice, no source); the survey trees (SEMBOL_TEK_AGAC single trees, SEMBOL_YPDKN_AGAC / SEMBOL_YAP_DOKMEYEN evergreens) built as trunk + crown (heights ASSUMED); Aras 16 Nov 11:18 UTC "those rafts should connect columns and that columns should be connected by beams and etc.", "so the structures would be realistic"): every framed survey house (not the sacred / monument / Kizil Avlu masonry) gets a reinforced-concrete frame: Column-tool columns standing on its raft at every footprint corner, where a FRAME_SP_M grid line meets the footprint and at the grid crossings inside, full house height; Beam-tool beams under every floor slab and the roof along every footprint edge and every grid line inside (sizes and grid ASSUMED); centred in the wall thickness (ASSUMED: the walls lie inside the footprint line); Aras 16 Nov 11:16 UTC "the houses should sit on the ground they need to use solid element operations for cleaner looks and their foundation should be simplified raft foundation", "so the structures would be realistic"): every survey house stands on a raft (mat) foundation: one Slab-tool slab on its footprint, top = ground floor (survey ground at the centroid), bottom RAFT_T_M (ASSUMED) under the lowest survey ground under the footprint, so no side floats; it cuts the ground upwards (SEO, no ground inside the house); the walls start on the raft (were 1 m into the ground), the raft is the ground-floor slab; Aras 16 Nov 11:12 UTC "i dont want any gaps in the topography": ground tiles with no survey point of their own are filled from the survey triangulation; Aras 16 Nov 11:05-11:08 UTC "is it foolproof ?", "i do switch a lot between pc's", "i dont want to run two apps at the same time", "i'll be doing hand edits it needs to be safe from them"): the record of what AcBuild made lives in the pln itself: every element it makes carries Element ID "BGA-<fingerprint>@<3D box in cm>", so any PC, copy or recovery file finds its elements without the local cache; only elements with a BGA- Element ID are ever deleted (elements Aras draws are never touched; v1.34-v1.43 deleted every unrecorded wall, slab, roof ...); an element whose 3D box moved more than EDIT_TOL_M since AcBuild made it is hand-edited: locked, never deleted or replaced, and nothing new of its kind is made on it (FLAG count); the first v1.44 pass stamps the elements this PC's cache records; the survey is read from Rhino once and cached (cached/bergama_survey/survey.json with the ground triangles), so without Rhino AcBuild runs as plain Python with only Archicad open (python bergama_acbuild_v1_44.py); a Rhino model not in metres or a survey extent over 50 km stops the run; v1.43 (Aras 16 Nov 10:57 UTC "every slab should be drawn with slab tool, every column with column tool every roof is with roof tool"): the node buildings' folded roof facets are single-plane Roof-tool roofs (were meshes; a mesh only where Archicad refuses the roof, FLAG); a house roof Archicad refuses as a hipped roof is tried again as a single-plane Roof-tool roof before the slab fallback; bridge piers (Ulucami, Uc Kemer, new bridges) are Wall-tool piers (were stacked slabs), still cutting the ground; v1.42 (coordinator for Aras 16 Nov 09:50 UTC "build the whole site through Tapir at real 1:1", new empty Archicad file): WHOLE_SITE: everything inside the survey contour extent is built (was: the cut rectangles only): the ground as one gap-free surface of SITE_TILE_M tiles (shared edge points, control point every 10 m where no survey height) wherever the survey has heights, every survey building, the whole town ground, kerbs and walls; windows stay on the walls a section sees; ground tiles made in batches; solid element operations found through a tile index; its own cache folder (bergama_archicad_site, origin taken from bergama_archicad) and log; the project is neither saved nor published (Aras saves); v1.41 (Aras 15 Nov 23:50 section window: houses float, ground only a thin line): the ground is modelled again the full BACK_M behind each cut (GROUND_BEHIND_M = BACK_M) so the houses behind stand on their hillside; uncut surfaces filled in their own material colour, shaded (the hills read as a tone, not white blobs); the Bergama building materials get an explicit cut fill (solid fill, pen CUT_FILL_PEN, ASSUMED) as they were made with a cut surface only, so cut ground and cut walls drew no fill; v1.40 (runner 15 Nov 23:31: v1.38 said "model unchanged" and skipped its changes; its PDFs held almost nothing): the script version is part of the model fingerprint (a new version always goes through the element-by-element check, which keeps unchanged elements), and the distant area is off (everything in it is drawn with one fill and one pen); v1.39 (Aras 15 Nov 23:30 "why the outlines of the walls are not there for most"): uncut and distant elements draw with their own pens (the one uniform pen 81 / 102 is off), so every wall and roof edge keeps its own visible contour; v1.38 (Aras 15 Nov 23:13 "it is foreground/background issue ig. like get rid of those areas."): the ground is built only where a cut sees it cut (a strip from SIDE_M in front to GROUND_BEHIND_M behind each cut line) and under the river, in GROUND_TILE_M = 25 m tiles that still share their edge points; the hills behind a cut are no longer modelled, so nothing hides the buildings behind; his own section settings of 20:01 are back (uniform window-background fill, fade distant elements); v1.37 (Aras 15 Nov 23:10 "why these drawings look like this with white blobs over"): the ground behind a cut was filled with the window background (white) and, being a smooth mesh, had no outline, so the hills behind showed as white shapes hiding the houses; now uncut surfaces are filled with their own material colour, shaded, the distant-area option (always white in Archicad) is off, and the ground tiles carry the Sections ground colour; v1.36 (runner 15 Nov 23:05: partway through the v1.34 pass Archicad refused every new element, -2130312311 "Failed to create new ...", and every solid element operation): before each chunk the floor plan (story 0) is made the active window again, and a chunk Archicad refuses whole is tried once more after that; v1.35 (Aras 15 Nov 22:46 "get them as pdf", "dwg looks awful"): the Organizer / setup steps in the log say PDF; v1.34 (Aras 15 Nov 22:33 "archicad redraws take a lot of time can we have something faster ... not redrawing everything every single time"): every model element is kept by the hash of what it is made from; a pass makes only the elements whose data changed, deletes only the ones no longer wanted, makes solid element operations only for new elements and publishes only the sections whose line moved or that see a changed element; v1.33 (Aras 15 Nov 22:10 "move the node 6 to the building that is across the river": N6 now stands on an existing survey building): a survey building whose footprint lies more than COL_HALL_F inside a node building foot is left out (the node building takes its place); v1.32 (runner: the v1.31 publish stalled on its first section, Archicad 13 -> 21 GB in 10 min: one 2 km mesh with every survey point as the target of ~6000 solid element operations): the ground is the same one surface cut into GROUND_TILE_M tiles that share their edge points exactly (no gaps, one block to the eye), only tiles that touch a cut rectangle or the river; survey heights one per GROUND_SPOT_M m cell, control points every GROUND_GRID_M m where none; each solid element operation links an element only to the tile(s) it stands in; kerbs and survey walls no longer cut the ground (thousands of tiny operations)   # v1.31: v1.31 (Aras 15 Nov 21:19-21:20 "as you havent done solid element operations in archicad many of the drawings look weird. and ground has gaps in between", "it all should be one large block", "with many control points on it"): the ground is ONE terrain mesh over the whole survey box (every cut rectangle and the river; was 13 meshes per cut + 3 river meshes with gaps between them), its points every survey contour + spot height (one per 2 m cell) + a control point every GROUND_GRID_M m where the survey has none, a solid block GROUND_BASE_M m under its lowest point (was down to -5 m above sea level); solid element operations on that one ground for everything that stands in it: plinths, terraces, masterplan slabs, retaining walls (subtraction, as before), every building's ground slab (subtraction with upward extrusion: no ground inside a house), the Kızıl Avlu walls, bridge arches and piers, bank walls, kerbs and walls (subtraction), water (cut by the ground), road and park cells (shaped by the ground)   # v1.30: v1.30 (Aras 15 Nov 20:41 "what about roads ?", "and etc."): the existing town ground in the cut rectangles (where the terrain is): the MapBase street region (one region, the town blocks cut out as slab holes) and the parks as slabs in 20 m cells whose top the terrain shapes (SEO intersection), so they lie on the survey ground; survey kerbs, walls and ancient walls as Walls on the ground (heights ASSUMED); what the base map holds but is not built listed in the log   # v1.29: v1.29 (Aras 15 Nov 20:14-20:15 "build the selinos with everything in archicad like river bed, reed bed and everything like not a single beat skipped", "bridges and etc."): river bed mesh over his river outline (survey), water at each section line's own season level interpolated along the river (5 m cells, the ground cuts them by SEO), reed masses on his yosun rings (1.5 m ASSUMED), his stones and rocks of 1 m2 and more as boulders, his PLANTING_v13_1 trees as trunk Column + three crown slabs (heights ASSUMED), bank walls on his istinaat lines, his kopruler bridge outlines (picture-clip shapes too) as decks, the Ulucami and Üç Kemer bridges on their survey footprints with arches and piers (arch count / pier sizes ASSUMED, logged), piers under new bridges longer than 25 m; a layer audit of master.svg in the log; bridges / reeds / boulders no longer cut the terrain or get retaining walls; (runner, v1.18 rerun: 0 sections listed while 15 recorded, so all were remade and the Organizer step was undone) the floor plan is made the current window before the sections are listed, and 0 listed while some are recorded is treated as a listing failure (FLAG, recorded ones kept)   # v1.28: v1.28 (Aras 15 Nov 20:10 "also please solve these kinda collisions", his view: a hipped house inside the Kızıl Avlu walls): survey buildings overlapping the Kızıl Avlu hall by more than 10%% are left out (the hall stays), a footprint more than 50%% inside a bigger one is a duplicate and left out; counts logged; (Aras 20:10 "give both slabs and roofs to every building ... 3 storey ... 3 slabs") a floor slab per storey in every building (was: only the buildings a line cuts), flat roofs as 2 deg single-plane Roof-tool roofs   # v1.27 (Aras 15 Nov 20:07 "use solid element operations where necceseary"): every canopy plinth, node plinth and masterplan slab (terraces included) cuts the terrain mesh of each cut it stands in (Tapir CreateSolidElementLinks, subtraction); (Aras 20:08 "use retaining walls where neccesery") stone retaining walls along slab edges where the ground outside differs from the slab top by more than 0.60 m (ASSUMED)   # v1.26 (Aras 15 Nov 20:06 "dont do these kinda extereme angles keep it minimal like the second image"): fold rise 0.6 m (was 1.8 m), and no facet edge steeper than 8 deg (low corners on falling ground are raised to it, so every clearance still holds)   # v1.25 (Aras 15 Nov 20:05 "draw their roofs with roof tool columns with column tool, beams with beam tool etc. so intersections would look proper"): canopy facets = single-plane Roofs (pivot line through the low corner, slope of the facet plane), louvres = timber Beams (horizontal slats every 0.6 m under each facet); columns (Column tool), arms (Beam tool), plinths/decks/planters (Slab tool), glazed rooms (Wall + Window) as before; a facet Archicad refuses as a roof falls back to a mesh (FLAG)   # v1.24 (Aras 15 Nov 20:01 "use these settings for archicad sections"): his Section Selection Settings on every section (cut elements in their pens, uncut = uniform pen colour fill + line pen 81, fade distant elements on with line pen 102, no boundary contours); publishes once for the new settings   # v1.23 (Aras 15 Nov 20:00 "archicad is missing the ground in sections ... i want real 1:1 drawing in archicad"): the survey terrain mesh is built again, one per cut rectangle (10 m in front of the line to 200 m behind, survey contours + spot heights, solid with skirt), so every Archicad section has a cut ground and the hillside under its houses   # v1.22 (Aras 15 Nov 19:48 UTC "optimize the scripts to be much much faster", item 3 "run the Rhino-only slides alongside the Archicad steps"): run from the chain (__main__), the Rhino part (survey read, TIN) runs as before, then the Archicad part (pure Python + Tapir, no Rhino call) goes on in a background thread so Rhino is free for the next page script; the log reads "RUNNING ..." until it ends (same lines as before); a file cached/_chain/acbuild_foreground.txt keeps the old one-piece run; the Grasshopper button runs in one piece as before; v1.21 (v1.18 run 15 Nov 19:23 UTC: no bridge and no stepped terrace was built: his bridge outlines (kopruler path) and stepped-terrace outlines (begum su merdiven outline) are drawn without fill): those layers are built from their closed outlines (the outermost rings only, MasterplanBase v1.9 keeps the paint-less bridge rings); a bridge as a 0.50 m stone deck whose top is the highest survey ground under its outline (the banks it spans, not the river bed); BUILD_SIG geometry-9; v1.20   # v1.20 (Aras 15 Nov 19:18: the publisher set may be PDF): published PDFs count as the kept output   # v1.19 (Aras 15 Nov 19:09-19:11 UTC "1.2meter depth is fine however think it like 15x30 steps merge into single seating", "circulation wise"): his stepped terraces (begum su merdiven, the light stone picture) built as seating tiers stepping down to the river: each tier 1.20 m deep = four 30 cm treads merged, 0.48 m high = four 12 cm risers (Aras 19:13 "make the height of the steps is 12"; the 12 x 30 stair pitch kept), tiers cut from his own outline across the direction to the nearest point of his river outline (su_outline), lowest tier on the lowest survey ground of the piece, none above the highest; the stair aisles themselves are not placed (no aisle drawn in his masterplan); materials by each layer's own picture colour: teras = wood deck ("decks are wooden"), iskele kenari = grey paving CECFCE; v1.18 (Aras 15 Nov 18:12-18:17 UTC texture legend: "this stands for regular bridges", "historic buildings are in a shade of red", "our buildings are white blues are glasses", "these are decksn", "this is shading", "these are reed beds", "this is stepped terrace that goes into the river"): Archicad surfaces + building materials named "Bergama ..." in his legend colours (median colours sampled from his legend pictures), given to the elements as they are made: bridges (kopruler pieces) stone, stepped terraces (teras, begum su merdiven) light stone, decks (iskele kenari, canopy decks, planters, louvres) timber, reed beds (su bitkii) reed green, canopy facets white, Y columns grey frame, our buildings (node buildings, glazed rooms) white, historic buildings (sacred / monument houses, Kızıl Avlu) red; every glass surface of the project in his glass blue; an element Tapir refuses with a material is made again without it (FLAG); BUILD_SIG geometry-7 (one rebuild); v1.17 (Aras 15 Nov 17:24 UTC "any drawing that has building in it you should use the drawing that comes out of archicad"): the node building FLOOR PLANS from Archicad too: one Archicad story per floor of each node building (Tapir SetStories; story 0 kept, story level lines off in the sections), so each floor plan cuts its own building; a View Map view <N>-P<floor> per story, published with the sections (one-time Organizer step again), two registration squares (1.0 m and 0.5 m) 6 m off opposite corners of the building on every floor; BUILD_SIG geometry-6 (one rebuild); v1.16 (Aras 15 Nov 17:32 UTC "make sure archicad drawing is %100 pinpoint accurate to our masterplan"): his master.svg pieces inside the working area built in Archicad on his own points (slabs per layer, on the survey ground), canopies held within 0.05 m of his kanopi line, and an accuracy check after every build: each piece read back from Archicad and compared with master.svg, any point more than 5 cm off FLAGged, report in mp_accuracy.json; BUILD_SIG geometry-5 (one rebuild); v1.15 (Aras 15 Nov 17:27 UTC "draw these buildings in archicad and insert that drawing into all sections ... archicad is hella lot more detailed"): the context houses get more detail for the section elevations: a door on the ground floor of the longest wall a cut sees, windows on every wall a cut sees at any angle, balconies (slab + rail) on every other window bay of blocks of 3+ floors, a cornice band under every flat roof; a house with no recorded floor count is built as 1 floor (ASSUMED, logged) instead of left out; sizes are drawing rules, not surveyed; BUILD_SIG geometry-4 (one rebuild); v1.14 (Aras 15 Nov 17:24 UTC "any drawing that has building in it you should use the drawing that comes out of archicad"): the six node buildings built in Archicad as the node slides design them (placed by Perspectives, rooms from nodes common BUILD), each with a cut view <N>-BX and an elevation view <N>-BE in the "Bergama sections" folder (published with the sections); v1.13 = v1.13 (Aras 15 Nov 16:31-16:32 UTC "Make canopies top view match with masterplan", "Get structrual idea from the photo i have sent you and invent from there"): every canopy built on his own filled kanopi ring (no hull, no merging, outline within 0.25 m), facets by ear clipping with his fold ends on the outline, low / high vertices alternating round it, Y columns under the low vertices 1.2 m inside (4-10 m apart, arms toward the neighbouring vertices), plinth + deck bays between the columns; rooms and planters only where they fit inside; v1.12 (v1.11 publish run: 10.5 min for 13 DWGs): no vector sun shadows in the section views; a change of the view settings (SEC_SIG) publishes once even when the model is unchanged   # v1.11 (run of v1.10: the Archicad 29 API refused "CutPlane" too): sections listed through Tapir GetElementsByType (CutPlane)   # v1.10 (Aras 15 Nov 15:00 "you need to make archicad runs faster"): the model is rebuilt only when its inputs changed (buildings from MapBase, cut lines, masterplan canopies, Sections levels, BUILD_SIG) or Archicad holds other element counts; with the model and sections unchanged nothing is published either (the last DWGs are kept); model time logged; sections listed as element type CutPlane (v1.9 run: "Section" is not an API type)   # v1.9 (15 Nov: Archicad reopened from a recovery file: new GUIDs, the build doubled, 9 section views twice): the previous model is cleared by element type (windows, walls, slabs, roofs, meshes, columns, beams), not by recorded GUIDs; when the project\'s sections differ from the recorded ones, all sections and the "Bergama sections" View Map folder are made again (FLAG: refresh the publisher set)   # v1.8 (15 Nov: a refreshed publisher set held the whole project as PDF + DWG and Archicad hung an hour; the pln reopened without the build after a restart): the project is saved (Tapir SaveProject) before publishing, and only the set's items of our sections are published (selectedNavigatorItemIds); a set holding other items is not published whole   # v1.7 (Sections thread, run of v1.28.2: houses up the hill float, the survey TIN does not reach that hill): the ground behind each cut in depth bands (10-50, 50-100, 100-200, 200-400 m, 400 m to the farthest building), each the highest survey ground of the band raised to the base of every building standing in it, so every house has ground under it; written to acbuild.json cuts[].bands   # v1.6 (also: the ground-behind profile reaches 1000 m, as houses of other cuts beyond 200 m show in the sections); v1.6 (Aras 15 Nov 09:52-10:29 "draw our canopies much better like designed ones" / "Some closed areas underneath" / canopies in Archicad "yes please"): his master.svg canopies (kanopi layer) built as his reference: folded triangle-facet roof (meshes) with a timber louvre layer under it, Y steel columns (trunk + 2 arms) under the valleys on a 12 m bay, timber deck on a stone plinth bay by bay, a glazed room in every other bay where the floor is >= Q500 + 0.60 m, timber planters in the open bays; heights as Sections v1.28.2 (DfT 2.30 m clear, EA 0.60 m over Q500, ridge +1.8 m ASSUMED)   # v1.5 + Kızıl Avlu: the main hall outline(s) from the MasterplanBase cache (Sections library red_hall_load), roofless walls 19 m (Wikipedia, Red Basilica: "Its walls still survive up to a height of 19 metres"), no windows, no roof; v1.5 (15 Nov run 7: houses beyond the 200 m depth drawn as floating outlines): no marked distant area (only the 200 m behind each cut is drawn); publishing may take 30 min (the set grew)   # v1.4 v1.4 (15 Nov: Sections v1.18 moved the N4 lines): the Archicad origin is kept from the first run; a section whose line moved is deleted and made again on the new line (its view too), with a FLAG to refresh the publisher set   # v1.3 (run 4: houses 200 m behind stood in the sky, the hill under them was not drawn): per cut the ground behind (highest survey ground 10-200 m behind, every 2 m) written to acbuild.json for SectionsAC   # v1.2 (SectionsAC run 3: the DWGs held only the roofs = the one element type without a BG layer, so the BG layers are not shown in the views): every element on the tool default layers; registration blocks at -50 m (found by geometry); no terrain mesh (our ground is drawn instead)   # v1.1 (14 Nov run 1): mesh without layerIndex (Tapir schema), hipped roofs as one-level polyroofs, footprints cleaned (slab failures)
+VERSION = "v2.12"   # v2.12 (one batch: Aras 25 Nov 16:19-16:33 UTC review of v2.11ag, "gather them all and fix in one go", "please fix all"): (a) "make the terrain more smoother ... looks like a bumpy road ride": ground tolerance 0.30 -> 0.15 m and every grid height averaged over its grid cell (no facet bumps); (b) "road connections are fucked up": road / path / green covers get inner heights every 2 m (was 4 m: narrow strips folded), and the edge groove fix below; (c) "these walls and their connections": a survey wall line built as Morphs is one Morph, mitred at its bends, top following the ground (was one block per straight run, square ends); (d) "all reed beds needs to be in water": the ground in every reed bed is dug to 0.30 m (ASSUMED) under the winter water there and water is laid over the beds outside the river outline; (1) no groove along road / path / green edges: on a free edge (no other piece beyond it) the ground keeps the surveyed height ON the outline and drops to the piece bottom 3 cm inside, under the piece (Desktop v2.11ag check: cover top a median 0.81 m over the ground vertex on the outline); (2) node stories: story 0 alone first, then the node floors added as new stories, each way read back (one go and top-down were refused); (3) log detail for refused cover pieces and dry reed beds; plus v2.11ah. v2.11ah (own fixes from the Desktop v2.11af logs, Aras 25 Nov 15:37 UTC "dont ask me and do this loop for 1 hour or so"): flat roofs and floor slabs Archicad refused (86 in the context file) are made again from a cleaned outline (self-crossings, slivers); in ground tiles that stay over the +-0.30 m tolerance even at the 1 m grid (27), the survey heights themselves become control points. v2.11ag (Aras 25 Nov 15:24 UTC "look at those kinda issues dont wait for my input"; Desktop v2.11af empty build): the master's node stories are set again (the empty file from Aras.tpl has 7 stories 3 m apart and Archicad refused to lift story 1 to 50.23 m past story 2: they are now lifted one at a time from the top); the ground is smoother (Aras 25 Nov 09:20 UTC "ground needs to be smoother"): a flat triangle of the survey triangulation (three corners on one contour: the terraces) gets a middle height from the slope across its open side, every survey height unchanged. v2.11af (Aras 25 Nov 12:30 UTC cycle path screenshot "we dont want these jagged edges and they should finish smoothly and there should be 5cm difference in height"): the ground just outside every road / path / green area now takes exactly the same edge stations as the area itself (it took its own 2 m spacing and zig-zagged against the area edge: the saw teeth), and roads, paving, the quay, the cycle path and park paths stand 5 cm over the ground beside them (a clean edge; green areas flush). v2.11ae (Aras 25 Nov 12:25 UTC "the connections in the roads are fucked", "road and buildings clashes it shouldnt"): road / green / paving areas are cut AT the working-area border, so the proposal file runs up to it and the context file goes on from it (a 50 m tile whose middle lay outside went whole to the context file and left the strip ending short in the proposal); survey kerbs and walls stop at a house wall (the parts within half their thickness of a house come out; before only a piece whose middle was in a house was left out). v2.11ad (laptop v2.11ac run 25 Nov): the master, now a copy of the last master, kept the old hotlinks to the previous parts and got the new ones on top (120,211 elements, every element twice): the old hotlink instances are removed first; his cycle path (one long ring whose middle lies outside the working area) keeps its part inside the working area (was not built); shrubs every 4 m along green edges and groups every 5 m inside (35 in all before). v2.11ac (laptop v2.11ab run 25 Nov: "FLAG Selinos not built (ValueError: too many values to unpack)"): the boulder list lost its trailing comma when the reed slabs left it, so the whole river (bed, water, reeds, boulders, bank walls, historic bridges) was skipped in the proposal file; fixed. v2.11ab (Aras 25 Nov 09:07-09:20 UTC, screenshots; "please fix all accordingly"): (h) "fix terrain + road collisions": the ground under every road / green / paving piece is now held down at its bottom by ALL the height points on the piece outline (the straight-run thinning left only the corners, so ground triangles ran across the road at the surveyed height: the saw teeth) and by points every 4 m inside it; a sliver too small to build no longer leaves a hole in the piece under it; (i) "roads doesnt align on the edges": a piece edge takes its height points where it crosses the fixed 2 m site grid plus every corner of its neighbours lying on it, all kept, so two pieces sharing an edge have the same points and heights; (j) his bridge picture areas (kopruler texture: a 1,829 m2 clip stood as a flat 0.5 m deck over the bank) are no decks; (k) "red road is bicycle road" / "roads should be drawn according to their types": his bisiklet layer is a red cycle path (his B56D61), his yesil_alanlar/path a park path (his E6EFDA), each with its own material, besides the grey car roads, the paving and the quay; (l) thin green strips of his (under 1.5 m) give way where they cross a street; (m) "use outside core whenever you can": the survey walls take the survey line as their outside face (body away from the street), one foot per segment, a line all Wall or all Morph; (n) "reed beds ... more detailed and in the water": reed clumps (GDL, thin stems, seed heads) standing on the river bed and rising through the water, one per piece of his sazlik layer and every 2 m in his su_bitkii rings, instead of 1.5 m green blocks; (o) "we need bushes and such": shrub groups in every park and in his own green areas, which also get benches and lamps (his trees stay his planting layer). (f) "the most top layer being green area so we view it as green area however in archicad you draw both": his slab layers (teras, bina_cerceve, begum_su_merdiven, su_bitkii) keep only the part no later layer of his drawing covers (the ground covers did this already); (g) the ground covers built in the other file of the split are no longer counted as refused; (d) "this is fucked": his su_texture water picture areas (duzenlenmis: a 1,553 m2 ring) are no longer built as one flat slab over the grass; (e) "these should meet": gaps up to 2 m between his green pieces are filled as green ground cover (under everything else); (a) "walls blue line is core outside however referance line is inside fix it, walls meeting is broken in proposal file": the test wall that finds which side Archicad puts a wall body on went through the file split and was dropped in the proposal file, whose fallback (clockwise) put every house wall outside its survey outline; the test wall is now made directly (no split, no record, so it is never "made again" either) and the fallback is counter-clockwise; (b) "dont split houses into two files keep them on one": every house and node building, with everything within 2.5 m of its outline, goes whole into the file its outline middle falls in; (c) "canopy structure is not meeting it is problematic these are not realistic"): the Y column arms stopped short of the canopy roof: their top end was set from the column's own outline vertex height less the 0.30 m louvre layer, not from the roof right above the arm end (the facets slope, up to 0.6 m); now each arm's top end meets the roof skin's underside right above it (facet plane), and the fork sits at 60 % of the height up to the slats' underside above the column. v2.11aa (Aras 25 Nov 07:28 UTC "so fix those and start the run on laptop", 07:28 "that is v2.11aa"; from the v2.11 Desktop cold run): (a) node buildings still on a street after the 20 m search (v2.11: N4 101 m2, N6 16 m2) are tried turned up to 15 deg and moved up to 30 m; failing that, the spot with the least street under them if it halves the overlap (FLAG); (b) parks from 30 m2 (was 100: 4 of 31 got anything); a park with no tree from the grid gets one at its most inner point (1.5 m or more inside), one with no bench gets one mid its longest side; (c) after a SetStories timeout the stories are read back (that waits for Archicad) and compared, so the log says whether they are right; (d) the run time in the last line was the clock (a registration loop reused t0). v2.11 (Aras 24 Nov 22:24 UTC "implement the fixes", "do whatever you need to do troughout the night i want to see a working file when i wake up"; from the v2.10 cold run 24-25 Nov): (a) Morphs are listed in the model check (CLEAR_TYPES): v2.10 took all 2,664 survey-wall Morphs as vanished and made them twice more; (b) every Railing without a BGA Element ID is deleted in every file (RAIL_PURGE: all 4,958 were old Railing-tool balcony railings, only 2,601 were caught); (c) stories: not set in the proposal / context files (every element is on story 0), set in the master after its old elements are deleted, skipped when already right, 300 s limit (SetStories took 600 s in each file); (d) survey park pieces within 1 m joined into one park before furnishing, parks from 100 m2 (v2.10 furnished none); (e) his masterplan_Latest.svg read through MasterplanBase v1.10 (its new layer names answer to the old ones). v2.10 = all of Aras's v2.02 review, 24 Nov 17:29-17:51 UTC, in one version ("keep them together and push them together into a single change"): (a) three files: ..._proposal.pln (everything whose middle lies in his working area), ..._context.pln (the rest), the master (any other name: section helpers, sections, views, publishing, both files as Archicad hotlinks at 0,0) (SPLIT_FILES); (b) survey walls outside the working area and 5 m or more from every section line as one Morph per straight run whose top follows the ground (MORPH_WALLS); (c) survey walls: none inside a street (cut back to the part outside it), stand-alone lines (touching no house, lining no street, meeting no such wall) left out, one wall per straight run up to 0.60 m rise (was a step every 0.30 m); (d) node buildings moved whole off the streets (nearest clear spot within 20 m); (e) the grass is held at the surveyed height every 2 m along every cover edge (roads / paths no longer float or sink at their edges); (f) water: four season water bodies (winter, spring, summer = the 4.0 x 0.30 m strip held full, autumn), each on its own layer, levels = thalweg + that season's depth along the bed, never under the thalweg (it no longer breaks off), winter on; the summer strip is cut into the bed; (g) house walls: an open end runs onto another wall's end within 0.50 m (turning at most 10 degrees) or a short wall closes a 5-50 cm step to a parallel wall; (h) the survey parks get trees, benches, litter bins, lamps and picnic tables (Archicad library parts by name; all sizes and spacings ASSUMED); (i) "sometimes trees are created inside the buildings it should not happen, like they shouldnt collide"): a tree was checked only by its trunk point (0.5 m) and only against the surveyed houses; now its whole crown (radius 0.575 x its width, the +15 % size jitter included) must stay clear of every house wall and of the node buildings' footprints (buildings.json), else the tree is left out and counted in the log. v2.09 (Aras 24 Nov 17:16 UTC: "istinat duvarlari isaretli yerlerin hepsinde olmamali cunku onu gerektiren kot yok" = the retaining walls should not stand at every marked place, because the levels do not call for one there): along his istinaat lines a bank-wall piece is built only where the surveyed ground either side differs by RET_MIN_M (0.60 m, ASSUMED, the same rule as the other retaining walls) or more; level stretches get no wall (they got a 1.0 m wall before). v2.08 (Aras 24 Nov 16:53-16:54 UTC, his masterplan.svg layers: "doldurma is the generic green areas as before", "doldurma renk is fills and such to hide imperfections of drawings", "layer 50 is visual fixes for some green areas", "belki yesil ... decided to be all green areas"; asked whether to leave the fix layers out: "you can include them off with the green areas"): doldurma, Layer 49 and belki yesil are built as green (park) and no longer on "unsure" layers; Doldurma renk and Layer 50 are built as green pieces with the other green areas (top layer wins where pieces overlap, as before). v2.07 (24 Nov night, the v2.06 Desktop run: 169 house wall ends still meet no wall, 121 of them 5-50 cm short; 8 Element IDs not stamped with no reason given): (1) the wall-end snap also closes two more cases: a wall that stops short of a wall in line with it (parallel, same line within 5 cm) is run on to that wall's end, and two walls that both stop short of the corner where their lines cross (within 0.60 m) are both run on to that corner, the other end only when it meets no wall either. (2) when only part of a batch of Element IDs fails to stamp, the failed ones are tried again through the Archicad API and the first refusal is logged. (3) the QA report sorts the 5-50 cm wall ends further: parallel in line, parallel side by side, lines cross beyond the other wall, other. v2.06 (24 Nov night, the v2.05 Desktop run): (1) the 1,650 balcony railing objects were still taken as hand-edited (their stored box is off by more than 0.60 m, so v2.05's tolerance did not help) and made again each run; AcBuild's balcony railing objects (Object, part "houses") are now never locked: kept when their data is the same, and the v2.00 cleanup removes the doubled set. (2) 161 house wall ends stopped 5-50 cm short of another wall: before the walls are made, an end that meets no wall is moved onto the nearest non-parallel wall of the same height range within 0.50 m (a T-junction; move at most 0.60 m, ASSUMED), so the house is closed. (3) the "duplicate copies" log line counts per element type correctly. v2.05 (24 Nov night, the v2.04 Desktop run: all 1,650 balcony railing objects were taken as hand-edited, because their 3D box had moved more than 2 cm between runs without anyone touching them, so 1,650 new ones were made on top: Objects 2,119 -> 3,769): AcBuild's own GDL objects (railings, trees, furniture, lamps, people, cars) now count as hand-edited only when their box moved more than EDIT_TOL_OBJ_M 0.60 m (ASSUMED, as for walls); the doubled railings are removed by the v2.00 same-fingerprint cleanup on the next run. The QA report also sorts the wall ends that meet no wall by cause: another wall within 5 cm in plan but at another height, or the nearest wall 5-50 cm away, or farther. v2.04 (24 Nov night, the v2.03 QA report: 158 house wall ends meet no other wall): a side shared with a taller neighbour was left out whole when the neighbour's wall covered 80 % or more of it, so up to 20 % of the side stayed open (a hole in the house); now the part of the side the neighbour's wall does not cover (0.30 m or longer) is built as its own wall, storey by storey, without openings. v2.03 (24 Nov night, Aras 23 Nov 21:12 UTC "apply the fixes back to back"; v2.02 Desktop run on the v1.90 backup): (1) the 4,958 old Railing-tool railings were still not deleted ("0 ... deleted"): Archicad's Get3DBoundingBoxes gives no box for a Railing (it has no 3D body of its own, only its posts and rails do), so v1.98 never found one on a balcony; v2.03 takes the plan box from Tapir Get2DBoundingBoxes for every Railing without a 3D box and matches its centre to the balconies of this pass as before (height test skipped for those); the log counts both. (2) 1,282 solid links refused as "already linked" each run: such a refusal now counts as made (recorded, not retried, no FLAG). v2.02 (Aras 23 Nov 21:02 UTC research v2 archicad_3d_speed_v2.md + "also do fold in other fixes that you have found"): at the end of the run, before the save, a read-only QA report goes into the log and cached/bergama_archicad_site/qa_v2_02.json: (1) terrain-layer meshes of this pass that overlap in plan, counted by label pair with their area, so the 1,004 pairs of the v1.96 check can be told apart (expected: bank-zone covers and section ground strips over the 50 m tiles, by design); (2) house wall ends of this pass that meet no other wall (within 5 cm in plan, overlapping in height), with their place; (3) the GDL parameters of one placed tree of each library part, one house window and one door (research v2 Q3/Q16: the detail parameter names are NOT FOUND in the docs, so they are read from the model for the next version to set). Nothing in the model changes. v2.01 (Aras 23 Nov 20:50 UTC "i dont know that keeping the ram guard makes sense now after we found out that the problem was a unstable overclock"; v1.97 had stopped on the Desktop at 2.3 GB free before ground view N1-B): low free RAM no longer stops the run; it is logged once per step as a FLAG and the build goes on (Windows pages to disk: slower, not stopped). v2.00 (23 Nov read-only check of the v1.96 model: each section ground view and two historic bridges stood twice with the same fingerprint): before the build, AcBuild elements of the same kind with the same fingerprint (the same data) are reduced to one, the copies deleted; within a pass, the same data asked for twice gives one element, not two. The 1,004 overlapping terrain mesh pairs the check also found are not touched yet: their cause is not known. v1.99 (Aras 23 Nov "Also these could have happened on other places please do it"): after the build, every element without a BGA ID that is an exact twin of an element of this pass (same kind, 3D box within 5 cm on every side) is deleted as a leftover copy, for every element kind AcBuild makes (walls, slabs, meshes, roofs, objects, windows, doors, columns, beams, railings); elements without a twin are Aras's and stay; the log counts both. v1.98 (23 Nov read-only check of the v1.96 model: 4,958 Railing-tool balcony railings of earlier passes still stood next to the 1,650 new railing objects): the Railing tool never took the BGA Element ID, so AcBuild treated those railings as Aras's own and never removed them; a Railing without a BGA ID, about one railing high and centred within 0.6 m of a balcony of this pass, is now deleted as an old AcBuild balcony railing; every other Railing is left alone. v1.97 (Aras 23 Nov "Also like we need to optimize the model everywhere we can"): ground-cover pieces start from a 200 m grid (was 100 m); where the ground under a piece rises more than 1 m it is still quartered, to the same 100 / 50 / 25 m boxes as before, so only flat areas change: up to four pieces become one, with fewer seams and fewer meshes, the same top surface and the same body depth limit. v1.96 (Aras 23 Nov "And improve 3D viewing speed", "Yes without losing too much quality please"; the Desktop ran out of memory on ~1,650 Railing-tool balcony railings, which were also rebuilt on every pass): each balcony railing is one light GDL object "BGA Balcony Railing" (top and bottom rail, corner posts, bars every 0.12 m, 1.10 m high, same place and height), kept between passes like other objects; the Railing tool is used only if the object cannot be made. v1.95 (Aras 23 Nov "And improve 3D viewing speed", "Yes without losing too much quality please"): the ground tiles (50 m) carried a height every 1 m along every tile edge, far more than inside a tile; an edge now keeps a height only where the ground bends more than GROUND_EDGE_TOL_M (1 cm) away from a straight line, plus every cover crossing; both tiles of a shared edge test it in one fixed direction, so they keep the same points and no gap opens. v1.94 (Aras 23 Nov "try to those optimizations where you can like improve the file in overall"): the ground mesh under and around the covers (about 188,000 pinned heights in v1.88) keeps, along each straight outline edge, only the heights the shape needs: just outside an outline where the survey ground bends more than 2 cm, on the outline (the lowered ground under a piece) where it bends more than 1 cm, half the 2 cm gap under every piece, so the ground still never touches a cover; fewer ground triangles, smaller file, same look. v1.93 (Aras 23 Nov "The 3D was so lagging can you do some improvements on that please ?"; no quality loss, Aras 19 Nov): the ground-cover meshes (roads, pavements, parks, bank zones; about 5,200 pieces) carry only the heights that change their shape: along each outline edge a height point is kept only where the ground bends more than COVER_TOL_M (2 cm) away from a straight line (was every 2 m), and the inner height points (every 4 m) are left out where the whole piece lies within 2 cm of one plane; the drawn surface stays within 2 cm of the survey everywhere, with far fewer triangles in 3D. v1.92 (22 Nov laptop run: the save before the solid element operations ran past its 30 min wait, the build went on sending operations to a still-busy Archicad and it crashed, so nothing was saved): when a save runs past its wait, the build waits until Archicad answers again (up to 60 min) and saves once more; if the model is still not saved, no solid element operations this run (they stay in the pending list) and the run ends cleanly. v1.91 (Aras 22 Nov "I am pretty sure connection between walls are still bugged"): where a house leaves a shared side to its taller neighbour (v1.88), its two walls meeting that side ended in the air on its own reference line, short of the neighbour's wall (a gap of its outer skins, no junction); they now run on to the neighbour's wall reference line, so Archicad joins them as T-junctions; every house wall's foot and top are rounded to the millimetre first and its height is their difference (two separate roundings could leave a 1 mm step between sides or storeys). v1.90 (Aras 21 Nov 16:37 UTC card "Keep, lower to 1.0 m"): the survey boundary walls along the streets (SINIR_DUVAR, SINIR_HARAP_DUVAR) 1.0 m high (was 1.5 m), still ASSUMED. v1.89 (21 Nov, QA of the v1.88 Desktop run: only 25 of 63 lamps, Street Lamp 01 refused): a lamp is kept unless it stands inside a house (was: within its 1.2 m box of a wall or another object; the pole needs only 0.15 m) and the library lamp, when refused without a size, is tried again with the lamp size before AcBuild's own lamp; lamps left out are counted by reason; no tree whose crown reaches under or into a canopy (tree crowns cut through the canopy roofs). v1.88 (Aras 20 Nov 09:50-10:03, effort High: "fix roads and streets ... retry with a different approach", "just draw the landscape underneath it ... both are constructed in the same space it shouldnt", "same two object shouldn't be constructed in the same area", "you are mixing a lot of areas for what they are in the masterplan", "you are drawing road outlines as walls", "two walls in the same place", "slab extends to the outer face of the walls", "these lamps are wrong", canopy "walls are everywhere"): GROUND COVERS: every surface area (his masterplan surface layers in his drawing order, the survey roads + parks, the bank zones) is one set of non-overlapping pieces (the one he drew on top wins), each a Mesh body draped on the surveyed ground, and the ground mesh is lowered under every piece (no overlap, no solid element operation; needs shapely); his surface layers are no longer flat thin slabs; no kerb walls on the road edges; survey walls step with the slope (were metres-high flat-topped walls); a side shared by two houses gets one wall (the taller house's); the house ground slab ends at the inner wall face; canopy louvre slats fixed to the roof underside; survey lamp points within 3.2 m merged into one lamp, Archicad's Street Lamp turned to the nearest road; rosemary as Shrubs. v1.87 (Aras 19 Nov 09:21-09:22 "you need to have a slab and you should use it in core top and with core outside you need to turn those walls into house walls ... every wall should go from bottom link to top link core top's"): house walls are composite with their reference line on the core's outside face (the footprint pulled in by the outer skins, so the plaster face stays on the outline and the core lines meet at the corners), drawn so the body lies inside (side read from one test wall); floor slabs are composite with their reference plane on the core top; every storey wall runs from the core top of the slab below to the core top of the slab above. v1.86 (Aras 19 Nov 09:20 "run intersact command for every intersection": Archicad's Auto-Intersection is switched on at the start, so every junction is intersected as it is made; "their height changes ever so slightly so intersect command doest works"): every ground-floor wall of a house starts at the same height, the lowest ground under any of its sides (was each side at its own ground), so all walls of a storey share base and top and Archicad intersects them. v1.85 (Aras 19 Nov 09:16 "something is wrong with house drawings aswell please fix those aswell": wall layers showing at every corner, a line at every floor, a loose band at the roof): house walls on centre reference lines pulled in half a wall from the footprint, so they lie inside it and their lines meet at the corners (were outside-face lines); floor slabs and the flat roof inside the walls (were on the footprint, their edges on the facade); no cornice band. v1.84 (Aras 19 Nov 09:12-09:13 "respect the site_alan everywhere ... if something is half out half in dont draw it. It needs to be in the area +%90 so you can draw it with the cutted plane"): every element sent to Archicad is measured against site_alan: under 90 % inside (area, length or point) it is not made; 90 % or more, slabs / meshes are cut and walls / beams trimmed at the edge; houses the same on their footprint. v1.83 (Aras 19 Nov 09:00-09:06): ground heights only where the drawn ground would otherwise be more than +-0.30 m off the survey ("+-30 or even 40 should be fine"); road + park skins raised by the most the ground mesh can fold between its points, so the ground no longer covers them ("roads still dissappear under ground"), on the ground's own heights, in cells of 200 m that are quartered only where Archicad refuses one ("make the road parking surfaces larger"), cut to site_alan; one Railing per balcony ("balcony rails as one railing per balcony"; windows as they are); the real 3D library trees Tree Model Detailed / Pine Tree Model / Fronded Tree variable ("use rather high poly real 3d trees"); our node buildings + canopies built in the site file ("buildings and areas from our masterplan is not built": Bergama_buildings.pln never existed); houses off the modelled ground left out ("goes out of the topography"); road, park and pavement bodies, steep / thin / tiny road pieces handled ("with real thickness"). v1.82 (Aras 19 Nov 08:49 "can we do anything to make scripts run faster", "i dont want any quality loss with the changes"): the same model, faster: Archicad's Suspend Groups is on while old elements are deleted (v1.78 lost and rebuilt 3953 kept walls, 1666 windows and 26 doors when house-group members were deleted), and a "time by step" log line shows where the minutes go. (v1.80 / v1.81 withdrawn by Aras.) v1.79 (v1.78 run 19 Nov: the embedded GDL library call timed out after 15 min and all 803 trees were left out): Archicad's own library trees are now picked in every case (a plant word required, the species word at a word start, else the most detailed generic broadleaf / conifer / shrub of its group); the embedded AcBuild parts are not sent again when the project already holds them with the same scripts, and are used after a timed-out call if they arrived; a wall whose 3D box moved less than 0.60 m (Archicad trims walls at junctions with remade neighbours) is no longer locked as hand-edited (v1.78 locked 548 elements). v1.78 (Aras 19 Nov 07:22-07:25 "dont draw roads like this", "just draw them from outlines not like whole ground and just elevated where the part of the road is", "draw the roads properly", not slabs: they might collide with the houses' slabs): roads + parks are ONE Mesh-tool skin per outline (town blocks as holes) lying on the ground AS ARCHICAD BUILT IT (were 50 m cells lifted by the tile error, up to 0.6 m); no slab, no SEO. (07:20 "many of the houses are not closed off", 07:26 "Many of those houses misses walls and etc."; v1.77 kept 1551 roofs but only 588 were in the model): every element of the pass is looked up in the model after the old ones are deleted and again at the end; any that vanished is made again and FLAGged by type. (07:29 "Check the script for such gaps aswell"): house outlines tidied before anything is built: an edge under 0.30 m used to be skipped (a gap in the walls), now it is merged into its neighbours; spikes removed; a v1.76 corner move that would make the outline cross itself (Archicad then refused its roof / slabs) is not made. (07:20 07:21 "tree's are really bad as assets find something more detailed more proper looking"): walls (kerbs, survey walls, bank walls, retaining walls) are no longer broken where the ground under them changes height (LINE_RISE_M off): one wall per straight run; trees: the most detailed tree / shrub of Archicad's own loaded library matching each species (by name) is placed instead of AcBuild's simple GDL tree, which stays only where no library part matches. v1.77 (Aras 19 Nov 06:43 "join them aswell as long as lines are connected archicad does to connection itself"): T-junctions too: a kerb / survey wall line end that stops within SNAP_M of another such line (not at its end) is moved onto that line, so the reference lines touch and Archicad makes the joint. v1.76 (Aras 19 Nov 05:52 "make sure that script doesnt constructs items on top of each other", "items shouldn't collide", "their construction line (like the blue line) must always connect each other"): no collisions: overlapping survey houses no longer kept as they are (the smaller one's corners that lie inside its neighbour are moved onto the neighbour's wall line), no tree / furniture / person / car inside a house or on top of another object (trunks at least TREE_GAP_M apart, other objects by their own size), no kerb / survey wall / retaining wall piece through a house, no kerb on a bank wall line; reference lines meet: retaining walls mitred at their corners (were offset edge by edge, leaving gaps), kerb / survey wall ends within SNAP_M of another end joined to one point. v1.75 (Aras 18 Nov 13:23 UTC "also check other drawing rules such as these and make them correctly drawn", "like everything"): each historic bridge (Ulucami, Üç Kemer) is ONE element, a GDL object made for it with its real arch curves, piers and deck in one stone body (was up to 36 stacked slabs per arch + pier walls; the old way stays only as a fallback); road / park ground skins in 50 m cells, the ground tile size (were 20 m cells: about 6x fewer meshes). v1.74 (Aras 18 Nov 13:22 UTC, decision card: "Yes, wall down to ground"): on a slope the ground-floor wall of each house side now runs down to 5 cm under the surveyed ground at that side (its ends and middle), covering the grey raft edge, so the facade reads as one composite wall down to the ground; its door and windows keep their heights above the floor. v1.73 (Aras 18 Nov 13:20 UTC "multiple stacks on the walls should be it's own composite instead of different walls stacked", "these goes for anything that is composite"): the canopy stone plinth and timber deck, two slabs stacked on the same outline, are now ONE composite slab (Bergama floor - canopy: timber deck on stone plinth); walls, floors and roofs were composites already. v1.72 (Aras 18 Nov 13:17 UTC "this applies per story like if a object is divided into two different stories they should be divided"): one element per straight run WITHIN each storey: house walls one per side per storey again (v1.70 had them raft to eaves), frame columns one per storey again (v1.71 had them raft to roof), node building walls (long sides with their glass bays as windows, and ends) now one per side per storey (were full height). v1.71 (Aras 18 Nov 13:15 UTC "not just for that house for every single drawing"): the one-wall-per-straight-run rule also for the bank walls on his istinaat lines and the retaining walls along plinths / terraces / masterplan slabs, node building long walls (one wall per side, the glass bays as windows in it), house frame beams (one beam per grid line, not per span) and columns (one per grid point, raft to roof, not per storey); 13:16 "these apply for slabs, walls, beams and etc.": their 4 m test pieces next to each other become ONE wall (new wall only where its top would change by more than LINE_RISE_M or where a piece is not needed). v1.70 (Aras 18 Nov 13:12 UTC "draw a single wall or slab where you can", "there are a million walls"): one wall per straight side: house footprints drop survey points that lie within STRAIGHT_TOL_M of the line between their neighbours (the same footprint for walls, slabs, raft and roof), and each side is ONE wall from the raft to the eaves (was one wall per storey; windows stay per storey); survey kerbs / walls: straight runs merged the same way, no 6 m chopping (LINE_SEG_M off), new piece only where the ground rises more than 0.30 m along it (was 0.10 m). v1.69 (Aras 18 Nov 13:09-13:11 UTC "roads and bridges are fucked", "look at these roads"): roads were flat black (Archicad surface "Pavement - Asphalt Dark") with the ground poking through: roads now take the plain road grey 8C8B87 (no texture), and each road / park skin sits over the 50 m ground tile by that tile's own measured deviation from the survey (+3 cm), so the tile no longer shows through; bridges: arch soffits in 36 steps (was 12), and his bridge outline over a historic bridge (Ulucami, Üç Kemer) is no longer built as a second flat deck on top of the arches (it floated at the highest bank height). v1.68 (Aras 18 Nov 13:07 UTC "please add all the objects back trees and all and dont do the trees with slabs"): GDL objects on again (GDL_OBJECTS True: trees per species, street furniture, people, cars, made in the embedded library as in v1.62); trees are ONLY GDL objects: a tree whose object could not be made is left out and flagged, never built as trunk + crown slabs, and the old slab trees are deleted as leftovers. v1.67 (Aras 18 Nov 13:02 UTC "you'll also add everything that has been removed troughout the process right ?"): the per-section ground meshes are back (SECTION_BANDS True): the v1.65 test showed they were not why 3D hung (the solid links were), so the sections get their seamless ground again; their kerb / wall cuts follow the v1.66 rule (only near the section line). v1.66 (Aras 18 Nov 12:57-12:58 UTC: with all ~29,400 solid links removed the whole-site 3D opens after reopening; "seo off was the way to go", "keep that in mind troughout the next edits", "it is as little as possible"): solid element operations ONLY where they show: within SEO_CORR_M of a section line (the cut faces), the river bed bodies opening the ground into the channel, the river water cut by its bed, and the section slots; all other links (buried feet, plinths, kerbs, trunks, pavements away from the cuts: hidden inside the ground in 3D) are not made, and AcBuild's own older ones are removed. v1.65 (Aras 18 Nov 12:34 UTC: 3D stuck "Processing Elements" even with every BGA layer hidden; 12:35 "we can redraw it if needed"): TEST: no per-section ground meshes (SECTION_BANDS False): the 13 meshes (120,923 heights) and their cuts are deleted by this run, the v1.56 ground strips + slots come back on the section lines, section views go back to "BGA - all". v1.64: solid links that AcBuild made earlier but no longer wants (e.g. the v1.44-v1.60 kerb / wall cuts in the 50 m tiles, which v1.61 moved to the section grounds) are removed from the model; before, they stayed and kept the reopened 3D heavy. v1.63 (Aras 18 Nov 12:11 UTC "no dont bake objects the file is heavy enough"): no GDL objects at all (GDL_OBJECTS False): trees stay trunk + crown slabs as built so far, no street furniture, people or cars. v1.62 (Aras 18 Nov 11:50 UTC "what about the objects ?"): on 18 Nov every GDL object was refused ("The library part 'Bergama Olive.gsm' is not editable ... only a library part loaded from a writable file can be modified"), so trees stayed slab trees and there was no street furniture, people or cars; the objects are now made inside the project's embedded library with their scripts in one step (Tapir CreateLibraryParts, named "BGA <kind>"), the old folder route only as a fallback. v1.61 (Aras 18 Nov 11:42 UTC "i want to inspect whole 3d model"; full 3D ran 30+ min on one core): the ~16,000 survey kerb / wall pieces cut only the section views' own ground meshes (hidden in 3D), no longer the 50 m tiles that 3D shows, so most of the ~50,000 solid element operations drop out of 3D while the sections stay clean (no edge lines, Aras 11:43); in 3D their buried foot is inside the ground and unseen. v1.60 (Aras 18 Nov 10:27 UTC: only .bat files stay in Downloads\Bergama, everything else moves to Downloads\Bergama\Project Files): the root is "Project Files" when it holds scripts\, else Downloads\Bergama as before. v1.59 (Aras 18 Nov 09:56-09:58 UTC, N1-A PDF "this is fucked", "shaded is drawn semi properly", "thise vertical lines is still there"): uncut fill back to material colour, shaded (with the uniform pen colour fill Archicad drew the uncut walls and hills as white with no outlines, so only the window frames showed); the section views' own layer combination ("BGA - section <name>", tiles hidden) and override combination are now set on every run on every section view already in the View Map (v1.58 set them only on views it made, so a file with views from an earlier run kept the tiles and their seams). v1.58 (Aras 18 Nov 08:44 UTC "sections do draw each line between ground cells why is that ? Cant we fix that ? While keeping the file workable"): every 50 m ground tile is its own mesh and Archicad draws each mesh's outline, so the sections showed the tile grid on the ground behind the cut. Each of the 12 site sections now gets one ground mesh of its own over everything it sees (the cut line to 200 m behind, with the tiles' own heights inside it, so the same accuracy), on a hidden layer "BGA Ground view <name>"; its view uses the layer combination "BGA - section <name>" (tiles and the other views' ground hidden), so the section sees one seamless ground; plan, 3D and the other views keep the tiles; the v1.56 strips + slots are only made where a view mesh could not be. v1.57 (Aras 18 Nov 08:17 UTC: his Model Appearance screenshot; "use tree objects as 3D object according to the tree type"; "can we decrease both drawing time"; "i dont want some detail to get lost"): section uncut fill = uniform pen colour fill, non-shaded, window background, uncut pen 81 (also ends Illustrator's "unknown shading type"); fade distant = uncut fill on, uniform pen 102, window background; willow and tamarisk get their own 3D tree objects (were the general deciduous one); on a PC with more than 64 GB RAM the solid element operations go 200 per call (was 50) and the Element ID / layer calls 2000 per call; progress lines in the labelling step; nothing is left out. v1.56 (Aras 18 Nov 07:48 UTC "please make tree's out of objects also there are a lot of section drawing errors ... unkown shading type error when opening with illustrator"): the GDL objects are made, then the libraries reloaded and their scripts set again (18 Nov: "No loaded library part 'Bergama Olive.gsm'"); a section record from another project (0 sections listed and 0 AcBuild elements found in the open file) is dropped, so the sections and their View Map items are made fresh (18 Nov: 25 old sections looked for, View Map "Failed to clone"); the section settings stay Aras's own (16 Nov 11:22 screenshot: uncut Surface - Color Fill, Shaded); section stray lines (his N1-A PDF, 18 Nov): one ground strip per section line in a slot cut out of the 50 m tiles by a hidden slab (no tile seams), kerb / wall pieces short enough on slopes to rise at most 0.10 m (no tall posts), road / park cells and pavements as skins on the ground (no flat-bottomed boxes), cut survey houses drawn as one grey fill with pen 81 by the override combination "Bergama - sections" set on the section views. v1.55 (Aras 18 Nov 06:00 UTC "is there any patch have been missed ... optimizing the file for lower resource usage"): Element IDs are written with Tapir's own command first (the Archicad API call wants a typed value and refused all 23,052 on 17 Nov; it is now only the fallback, with its typed value), a GDL object that is not made logs Archicad's reason, the house frame line no longer calls every context house "masonry". v1.54 (Aras 17 Nov 13:55 UTC "yes please"): survey houses back in the site file (part "houses"), parts left to the other file logged as such (not "kept"), Element ID stamping falls back to Tapir and logs its error, the bridge loop no longer shadows bed(), the ground grid thinned to the heights the 8 m grid cannot give within the tile tolerance. v1.53 (Aras 17 Nov 12:33 UTC "auto save of the file"): the project is saved at the end of every run. v1.52 (Aras 17 Nov 12:16 UTC "make this bergama_Site file as the site file only, our canopies and our own buildings should be linked to it that way it would be easier to edit the buildings by hand and take drawings out of these"): two Archicad files from one script, chosen by the open project's name: Bergama_site.pln = the site (terrain, river, streets, survey houses, trees, furniture, his masterplan landscape pieces: terraces, seating tiers, bridges, bank walls) WITHOUT our canopies and node buildings; Bergama_buildings.pln (any name with "building") = ONLY our canopies + node buildings, same origin (taken from the site file's record), to be hotlinked into the site file at 0,0 (File > External Content > Place Hotlink, once by hand); each file has its own cache folder; solid element operations only between elements of the same file (the canopy plinths no longer cut the site ground); v1.51 (17 Nov 15:07-15:11 local: the v1.50 run built every element, then Archicad crashed in the solid element operations with 4.4 GB RAM free, before anything was labelled): the elements are labelled (BGA Element IDs), put on their layers and grouped FIRST, the project is saved (Tapir SaveProject; Aras gives the project a file name once), and only then the solid element operations are made, 50 per call with the RAM guard and a progress line each; the ones not made are kept in cached/bergama_archicad_site/seo_pending.json and the next run (in the reopened saved pln) makes them; the cut elements are labelled again and the project saved again at the end; v1.50 (17 Nov 14:56 local: Archicad 30 crashed at walls 7951-8100 while its 3D window was regenerating, and v1.49 then retried every chunk for minutes): when Archicad stops answering (connection refused / reset) the run stops at once with an ERROR (the launcher's red window), naming the step; v1.49 (option A for the Desktop's 24 GB, the v1.48 run stopped by its RAM guard at 14:44 with Archicad at 12 GB): CONTEXT_FRAMES = False: the existing survey houses get no RC columns / beams (inside their walls, invisible at site scale; about half of all elements); every house keeps its raft; the frames made so far are deleted as no longer wanted; a RAM-guard stop now stamps the elements made so far with their BGA Element ID before it ends (v1.48 stamped only at the end of a full pass, so its stopped run left its elements unlabelled: start that project fresh); v1.48 (Aras 17 Nov 11:10 UTC: Claude app, Rhino and Archicad crashed on the Desktop, 24 GB RAM; "something wrong with MCP connection"): run it standalone with only Archicad open (run_acbuild.bat: plain Python, survey from cached/bergama_survey/survey.json, no Rhino, no MCP); Tapir chunks 150 elements (was 400) and ground tiles 15 per call (was 40); a RAM guard before every Tapir call: under MIN_FREE_GB = 3 GB free it waits 120 s, then stops cleanly (FLAG; the next run resumes through the BGA IDs); logs/bergama_acbuild_progress.txt gets one line per call as it happens (the main log is only written at the end), so a crash leaves its last step on disk; v1.47 (Aras 17 Nov 09:58-10:37 UTC "just use latest masterplan version", "base of off that masterplan only": his laptop-Desktop masterplan.svg of 15 Nov 19:06, md5 9a344ff22724396ed846b31b9d2d633e, placed as Data/assets/plan/masterplan.svg -> MasterplanAI -> master.svg -> MasterplanBase -> masterplan.json, the only masterplan AcBuild reads): its layers checked against AcBuild: araba_yolu and doldrurma (were not built) now built on "BGA ? unsure" layers; his planting willows, olives and tamarisks (were skipped: no size) built as GDL trees (olive 5 m sourced; willow 10 m, tamarisk 4 m ASSUMED, FLAG); "normal" unsure layer dropped (not in the file); v1.46 (Aras 17 Nov 09:54 UTC "do the things that you need to do": research pack v3 R1-R10 folded in, Data/research_pack_v3_combined_2026-11-16.md): beams 0.25 x 0.54 m (TBDY 7.4.1.1, 3 x slab; was 0.40), columns 0.30 m confirmed (TBDY 7.3.1.1); pitched roofs 18.3 deg = 33 % (Bergama KAIP 6.5.16; was 30 deg); traditional houses get KAIP windows 0.80 x 1.60 m and doors 1.20 x 2.20 m; balcony rail 1.10 m (Planli Alanlar Md. 38(1)); pavement build-up 0.27 m (SECONDARY); ancient walls 4.0 m (press); plane 30 m, stone pine 15 m (vdberk lower end); kerb, garden wall, olive height, seating 12 x 30 now sourced; everything NOT FOUND stays ASSUMED; v1.45 (Aras 16 Nov 11:46-12:06 UTC): ONLY the site_alan square is built (MapBase frame; "i dont want anything that would be a burden to the pc and process out of the site_alan"): ground tiles clipped to it, buildings, streets, river, trees and objects inside it, everything AcBuild made outside it deleted; the ground per tile as coarse as the survey allows within +-2 % of the tile's height range (never under 0.05 m) on a 8 / 4 / 2 / 1 m grid of survey-TIN heights, every deviation logged ("keep it at the sweet spot"); pavements are Mesh-tool skins sewn to the road meshes at the kerb ("multiple meshes sewed together"); bank zones: grass skins between the survey top- and toe-of-slope lines (SEV_UST / SEV_ALT), cutting the ground; every tree (his planting, the survey trees, every survey olive symbol) a simplified real-life GDL object per species ("not cartoon ... sweet spot"); street furniture in 3D from the survey symbols (lamps, fountains, bus stops, statues, monuments, flag poles, minarets) as GDL objects; people and cars from his assets layer (shapes grouped and sorted by size); every element on a BGA layer of its part, layer combinations, one group per house, a per-part rebuild switch (cached/bergama_archicad_site/parts.txt); survey stairs on "BGA Stairs * existing (survey)"; sizes of objects ASSUMED; v1.44 (Aras 16 Nov 11:37-11:40 "columns should be travelling two floors they should be linked by the upper floor", "single beam travelling all across the grid"): house walls and frame columns one per storey (floor slab top to the next slab / roof), beams one per span between columns; windows, doors and balconies on their own storey's wall; (Aras 16 Nov 11:37 "proper ways of drawing ... to give the calculations right in the end and make it more properly displayed"): every Bergama building material gets an Archicad connection priority (MAT_PRIO: structure over masonry over screed over insulation over finishes; ground and water lowest), so junctions of walls, slabs, columns, beams and the ground clean up by material; (Aras 16 Nov 11:36 "why not meshes for bodies like water and such ?"): the river water is one Mesh body per river outline (was 5 m slab cells stepping down the river): its top = the season water level down the river, points every WATER_CELL_M, its body down to under the bed; the river bed body cuts it, so water stands only above the bed; (Aras 16 Nov 11:35 "you do have the real floor count information of somekind"): the survey's own floor-count labels (YAZI_KAT_ADEDI, 11,261 texts) give each footprint they stand in its floor count (was: the MapBase count, 7,131 houses without one); (Aras 11:25 "the stairs should follow the real survey data where possible") the survey building stairs (BINA_MERDIVEN, 17,392 step-edge lines with their heights) are grouped into flights and built tread by tread (Slab tool, top = the surveyed step height, down to the ground, cutting it); (Aras 16 Nov 11:33 "nothing should sink into ground if something is in ground it MUST use solid element operations"): every element that reaches below the surveyed ground cuts it: house walls whose foot is under the ground (uphill sides), survey kerbs and walls (dropped in v1.32 for speed; the tile index makes them cheap now), boulders and reed beds (ground and river bed), tree trunks; the log counts every kind; (Aras 16 Nov 11:32 "also roads should be the same way so does the pavement around it"): road and park cells are Mesh-tool bodies whose top is the surveyed ground (points every TOWN_PT_M, town blocks as holes), 0.30 m under its lowest point, and they cut the ground (SEO; was a slab shaped by the terrain); pavements from the survey kerb lines: a Slab-tool strip from each kerb piece to the nearest building face on its side (at most PAV_MAX_M, ASSUMED), top = kerb top, PAV_T_M build-up (ASSUMED); it cuts the ground and the road under it; (Aras 16 Nov 11:31 "3D should look like a real life site"): the materials outside his legend take the textured Archicad surfaces of the project (REAL_SURF: stucco, brick, concrete, clay roof tiles, asphalt, grass, earth, gravel, foliage, bark, water); his legend materials keep his colours; tree crowns foliage, trunks bark, water cells water; (Aras 16 Nov 11:31 "river sohuld be a proper river bed drawing with solid element operations rather than setting a slab and calling it a day"): a river bed body per river outline (Mesh tool, gravel): its top = the channel: the thalweg of each river section line (Sections cache z_th, linear between them down the river) at the centreline (Data/selinos_centreline.json), rising to the surveyed ground at his outline (parabolic cross-section ASSUMED), never above the surveyed ground; it cuts every ground tile upwards (SEO), so the ground opens into a real channel; plinths and terraces cut it, it cuts the water; the water cells reach down to the bed; (Aras 16 Nov 11:21 "sections dont cut trough the meshes"; found 11:31: v1.41 gave every Bergama material the cut fill "Solid + Dot & Dashed" in pen 1 (the first fill named "solid"), so cuts drew a pattern, not a hatch): each material gets the Archicad fill of what it is (ground Earth, concrete Structural Concrete, brick Common Brick, stone Rubble / Cut Stone, insulation Rigid Insulation, timber Wood ...), others the solid Foreground fill; (Aras 11:30 "give me a override that show those walls as a single solid hatch") the graphic override rule "Bergama - walls as one solid poche" (walls: cut fill Foreground solid, pen 21, no skin separators) in the combination "Bergama - solid walls"; (Aras 16 Nov 11:30 UTC "try to use generic composites like slum houses should have a one slum house composite, planned low rise need a composite that is for itself ... do good educated guesses accordingly what is highly used in turkey"): Archicad composites per MapBase fabric (regular = planned low-rise RC frame + hollow brick + EPS, block = apartment RC frame + AAC + EPS, selfbuilt = gecekondu pumice block, traditional = rubble stone + lime plaster (masonry: no RC frame), large = public RC frame + AAC + EPS), RC floor, clay-tile pitched roof and gravel flat roof composites; rafts, columns and beams in reinforced concrete; every layer thickness ASSUMED (educated guess of common Turkish practice, no source); the survey trees (SEMBOL_TEK_AGAC single trees, SEMBOL_YPDKN_AGAC / SEMBOL_YAP_DOKMEYEN evergreens) built as trunk + crown (heights ASSUMED); Aras 16 Nov 11:18 UTC "those rafts should connect columns and that columns should be connected by beams and etc.", "so the structures would be realistic"): every framed survey house (not the sacred / monument / Kizil Avlu masonry) gets a reinforced-concrete frame: Column-tool columns standing on its raft at every footprint corner, where a FRAME_SP_M grid line meets the footprint and at the grid crossings inside, full house height; Beam-tool beams under every floor slab and the roof along every footprint edge and every grid line inside (sizes and grid ASSUMED); centred in the wall thickness (ASSUMED: the walls lie inside the footprint line); Aras 16 Nov 11:16 UTC "the houses should sit on the ground they need to use solid element operations for cleaner looks and their foundation should be simplified raft foundation", "so the structures would be realistic"): every survey house stands on a raft (mat) foundation: one Slab-tool slab on its footprint, top = ground floor (survey ground at the centroid), bottom RAFT_T_M (ASSUMED) under the lowest survey ground under the footprint, so no side floats; it cuts the ground upwards (SEO, no ground inside the house); the walls start on the raft (were 1 m into the ground), the raft is the ground-floor slab; Aras 16 Nov 11:12 UTC "i dont want any gaps in the topography": ground tiles with no survey point of their own are filled from the survey triangulation; Aras 16 Nov 11:05-11:08 UTC "is it foolproof ?", "i do switch a lot between pc's", "i dont want to run two apps at the same time", "i'll be doing hand edits it needs to be safe from them"): the record of what AcBuild made lives in the pln itself: every element it makes carries Element ID "BGA-<fingerprint>@<3D box in cm>", so any PC, copy or recovery file finds its elements without the local cache; only elements with a BGA- Element ID are ever deleted (elements Aras draws are never touched; v1.34-v1.43 deleted every unrecorded wall, slab, roof ...); an element whose 3D box moved more than EDIT_TOL_M since AcBuild made it is hand-edited: locked, never deleted or replaced, and nothing new of its kind is made on it (FLAG count); the first v1.44 pass stamps the elements this PC's cache records; the survey is read from Rhino once and cached (cached/bergama_survey/survey.json with the ground triangles), so without Rhino AcBuild runs as plain Python with only Archicad open (python bergama_acbuild_v1_44.py); a Rhino model not in metres or a survey extent over 50 km stops the run; v1.43 (Aras 16 Nov 10:57 UTC "every slab should be drawn with slab tool, every column with column tool every roof is with roof tool"): the node buildings' folded roof facets are single-plane Roof-tool roofs (were meshes; a mesh only where Archicad refuses the roof, FLAG); a house roof Archicad refuses as a hipped roof is tried again as a single-plane Roof-tool roof before the slab fallback; bridge piers (Ulucami, Uc Kemer, new bridges) are Wall-tool piers (were stacked slabs), still cutting the ground; v1.42 (coordinator for Aras 16 Nov 09:50 UTC "build the whole site through Tapir at real 1:1", new empty Archicad file): WHOLE_SITE: everything inside the survey contour extent is built (was: the cut rectangles only): the ground as one gap-free surface of SITE_TILE_M tiles (shared edge points, control point every 10 m where no survey height) wherever the survey has heights, every survey building, the whole town ground, kerbs and walls; windows stay on the walls a section sees; ground tiles made in batches; solid element operations found through a tile index; its own cache folder (bergama_archicad_site, origin taken from bergama_archicad) and log; the project is neither saved nor published (Aras saves); v1.41 (Aras 15 Nov 23:50 section window: houses float, ground only a thin line): the ground is modelled again the full BACK_M behind each cut (GROUND_BEHIND_M = BACK_M) so the houses behind stand on their hillside; uncut surfaces filled in their own material colour, shaded (the hills read as a tone, not white blobs); the Bergama building materials get an explicit cut fill (solid fill, pen CUT_FILL_PEN, ASSUMED) as they were made with a cut surface only, so cut ground and cut walls drew no fill; v1.40 (runner 15 Nov 23:31: v1.38 said "model unchanged" and skipped its changes; its PDFs held almost nothing): the script version is part of the model fingerprint (a new version always goes through the element-by-element check, which keeps unchanged elements), and the distant area is off (everything in it is drawn with one fill and one pen); v1.39 (Aras 15 Nov 23:30 "why the outlines of the walls are not there for most"): uncut and distant elements draw with their own pens (the one uniform pen 81 / 102 is off), so every wall and roof edge keeps its own visible contour; v1.38 (Aras 15 Nov 23:13 "it is foreground/background issue ig. like get rid of those areas."): the ground is built only where a cut sees it cut (a strip from SIDE_M in front to GROUND_BEHIND_M behind each cut line) and under the river, in GROUND_TILE_M = 25 m tiles that still share their edge points; the hills behind a cut are no longer modelled, so nothing hides the buildings behind; his own section settings of 20:01 are back (uniform window-background fill, fade distant elements); v1.37 (Aras 15 Nov 23:10 "why these drawings look like this with white blobs over"): the ground behind a cut was filled with the window background (white) and, being a smooth mesh, had no outline, so the hills behind showed as white shapes hiding the houses; now uncut surfaces are filled with their own material colour, shaded, the distant-area option (always white in Archicad) is off, and the ground tiles carry the Sections ground colour; v1.36 (runner 15 Nov 23:05: partway through the v1.34 pass Archicad refused every new element, -2130312311 "Failed to create new ...", and every solid element operation): before each chunk the floor plan (story 0) is made the active window again, and a chunk Archicad refuses whole is tried once more after that; v1.35 (Aras 15 Nov 22:46 "get them as pdf", "dwg looks awful"): the Organizer / setup steps in the log say PDF; v1.34 (Aras 15 Nov 22:33 "archicad redraws take a lot of time can we have something faster ... not redrawing everything every single time"): every model element is kept by the hash of what it is made from; a pass makes only the elements whose data changed, deletes only the ones no longer wanted, makes solid element operations only for new elements and publishes only the sections whose line moved or that see a changed element; v1.33 (Aras 15 Nov 22:10 "move the node 6 to the building that is across the river": N6 now stands on an existing survey building): a survey building whose footprint lies more than COL_HALL_F inside a node building foot is left out (the node building takes its place); v1.32 (runner: the v1.31 publish stalled on its first section, Archicad 13 -> 21 GB in 10 min: one 2 km mesh with every survey point as the target of ~6000 solid element operations): the ground is the same one surface cut into GROUND_TILE_M tiles that share their edge points exactly (no gaps, one block to the eye), only tiles that touch a cut rectangle or the river; survey heights one per GROUND_SPOT_M m cell, control points every GROUND_GRID_M m where none; each solid element operation links an element only to the tile(s) it stands in; kerbs and survey walls no longer cut the ground (thousands of tiny operations)   # v1.31: v1.31 (Aras 15 Nov 21:19-21:20 "as you havent done solid element operations in archicad many of the drawings look weird. and ground has gaps in between", "it all should be one large block", "with many control points on it"): the ground is ONE terrain mesh over the whole survey box (every cut rectangle and the river; was 13 meshes per cut + 3 river meshes with gaps between them), its points every survey contour + spot height (one per 2 m cell) + a control point every GROUND_GRID_M m where the survey has none, a solid block GROUND_BASE_M m under its lowest point (was down to -5 m above sea level); solid element operations on that one ground for everything that stands in it: plinths, terraces, masterplan slabs, retaining walls (subtraction, as before), every building's ground slab (subtraction with upward extrusion: no ground inside a house), the Kızıl Avlu walls, bridge arches and piers, bank walls, kerbs and walls (subtraction), water (cut by the ground), road and park cells (shaped by the ground)   # v1.30: v1.30 (Aras 15 Nov 20:41 "what about roads ?", "and etc."): the existing town ground in the cut rectangles (where the terrain is): the MapBase street region (one region, the town blocks cut out as slab holes) and the parks as slabs in 20 m cells whose top the terrain shapes (SEO intersection), so they lie on the survey ground; survey kerbs, walls and ancient walls as Walls on the ground (heights ASSUMED); what the base map holds but is not built listed in the log   # v1.29: v1.29 (Aras 15 Nov 20:14-20:15 "build the selinos with everything in archicad like river bed, reed bed and everything like not a single beat skipped", "bridges and etc."): river bed mesh over his river outline (survey), water at each section line's own season level interpolated along the river (5 m cells, the ground cuts them by SEO), reed masses on his yosun rings (1.5 m ASSUMED), his stones and rocks of 1 m2 and more as boulders, his PLANTING_v13_1 trees as trunk Column + three crown slabs (heights ASSUMED), bank walls on his istinaat lines, his kopruler bridge outlines (picture-clip shapes too) as decks, the Ulucami and Üç Kemer bridges on their survey footprints with arches and piers (arch count / pier sizes ASSUMED, logged), piers under new bridges longer than 25 m; a layer audit of master.svg in the log; bridges / reeds / boulders no longer cut the terrain or get retaining walls; (runner, v1.18 rerun: 0 sections listed while 15 recorded, so all were remade and the Organizer step was undone) the floor plan is made the current window before the sections are listed, and 0 listed while some are recorded is treated as a listing failure (FLAG, recorded ones kept)   # v1.28: v1.28 (Aras 15 Nov 20:10 "also please solve these kinda collisions", his view: a hipped house inside the Kızıl Avlu walls): survey buildings overlapping the Kızıl Avlu hall by more than 10%% are left out (the hall stays), a footprint more than 50%% inside a bigger one is a duplicate and left out; counts logged; (Aras 20:10 "give both slabs and roofs to every building ... 3 storey ... 3 slabs") a floor slab per storey in every building (was: only the buildings a line cuts), flat roofs as 2 deg single-plane Roof-tool roofs   # v1.27 (Aras 15 Nov 20:07 "use solid element operations where necceseary"): every canopy plinth, node plinth and masterplan slab (terraces included) cuts the terrain mesh of each cut it stands in (Tapir CreateSolidElementLinks, subtraction); (Aras 20:08 "use retaining walls where neccesery") stone retaining walls along slab edges where the ground outside differs from the slab top by more than 0.60 m (ASSUMED)   # v1.26 (Aras 15 Nov 20:06 "dont do these kinda extereme angles keep it minimal like the second image"): fold rise 0.6 m (was 1.8 m), and no facet edge steeper than 8 deg (low corners on falling ground are raised to it, so every clearance still holds)   # v1.25 (Aras 15 Nov 20:05 "draw their roofs with roof tool columns with column tool, beams with beam tool etc. so intersections would look proper"): canopy facets = single-plane Roofs (pivot line through the low corner, slope of the facet plane), louvres = timber Beams (horizontal slats every 0.6 m under each facet); columns (Column tool), arms (Beam tool), plinths/decks/planters (Slab tool), glazed rooms (Wall + Window) as before; a facet Archicad refuses as a roof falls back to a mesh (FLAG)   # v1.24 (Aras 15 Nov 20:01 "use these settings for archicad sections"): his Section Selection Settings on every section (cut elements in their pens, uncut = uniform pen colour fill + line pen 81, fade distant elements on with line pen 102, no boundary contours); publishes once for the new settings   # v1.23 (Aras 15 Nov 20:00 "archicad is missing the ground in sections ... i want real 1:1 drawing in archicad"): the survey terrain mesh is built again, one per cut rectangle (10 m in front of the line to 200 m behind, survey contours + spot heights, solid with skirt), so every Archicad section has a cut ground and the hillside under its houses   # v1.22 (Aras 15 Nov 19:48 UTC "optimize the scripts to be much much faster", item 3 "run the Rhino-only slides alongside the Archicad steps"): run from the chain (__main__), the Rhino part (survey read, TIN) runs as before, then the Archicad part (pure Python + Tapir, no Rhino call) goes on in a background thread so Rhino is free for the next page script; the log reads "RUNNING ..." until it ends (same lines as before); a file cached/_chain/acbuild_foreground.txt keeps the old one-piece run; the Grasshopper button runs in one piece as before; v1.21 (v1.18 run 15 Nov 19:23 UTC: no bridge and no stepped terrace was built: his bridge outlines (kopruler path) and stepped-terrace outlines (begum su merdiven outline) are drawn without fill): those layers are built from their closed outlines (the outermost rings only, MasterplanBase v1.9 keeps the paint-less bridge rings); a bridge as a 0.50 m stone deck whose top is the highest survey ground under its outline (the banks it spans, not the river bed); BUILD_SIG geometry-9; v1.20   # v1.20 (Aras 15 Nov 19:18: the publisher set may be PDF): published PDFs count as the kept output   # v1.19 (Aras 15 Nov 19:09-19:11 UTC "1.2meter depth is fine however think it like 15x30 steps merge into single seating", "circulation wise"): his stepped terraces (begum su merdiven, the light stone picture) built as seating tiers stepping down to the river: each tier 1.20 m deep = four 30 cm treads merged, 0.48 m high = four 12 cm risers (Aras 19:13 "make the height of the steps is 12"; the 12 x 30 stair pitch kept), tiers cut from his own outline across the direction to the nearest point of his river outline (su_outline), lowest tier on the lowest survey ground of the piece, none above the highest; the stair aisles themselves are not placed (no aisle drawn in his masterplan); materials by each layer's own picture colour: teras = wood deck ("decks are wooden"), iskele kenari = grey paving CECFCE; v1.18 (Aras 15 Nov 18:12-18:17 UTC texture legend: "this stands for regular bridges", "historic buildings are in a shade of red", "our buildings are white blues are glasses", "these are decksn", "this is shading", "these are reed beds", "this is stepped terrace that goes into the river"): Archicad surfaces + building materials named "Bergama ..." in his legend colours (median colours sampled from his legend pictures), given to the elements as they are made: bridges (kopruler pieces) stone, stepped terraces (teras, begum su merdiven) light stone, decks (iskele kenari, canopy decks, planters, louvres) timber, reed beds (su bitkii) reed green, canopy facets white, Y columns grey frame, our buildings (node buildings, glazed rooms) white, historic buildings (sacred / monument houses, Kızıl Avlu) red; every glass surface of the project in his glass blue; an element Tapir refuses with a material is made again without it (FLAG); BUILD_SIG geometry-7 (one rebuild); v1.17 (Aras 15 Nov 17:24 UTC "any drawing that has building in it you should use the drawing that comes out of archicad"): the node building FLOOR PLANS from Archicad too: one Archicad story per floor of each node building (Tapir SetStories; story 0 kept, story level lines off in the sections), so each floor plan cuts its own building; a View Map view <N>-P<floor> per story, published with the sections (one-time Organizer step again), two registration squares (1.0 m and 0.5 m) 6 m off opposite corners of the building on every floor; BUILD_SIG geometry-6 (one rebuild); v1.16 (Aras 15 Nov 17:32 UTC "make sure archicad drawing is %100 pinpoint accurate to our masterplan"): his master.svg pieces inside the working area built in Archicad on his own points (slabs per layer, on the survey ground), canopies held within 0.05 m of his kanopi line, and an accuracy check after every build: each piece read back from Archicad and compared with master.svg, any point more than 5 cm off FLAGged, report in mp_accuracy.json; BUILD_SIG geometry-5 (one rebuild); v1.15 (Aras 15 Nov 17:27 UTC "draw these buildings in archicad and insert that drawing into all sections ... archicad is hella lot more detailed"): the context houses get more detail for the section elevations: a door on the ground floor of the longest wall a cut sees, windows on every wall a cut sees at any angle, balconies (slab + rail) on every other window bay of blocks of 3+ floors, a cornice band under every flat roof; a house with no recorded floor count is built as 1 floor (ASSUMED, logged) instead of left out; sizes are drawing rules, not surveyed; BUILD_SIG geometry-4 (one rebuild); v1.14 (Aras 15 Nov 17:24 UTC "any drawing that has building in it you should use the drawing that comes out of archicad"): the six node buildings built in Archicad as the node slides design them (placed by Perspectives, rooms from nodes common BUILD), each with a cut view <N>-BX and an elevation view <N>-BE in the "Bergama sections" folder (published with the sections); v1.13 = v1.13 (Aras 15 Nov 16:31-16:32 UTC "Make canopies top view match with masterplan", "Get structrual idea from the photo i have sent you and invent from there"): every canopy built on his own filled kanopi ring (no hull, no merging, outline within 0.25 m), facets by ear clipping with his fold ends on the outline, low / high vertices alternating round it, Y columns under the low vertices 1.2 m inside (4-10 m apart, arms toward the neighbouring vertices), plinth + deck bays between the columns; rooms and planters only where they fit inside; v1.12 (v1.11 publish run: 10.5 min for 13 DWGs): no vector sun shadows in the section views; a change of the view settings (SEC_SIG) publishes once even when the model is unchanged   # v1.11 (run of v1.10: the Archicad 29 API refused "CutPlane" too): sections listed through Tapir GetElementsByType (CutPlane)   # v1.10 (Aras 15 Nov 15:00 "you need to make archicad runs faster"): the model is rebuilt only when its inputs changed (buildings from MapBase, cut lines, masterplan canopies, Sections levels, BUILD_SIG) or Archicad holds other element counts; with the model and sections unchanged nothing is published either (the last DWGs are kept); model time logged; sections listed as element type CutPlane (v1.9 run: "Section" is not an API type)   # v1.9 (15 Nov: Archicad reopened from a recovery file: new GUIDs, the build doubled, 9 section views twice): the previous model is cleared by element type (windows, walls, slabs, roofs, meshes, columns, beams), not by recorded GUIDs; when the project\'s sections differ from the recorded ones, all sections and the "Bergama sections" View Map folder are made again (FLAG: refresh the publisher set)   # v1.8 (15 Nov: a refreshed publisher set held the whole project as PDF + DWG and Archicad hung an hour; the pln reopened without the build after a restart): the project is saved (Tapir SaveProject) before publishing, and only the set's items of our sections are published (selectedNavigatorItemIds); a set holding other items is not published whole   # v1.7 (Sections thread, run of v1.28.2: houses up the hill float, the survey TIN does not reach that hill): the ground behind each cut in depth bands (10-50, 50-100, 100-200, 200-400 m, 400 m to the farthest building), each the highest survey ground of the band raised to the base of every building standing in it, so every house has ground under it; written to acbuild.json cuts[].bands   # v1.6 (also: the ground-behind profile reaches 1000 m, as houses of other cuts beyond 200 m show in the sections); v1.6 (Aras 15 Nov 09:52-10:29 "draw our canopies much better like designed ones" / "Some closed areas underneath" / canopies in Archicad "yes please"): his master.svg canopies (kanopi layer) built as his reference: folded triangle-facet roof (meshes) with a timber louvre layer under it, Y steel columns (trunk + 2 arms) under the valleys on a 12 m bay, timber deck on a stone plinth bay by bay, a glazed room in every other bay where the floor is >= Q500 + 0.60 m, timber planters in the open bays; heights as Sections v1.28.2 (DfT 2.30 m clear, EA 0.60 m over Q500, ridge +1.8 m ASSUMED)   # v1.5 + Kızıl Avlu: the main hall outline(s) from the MasterplanBase cache (Sections library red_hall_load), roofless walls 19 m (Wikipedia, Red Basilica: "Its walls still survive up to a height of 19 metres"), no windows, no roof; v1.5 (15 Nov run 7: houses beyond the 200 m depth drawn as floating outlines): no marked distant area (only the 200 m behind each cut is drawn); publishing may take 30 min (the set grew)   # v1.4 v1.4 (15 Nov: Sections v1.18 moved the N4 lines): the Archicad origin is kept from the first run; a section whose line moved is deleted and made again on the new line (its view too), with a FLAG to refresh the publisher set   # v1.3 (run 4: houses 200 m behind stood in the sky, the hill under them was not drawn): per cut the ground behind (highest survey ground 10-200 m behind, every 2 m) written to acbuild.json for SectionsAC   # v1.2 (SectionsAC run 3: the DWGs held only the roofs = the one element type without a BG layer, so the BG layers are not shown in the views): every element on the tool default layers; registration blocks at -50 m (found by geometry); no terrain mesh (our ground is drawn instead)   # v1.1 (14 Nov run 1): mesh without layerIndex (Tapir schema), hipped roofs as one-level polyroofs, footprints cleaned (slab failures)
 GH_LABEL = "AcBuild"
 OUT_FOLDER = "bergama_archicad_site"   # v1.42: own cache (the sections project keeps bergama_archicad)
 LOG_NAME = "bergama_acbuild_site_log.txt"
@@ -253,8 +253,10 @@ class AC(object):
         t0_ = time.time()
         try:
             keep_ix, items2 = _in_site(name, items, what, self.log)
+            self.last_drop = set()
             if SCOPE[0] in ("proposal", "context", "master"):   # v2.10: which file builds it
                 k2_ = _in_scope(items2, what)
+                self.last_drop = set(keep_ix[i] for i in range(len(keep_ix))) - set(keep_ix[i] for i in k2_)   # v2.11ab
                 keep_ix, items2 = [keep_ix[i] for i in k2_], [items2[i] for i in k2_]
             if len(keep_ix) == len(items):
                 return self._create_kept(name, key, items2, what)
@@ -447,13 +449,15 @@ MAT = {"bridge_stone": ("Bergama bridge stone", "928D8B", "Matte", 0),       # 1
        "heritage_red": ("Bergama historic red", "B56D61", "Matte", 0),       # 18:13 historic buildings (red roof)
        "quay_grey": ("Bergama quay paving grey", "CECFCE", "Matte", 0),
        "road": ("Bergama road surface", "8C8B87", "Matte", 0),             # v1.30: design colour (not in his legend)
+       "bike": ("Bergama cycle path", "B56D61", "Matte", 0),             # v2.11ab: his bisiklet layer's own fill (masterplan_Latest.svg)
+       "path": ("Bergama park path", "E6EFDA", "Matte", 0),              # v2.11ab: his yesil_alanlar/path fill (masterplan_Latest.svg)
        "park": ("Bergama park green", "A3B48C", "Matte", 0),             # v1.30: design colour (not in his legend)
        "ground": ("Bergama ground", "E4E0CF", "Matte", 0)}               # v1.37: the Sections ground fill (E4E0CF)               # v1.30: design colour (not in his legend)     # v1.19: iskele kenari's own picture        # 18:13 historic buildings (red roof)
 CUT_FILL = {"bridge_stone": "Cut Stone", "terrace_stone": "Cut Stone", "timber": "Wood", "rc": "Structural Concrete",
             "brick": "Common Brick", "aac": "Lightweight Concrete", "bims": "Concrete Block", "plaster": "Plaster",
             "lime": "Plaster", "rubble": "Rubble", "eps": "Rigid Insulation", "xps": "Rigid Insulation",
             "rooftile": "Roof Tile", "gravel": "Gravel", "screed": "Lightweight Concrete", "rooftimber": "Wood",
-            "reed": "Grass", "heritage_red": "Rubble", "quay_grey": "Cut Stone", "road": "Gravel", "park": "Grass",
+            "reed": "Grass", "heritage_red": "Rubble", "quay_grey": "Cut Stone", "road": "Gravel", "park": "Grass", "bike": "Gravel", "path": "Gravel",
             "ground": "Earth", "riverbed": "Gravel", "pavement": "Concrete Block", "stair": "Structural Concrete"}   # v1.44: material -> Archicad fill of its cut (the rest: solid Foreground)
 REAL_SURF = {"plaster": "Stucco - White Rough", "lime": "Stucco - Beige Rough", "brick": "Brick - Red",
              "aac": "Concrete - 02", "bims": "Concrete - 04", "rc": "Concrete - 10", "rubble": "Stonework - 02",
@@ -464,7 +468,7 @@ REAL_SURF = {"plaster": "Stucco - White Rough", "lime": "Stucco - Beige Rough", 
              "rooftimber": "Wood - Pine Grained Horizontal"}   # v1.44: textured project surfaces (else the colour)
 MAT_PRIO = {"rc": 900, "rubble": 850, "heritage_red": 850, "bridge_stone": 850, "brick": 600, "aac": 600, "bims": 600,
             "stair": 700, "terrace_stone": 700, "our_white": 700, "frame_grey": 900, "shade_white": 700, "timber": 500,
-            "rooftimber": 500, "screed": 400, "pavement": 400, "quay_grey": 400, "road": 350, "rooftile": 300,
+            "rooftimber": 500, "screed": 400, "pavement": 400, "quay_grey": 400, "road": 350, "bike": 360, "path": 360, "rooftile": 300,
             "gravel": 300, "eps": 200, "xps": 200, "plaster": 100, "lime": 100, "riverbed": 80, "park": 60, "ground": 50,
             "reed": 40, "foliage": 30, "bark": 500, "water": 10}   # v1.44: Archicad connection priority (0-999)
 SOLID_FILL = "Foreground"         # v1.44: Archicad's solid fill (Solid Fills folder)
@@ -851,6 +855,9 @@ def _wcomp(b):
     return dict(structureType="Composite", compositeId=COMP_ID[k])
 
 
+N_WACUT = [0]                                       # v2.11ae: cover areas cut at the working-area border
+N_CLIPWA = [0]                                      # v2.11ad: surface pieces cut to the working area
+SW_SIDE = [0, 0]                                    # v2.11ab: survey wall lines with the body on the left / right
 WALL_SIDE = [None]                                  # v1.87: "fwd" / "rev": which way a CoreOutside wall is drawn
 
 
@@ -1079,13 +1086,24 @@ def _meet(p, q, a2, c2, far=1.5):
 def _wall_side(ac, xy, a, c, on, b, log):
     """v1.87: one test wall a->c (counter-clockwise ring) with its reference line on the core's outside face: its 3D box
     says on which side Archicad puts the body; "fwd" when inside the house, else "rev" (drawn c->a); deleted again"""
-    side = "rev"                                      # Archicad's rule when it can't be read: body right of a->c
+    side = "fwd"                                      # v2.11ab: was "rev": the v2.11 proposal file (test wall not
+    # read) got every house wall with its body OUTSIDE the survey outline (Aras 25 Nov 09:08 UTC "walls blue line is core
+    # outside however referance line is inside fix it"), so with a core-outside reference line Archicad 30 puts the body
+    # LEFT of a->c: counter-clockwise ("fwd") keeps it inside
     try:
-        g = (ac.create("CreateWalls", "wallsData", [dict(begCoordinate=xy(a), endCoordinate=xy(c), zCoordinate=0.0,
+        g = (ac._create("CreateWalls", "wallsData", [dict(begCoordinate=xy(a), endCoordinate=xy(c), zCoordinate=0.0,
                                                          height=1.0, thickness=_wt(b), referenceLineLocation="CoreOutside",
                                                          **_wcomp(b))], u"test wall side") or [None])[0]
         if g:
             bb = read_bb(ac, [g]).get(g)
+            if not bb:                                # v2.11ab: no 3D box (its layer hidden in his template): the plan box
+                try:
+                    r2_ = ac.t("Get2DBoundingBoxes", {"elements": [{"elementId": {"guid": g}}]})
+                    b2 = ((r2_ or {}).get("boundingBoxes2D") or [{}])[0].get("boundingBox2D")
+                    if b2:
+                        bb = (b2["xMin"], b2["yMin"], 0.0, b2["xMax"], b2["yMax"], 1.0)
+                except Exception:
+                    pass
             ac.t("DeleteElements", {"elements": [{"elementId": {"guid": g}}]})
             if bb:
                 m_ = xy(((a[0] + c[0]) / 2.0, (a[1] + c[1]) / 2.0))
@@ -1095,9 +1113,10 @@ def _wall_side(ac, xy, a, c, on, b, log):
                            u"counter-clockwise (test wall, %.3f m inward): drawn %s" % (
                                "inside" if d_ > 0 else "outside", d_, "counter-clockwise" if side == "fwd" else "clockwise"))
                 return side
-        log.append(u"FLAG house walls: test wall not read, drawn clockwise (Archicad puts the body right of the line)")
+        log.append(u"FLAG house walls: test wall not read, drawn counter-clockwise (v2.11ab: Archicad 30 puts the body "
+                   u"left of a core-outside line)")
     except Exception as e:
-        log.append(u"FLAG house walls: test wall failed (%s), drawn clockwise" % e)
+        log.append(u"FLAG house walls: test wall failed (%s), drawn counter-clockwise" % e)
     return side
 
 
@@ -1257,10 +1276,12 @@ EXTRA_OPS = []                                    # v1.31: (guid, operation, poi
 GROUND_TILE_M = 25.0                              # v1.38: 25 m (v1.32: 150 m) so the ground can follow the cut strips
 GROUND_BEHIND_M = 200.0                           # v1.38: m of ground kept behind each cut line (ASSUMED: enough for the cut face)
 GROUND_SPOT_M = 4.0                               # v1.32: one survey height per this many m cell in the ground
+GROUND_AA = True         # v2.12: grid heights averaged over their cell (smoother ground, no facet bumps)
 ADAPTIVE_GROUND = True                            # v1.45: grid by the accuracy (Aras 11:55 "-%2 +%2")
 GROUND_GRIDS = (8.0, 4.0, 2.0, 1.0)               # v1.45: m, tried coarse to fine
 GROUND_TOL_F = 0.0                                # v1.83: 0 (was +-2 % of the tile's height range, up to 0.6 m on steep tiles): one tolerance everywhere
-GROUND_TOL_MIN = 0.30                             # v1.83 (Aras 19 Nov 09:01 "you can go even further than +-10cm", "+-30 or even 40 should be fine ig"): m, every ground height within +-0.30 m of the survey (one figure; 0.40 is a one-line change)
+GROUND_TOL_MIN = 0.15    # v2.12 (Aras 25 Nov 16:33 UTC "make the terrain more smoother more real world like this looks like a bumpy road ride"): was 0.30; 0.15 not 0.10: v2.11ag sent 358,838 ground heights at 0.30 and the Desktop 3D failed near 800k (v1.54)
+GROUND_TOL_V183 = 0.30                             # v1.83 (Aras 19 Nov 09:01 "you can go even further than +-10cm", "+-30 or even 40 should be fine ig"): m, every ground height within +-0.30 m of the survey (one figure; 0.40 is a one-line change)
 SEO_CORR_M = 3.0   # v1.66: m each side of a section line where solid links are kept (ASSUMED: covers the cut face)
 SEC_R = []         # v1.66: section lines (A, B) in survey m
 OP_PTS = {}        # v1.66: operator guid -> footprint points (survey m) for links that carry none
@@ -1458,6 +1479,17 @@ def _hotlinks(ac, log):
             srcs = [x for x in srcs if x not in miss_]
         if not srcs:
             return
+        try:                                              # v2.11ad (v2.11ac run: the master, copied from the v2.11ab
+            hl_ = ac.t("GetElementsByType", {"elementType": "Hotlink"}).get("elements") or []   # master, kept its
+            if hl_:                                       # hotlinks to the v2.11ab parts and got the v2.11ac ones on
+                ac.t("DeleteElements", {"elements": hl_}, 3600.0)   # top: every element twice): the old hotlink
+            log.append(u"hotlinks (v2.11ad): %d old hotlink instance(s) removed before placing this version's "
+                       u"files" % len(hl_))               # instances go first
+        except Exception as ex:
+            if _ac_gone(ex):
+                raise
+            log.append(u"FLAG hotlinks (v2.11ad): old hotlink instances not removed (%s): check File > External Content "
+                       u"> Hotlink Manager for the previous version's files" % ex)
         res = ac.t("CreateHotlinkNodes", {"hotlinkNodes": [dict(sourceLocation=x, storyRangeType="AllStories")
                                                            for x in srcs]}, 3600.0).get("hotlinkNodes") or []
         placed = set()
@@ -1526,6 +1558,56 @@ def _in_work(c):
     return any(_inpoly(q, R) for R in WORK_RINGS)
 
 
+WHOLE_M = 2.5            # v2.11ab: m, an element this close to a house / node building outline belongs to that building
+WHOLE = {"rings": [], "side": [], "grid": {}}   # v2.11ab: survey rings, their file (True = proposal), 20 m grid
+
+
+def _whole_add(R):
+    """v2.11ab: one more whole object (survey ring); returns its file (True = proposal)"""
+    R = [tuple(q[:2]) for q in R]
+    c = (sum(q[0] for q in R) / len(R), sum(q[1] for q in R) / len(R))
+    side = (not WORK_RINGS) or any(_inpoly(c, W) for W in WORK_RINGS)
+    i = len(WHOLE["rings"])
+    WHOLE["rings"].append(R)
+    WHOLE["side"].append(side)
+    xs, ys = [q[0] for q in R], [q[1] for q in R]
+    for gx in range(int((min(xs) - WHOLE_M) // 20), int((max(xs) + WHOLE_M) // 20) + 1):
+        for gy in range(int((min(ys) - WHOLE_M) // 20), int((max(ys) + WHOLE_M) // 20) + 1):
+            WHOLE["grid"].setdefault((gx, gy), []).append(i)
+    return side
+
+
+def _whole_set(rings, log):
+    """v2.11ab (Aras 25 Nov 09:08 UTC "dont split houses into two files keep them on one"): every house and node
+    building goes whole into the file its outline's middle falls in"""
+    WHOLE["rings"], WHOLE["side"], WHOLE["grid"] = [], [], {}
+    n_ = [0, 0]
+    for R in rings:
+        R = [tuple(q[:2]) for q in R]
+        c = (sum(q[0] for q in R) / len(R), sum(q[1] for q in R) / len(R))
+        side = (not WORK_RINGS) or any(_inpoly(c, W) for W in WORK_RINGS)
+        i = len(WHOLE["rings"])
+        WHOLE["rings"].append(R)
+        WHOLE["side"].append(side)
+        n_[0 if side else 1] += 1
+        xs, ys = [q[0] for q in R], [q[1] for q in R]
+        for gx in range(int((min(xs) - WHOLE_M) // 20), int((max(xs) + WHOLE_M) // 20) + 1):
+            for gy in range(int((min(ys) - WHOLE_M) // 20), int((max(ys) + WHOLE_M) // 20) + 1):
+                WHOLE["grid"].setdefault((gx, gy), []).append(i)
+    log.append(u"file split (v2.11ab): %d house(s) / node building(s) kept whole: %d in the proposal file, %d in the "
+               u"context file (each by its outline's middle; its elements within %.1f m of it go with it)" % (
+                   len(rings), n_[0], n_[1], WHOLE_M))
+
+
+def _whole_side(q):
+    """v2.11ab: the file (True = proposal) of the house / node building whose outline holds survey point q, or None"""
+    for i in WHOLE["grid"].get((int(q[0] // 20), int(q[1] // 20)), []):
+        R = WHOLE["rings"][i]
+        if _inpoly(q, R) or min(_seg_d(q, a, b) for a, b in zip(R, R[1:] + R[:1])) <= WHOLE_M:
+            return WHOLE["side"][i]
+    return None
+
+
 def _in_scope(items, what):
     """v2.10: indices of the items this file builds: the master only the section helpers; the proposal file the
     others whose middle lies in the working area, the context file the rest. An item with no position (a window,
@@ -1540,7 +1622,11 @@ def _in_scope(items, what):
             ok = False
         else:
             c = _item_c(it)
-            ok = c is None or (_in_work(c) == (SCOPE[0] == "proposal"))
+            if c is None:
+                ok = True
+            else:
+                wh_ = _whole_side((c[0] + ORIGIN[0], c[1] + ORIGIN[1])) if WHOLE["rings"] else None   # v2.11ab
+                ok = (_in_work(c) if wh_ is None else wh_) == (SCOPE[0] == "proposal")
         if ok:
             out.append(k)
         else:
@@ -2140,6 +2226,10 @@ def build_canopies(ac, miss, log, rects, inside, tin, ox, oy, z0, xy, q500_at, w
                             ch = True
             if not ch:
                 break
+        try:
+            _whole_add(H0)                               # v2.11ab: a canopy stays whole in one file
+        except Exception:
+            pass
         CANOPY_REC.append(dict(ring=[[round(p[0], 2), round(p[1], 2)] for p in H0], ground=round(min(gs), 3),
                                floor=round(min(floor0(g) for g in gz), 3),
                                under=round(min(low) - CAN_T - CAN_LOUVRE_M, 3), top=round(max(zv), 3)))
@@ -2184,12 +2274,32 @@ def build_canopies(ac, miss, log, rects, inside, tin, ox, oy, z0, xy, q500_at, w
                 dmin = min([math.hypot(p[0] - c[1][0], p[1] - c[1][1]) for c in cols] or [1e9])
                 if (not want_hi and dmin >= CAN_COL_MIN) or (want_hi and dmin > CAN_COL_MAX):
                     cols.append((k, p))
+        def roof_under(p):
+            """v2.11ab: the roof skin's underside right above plan point p (the facet plane over it; outside every
+            facet: the nearest facet's plane carried on)"""
+            best_ = None
+            for t3 in tris:
+                (x1, y1), (x2, y2), (x3, y3) = [H[k][:2] for k in t3]
+                d_ = (y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3)
+                if abs(d_) < 1e-9:
+                    continue
+                l1 = ((y2 - y3) * (p[0] - x3) + (x3 - x2) * (p[1] - y3)) / d_
+                l2 = ((y3 - y1) * (p[0] - x3) + (x1 - x3) * (p[1] - y3)) / d_
+                l3 = 1.0 - l1 - l2
+                z_ = l1 * zv[t3[0]] + l2 * zv[t3[1]] + l3 * zv[t3[2]] - CAN_T
+                out_ = -min(l1, l2, l3)                  # 0 or less: inside this facet
+                if best_ is None or out_ < best_[0]:
+                    best_ = (out_, z_)
+                if out_ <= 1e-9:
+                    break
+            return best_[1] if best_ else None
         for k, base in cols:
             g = tin.z(base[0] - ox, base[1] - oy)
             g = gz[k] if g is None else g
             fl = floor0(g)
-            under = zv[k] - CAN_T - CAN_LOUVRE_M
-            hgt = under - fl
+            ub_ = roof_under(base)                        # v2.11ab: the roof right above the column
+            under = (ub_ if ub_ is not None else zv[k] - CAN_T) - CAN_SLAT_H   # under the slats (was the vertex's
+            hgt = under - fl                              # height minus the 0.30 m louvre layer: arms fell short)
             if hgt < 1.0:
                 continue
             fork = fl + CAN_Y_FORK * hgt
@@ -2202,7 +2312,8 @@ def build_canopies(ac, miss, log, rects, inside, tin, ox, oy, z0, xy, q500_at, w
                     continue
                 r_ = min(CAN_Y_ARM_M, 0.45 * L)
                 end = (base[0] + dx / L * r_, base[1] + dy / L * r_)
-                zz = under - 0.05
+                ue_ = roof_under(end)                     # v2.11ab: the arm's top end meets the roof skin above it
+                zz = ue_ if ue_ is not None else under
                 arms.append(dict(begCoordinate=xy(base), endCoordinate=xy(end), zCoordinate=round(fork - z0, 3),
                                  slantAngle=round(math.atan2(zz - fork, r_), 4), width=0.22, height=0.22))
         # bays between the columns along the long axis: plinth + deck = the outline cut there
@@ -2559,6 +2670,60 @@ def set_stories(ac, log, z0, ST):
     return views if _apply_stories(ac, log) else []
 
 
+N_SURVPTS = [0, 0]       # v2.11ah: survey heights added as control points, tiles
+
+
+def _clean_ring_dicts(pc):
+    """v2.11ah: a slab / roof outline Archicad refused, made valid (shapely make_valid, the largest piece, points closer
+    than 1 cm merged, slivers under 1 cm taken out); None when nothing usable is left"""
+    m_ = _shp()
+    if m_ is None or len(pc) < 3:
+        return None
+    sh_, sg_ = m_[0], m_[1]
+    try:
+        g = sh_.make_valid(sg_.Polygon([(q["x"], q["y"]) for q in pc]))
+        g = g.buffer(-0.005, join_style=2).buffer(0.005, join_style=2)
+        ps = [x for x in getattr(g, "geoms", [g]) if x.geom_type == "Polygon" and not x.is_empty]
+        if not ps:
+            return None
+        P_ = max(ps, key=lambda x: x.area).simplify(0.01)
+        if P_.area < 0.5:
+            return None
+        return [dict(x=round(x, 3), y=round(y, 3)) for x, y in list(P_.exterior.coords)[:-1]]
+    except Exception:
+        return None
+
+
+def _stories_now(ac):
+    """v2.12: the project's story levels now, bottom up (from story 0), rounded to 1 cm; [] when not read"""
+    try:
+        return [round(float(s_.get("level", 0.0)), 2) for s_ in sorted((ac.t("GetStories", None, STORY_WAIT_S).get(
+            "stories") or []), key=lambda s_: s_.get("index", 0)) if s_.get("index", 0) >= 0]
+    except Exception as ex:
+        if _ac_gone(ex):
+            raise
+        return []
+
+
+def _story_steps(cur_lv, keep):
+    """v2.11ag (Desktop v2.11af empty build: "Failed to set the level of story 1: requested 50.2290, got 3.0000"): the
+    empty file from Aras.tpl has 7 stories about 3 m apart, and SetStories lifts them in index order, so story 1 cannot
+    pass story 2: when a wanted level lies above the next story's current level, the stories are lifted one at a time
+    from the top (each list keeps the lower stories where they are); the last list is the wanted one"""
+    n_ = len(keep)
+    if len(cur_lv) < 2 or n_ < 2:
+        return [keep]
+    if all(keep[i]["level"] < cur_lv[i + 1] - 0.005 for i in range(1, min(n_, len(cur_lv) - 1))):
+        return [keep]
+    out_ = []
+    for i in range(n_ - 1, 0, -1):
+        lv_ = [cur_lv[j] if j < i and j < len(cur_lv) else keep[j]["level"] for j in range(n_)]
+        if any(b_ <= a_ + 0.005 for a_, b_ in zip(lv_, lv_[1:])):
+            return [keep]                                 # not in ascending order: one go, as before
+        out_.append([dict(k_, level=lv_[j]) for j, k_ in enumerate(keep)])
+    return out_ + [keep]
+
+
 STORY_KEEP = []          # v2.11: the stories set_stories asks for
 STORY_WAIT_S = 1800.0    # v2.11aa: s, the read-back after a SetStories timeout may wait this long
 STORY_TIMEOUT_S = 300.0  # v2.11: SetStories took the whole 600 s Tapir timeout in each file of the v2.10 cold run
@@ -2579,6 +2744,49 @@ def _apply_stories(ac, log):
     except Exception as ex:
         log.append(u"stories not read before setting them (%s)" % ex)
     t0_ = time.time()
+    try:
+        cur_lv_ = [round(float(s_.get("level", 0.0)), 3) for s_ in sorted((ac.t("GetStories").get("stories") or []),
+                   key=lambda s_: s_.get("index", 0)) if s_.get("index", 0) >= 0]
+    except Exception:
+        cur_lv_ = []
+    if len(cur_lv_) > 1 and len(_story_steps(cur_lv_, keep)) > 1:
+        # v2.12 (Desktop v2.11ag: one go and top-down both refused, "Failed to set the level of story 3: requested
+        # 62.8630, got 11.3800 (active story: 3)"; the template's levels follow their story heights): ways tried in
+        # turn, each read back: first only story 0 (Tapir removes the stories the list leaves out, if it does), then
+        # the node floors added above it as new stories; then one at a time from the top
+        for nm_, seq_ in ((u"story 0 alone first, then the node floors added as new stories", [keep[:1], keep]),
+                          (u"one at a time from the top", _story_steps(cur_lv_, keep))):
+            try:
+                for st_ in seq_:
+                    r0_ = ac.t("SetStories", {"stories": st_}, STORY_TIMEOUT_S)
+                    if isinstance(r0_, dict) and r0_.get("success") is False:
+                        raise RuntimeError(json.dumps(r0_)[:200])
+            except Exception as ex:
+                if _ac_gone(ex):
+                    raise
+                log.append((u"stories (v2.12): %s: refused (%s)" % (nm_, ex))[:400])
+            got_ = _stories_now(ac)
+            if got_ == [round(k["level"], 2) for k in keep]:
+                log.append(u"stories (v2.12): set (%s): story 0 + %d node building floor(s) (%s); %.0f s" % (
+                    nm_, len(keep) - 1, u", ".join(u"%s %+.2f" % (k["name"], k["level"]) for k in keep[1:]),
+                    time.time() - t0_))
+                return True
+            log.append(u"stories (v2.12): after '%s' the levels read %s" % (nm_, u", ".join(u"%+.2f" % v for v in got_)))
+            cur_lv_ = got_ or cur_lv_
+    steps_ = [keep]                                       # v2.12: the top-down way ran above
+    if len(steps_) > 1:                                   # v2.11ag: the template's stories stand in the way
+        try:
+            for st_ in steps_[:-1]:
+                r0_ = ac.t("SetStories", {"stories": st_}, STORY_TIMEOUT_S)
+                if isinstance(r0_, dict) and r0_.get("success") is False:
+                    raise RuntimeError(json.dumps(r0_)[:160])
+            log.append(u"stories (v2.11ag): the file's own stories (%s) lay below the node floors, so they were moved "
+                       u"up one at a time from the top (%d step(s)); Archicad refused to lift story 1 past the stories "
+                       u"above it" % (u", ".join(u"%+.2f" % v for v in cur_lv_[1:]) or u"-", len(steps_) - 1))
+        except Exception as ex:
+            if _ac_gone(ex):
+                raise
+            log.append(u"stories (v2.11ag): moving the stories up from the top stopped (%s): set in one go" % ex)
     try:
         r = ac.t("SetStories", {"stories": keep}, STORY_TIMEOUT_S)
     except Exception as ex:
@@ -2746,10 +2954,12 @@ MP_SLABS = {"teras": (0.40, 0.0), "begum_su_merdiven": (0.40, 0.0), "iskele_kena
             "su_bitkii": (0.05, 0.0), "su": (0.05, 0.0), "ana_su": (0.05, 0.0),
             "begum_yesil": (0.05, 0.0), "Layer_49": (0.05, 0.0), "master": (0.05, 0.0), "bina_cerceve": (0.15, 0.0),
             "circulation": (0.15, 0.0), "rock": (0.30, 0.0),   # v1.29: his other painted layers; rock = boulders (build_selinos)
-            "araba_yolu": (0.15, 0.0), "doldrurma": (0.05, 0.0),
+            "araba_yolu": (0.15, 0.0), "doldrurma": (0.05, 0.0), "bisiklet": (0.10, 0.0), "sazlik": (0.05, 0.0),
             "Doldurma_renk": (0.05, 0.0), "Layer_50": (0.05, 0.0)}   # v2.08: drawing-fix fills, built as green   # v1.47: in his 15 Nov masterplan.svg, built as unsure
 MP_SKIP = ("kanopi", "teras_-_canopy", "desings", "existing_buildings", "builts2", "existing_roads", "heritage",
-           "kizil_avlu", "PLANTING_v13_1")        # canopies + node buildings built above; context and trees not his
+           "kizil_avlu", "PLANTING_v13_1", "su_texture")   # v2.11ab: su_texture (his water picture areas: ana_su,
+# duzenlenmis) not built as flat slabs any more: the season water bodies are the water (Aras 25 Nov 09:09 UTC "this is
+# fucked": a 1,553 m2 duzenlenmis ring stood as one flat slab at 45.5 m over the grass by the river)        # canopies + node buildings built above; context and trees not his
 MP_TOL_M = 0.05                                    # FLAG a piece whose Archicad outline is further off than this
 MP_MAX_M2 = 100000.0                               # his sheet / picture frames (pages common PC_MP_MAX_M2 order)
 SITE_REC = []                                      # (guid, layer, ring) for the read-back
@@ -2760,6 +2970,9 @@ SITE_REC = []                                      # (guid, layer, ring) for the
 # "bridges and etc.")
 WATER_CELL_M = 5.0          # m: the water surface is built in cells this size, each at the level interpolated along the river
 REED_H_M = 1.5              # m: reed height above the water (or the ground where dry): ASSUMED, no source
+REED_GRID_M = 2.0           # v2.11ab: m, reed clump spacing inside his su_bitkii rings (ASSUMED)
+REED_DRY = []            # v2.12: a few beds with no wet spot (location, ground, water level)
+REED_N = [0, 0, 0, 0]       # v2.11ab: beds, clumps, dry spots left out, beds with no wet spot
 ROCK_MIN_M2 = 1.0           # m2: his stone / rock pieces from this size are boulders; smaller ones are drawn texture
 ROCK_H_MAX = 0.8            # m: boulder height = half the square root of its area, at most this: ASSUMED
 TREE_SP = {"trees_plane": (30.0, 0.30, 0.50), "trees_ash": (15.0, 0.35, 0.40),        # (height m, crown bottom as a share
@@ -3285,6 +3498,30 @@ def build_selinos(ac, miss, log, xy, z0, tin, ox, oy, rects, inside, contours, p
         made += [g for g in gw if g]
         WATER_OPS.extend((g, [(q["x"], q["y"]) for q in d["polygonCoordinates"]]) for g, d in zip(gw, water) if g)
         log.append(u"water: %d wet cells, %d dry cells left out (ground above the level)" % (len(water), n_dry))
+    # ---- v2.12: water over every reed bed outside the river outline (the shown season; beds dug under it)
+    if REED_DIG and "CreateSlabs" not in miss and _shp():
+        sh_, sgw_ = _shp()[0], _shp()[1]
+        try:
+            U_ = sh_.unary_union([d[0] for d in REED_DIG])
+            if rings:
+                U_ = U_.difference(sh_.unary_union([sgw_.Polygon(R).buffer(0) for R in rings if len(R) >= 3]))
+            wr_ = []
+            for g_ in [x for x in getattr(U_, "geoms", [U_]) if x.geom_type == "Polygon" and x.area >= 0.5]:
+                c_ = g_.representative_point()
+                lv_ = wl(c_.x, c_.y)
+                if lv_ is None:
+                    continue
+                ex_ = [tuple(q) for q in list(g_.simplify(0.02).exterior.coords)[:-1]]
+                if len(ex_) >= 3:
+                    wr_.append(dict(level=round(lv_ - z0, 3), thickness=round(REED_DIG_D + 0.10, 3),
+                                    polygonCoordinates=[xy(q) for q in ex_], _mat="water"))
+            if wr_:
+                gw_ = ac.create("CreateSlabs", "slabsData", wr_, u"season water %s: reed bed water (v2.12)" % WATER_SHOW)
+                made += [g for g in gw_ if g]
+                log.append(u"reed beds (v2.12): water over %d bed area(s) outside the river outline, top at the %s level "
+                           u"there, %.2f m deep (ASSUMED)" % (sum(1 for g in gw_ if g), WATER_SHOW, REED_DIG_D))
+        except Exception as ex:
+            log.append(u"FLAG reed bed water not built (%s)" % ex)
     # ---- reeds and boulders (his pieces)
     reeds, rocks = [], []
     for nm, R, H in SP:
@@ -3293,19 +3530,62 @@ def build_selinos(ac, miss, log, xy, z0, tin, ox, oy, rects, inside, contours, p
         if not gs:
             continue
         g = min(gs)
-        if nm == "su_bitkii":
-            lv = wl(c[0], c[1])
-            top = max(g, lv if lv is not None else g) + REED_H_M
-            reeds.append(dict(level=round(top - z0, 3), thickness=round(top - g + 0.1, 3),
-                              polygonCoordinates=[xy(q) for q in H], _mat="reed"))
+        if nm in ("su_bitkii", "sazlik"):                # v2.11ab (Aras 25 Nov 09:13 UTC "reed beds should be drawn
+            # more properly more detailed and in the water"): no more 1.5 m green blocks; reed clumps (GDL, thin
+            # stems) standing on the bed and rising through the water: one per piece of his sazlik (reed bed) layer,
+            # and on a REED_GRID_M grid inside his su_bitkii rings, only where the bed is under the water (a bed with
+            # no wet spot keeps its clumps on the ground, FLAG)
+            if nm == "sazlik":
+                spots = [(c, max(0.3, min(2.0, 2.0 * math.sqrt(abs(area(H)) / math.pi))))]
+            else:
+                spots = []
+                x0_, y0_ = min(q[0] for q in H), min(q[1] for q in H)
+                x1_, y1_ = max(q[0] for q in H), max(q[1] for q in H)
+                x_ = x0_ + REED_GRID_M / 2.0
+                while x_ < x1_:
+                    y_ = y0_ + REED_GRID_M / 2.0
+                    while y_ < y1_:
+                        j1_, j2_ = _jit(x_ * 1.3, y_ * 0.7)
+                        q_ = (x_ + (j1_ - 0.5) * REED_GRID_M * 0.6, y_ + (j2_ - 0.5) * REED_GRID_M * 0.6)
+                        if _inpoly(q_, H):
+                            spots.append((q_, REED_GRID_M * 0.8))
+                        y_ += REED_GRID_M
+                    x_ += REED_GRID_M
+            wet_, dry_ = [], []
+            for q_, D_ in spots:
+                gq_ = reed_dig_z(q_, gz(q_))              # v2.12: the bed is dug under the water
+                if gq_ is None:
+                    continue
+                lv_ = wl(q_[0], q_[1])
+                (wet_ if lv_ is not None and gq_ < lv_ - 0.05 else dry_).append((q_, D_, gq_, lv_))
+            REED_N[0] += 1
+            if not wet_:
+                REED_N[3] += 1                             # no wet spot: his drawing kept on the ground
+                if len(REED_DRY) < 5 and dry_:            # v2.12: examples for the log (survey m)
+                    q0_, _d0, g0_, l0_ = dry_[0]
+                    REED_DRY.append(u"%.1f,%.1f ground %+.2f, water %s" % (
+                        q0_[0], q0_[1], g0_, u"%+.2f" % l0_ if l0_ is not None else u"none here"))
+            REED_N[2] += len(dry_) if wet_ else 0
+            for q_, D_, gq_, lv_ in (wet_ or dry_):
+                base_ = gq_ - 0.05
+                top_ = max(gq_, lv_ if lv_ is not None else gq_) + REED_H_M
+                TREE_OBJ.append(("reed", q_, base_, round(top_ - base_, 2), D_))
+                REED_N[1] += 1
         elif nm == "rock":
             h = min(ROCK_H_MAX, 0.5 * math.sqrt(abs(area(H))))
             rocks.append(dict(level=round(g + h - z0, 3), thickness=round(h + 0.2, 3),
                               polygonCoordinates=[xy(q) for q in H], _mat="bridge_stone"))
     if "CreateSlabs" not in miss:
         RP_ = [(tg_, _pip_fast(H_)) for tg_, H_ in RIVER_MESH]
-        for lab_, dat_ in ((u"reed beds (%.1f m above the water, ASSUMED)" % REED_H_M, reeds),
-                           (u"boulders (his stones / rocks of %.0f m2 and more)" % ROCK_MIN_M2, rocks)):
+        log.append(u"reed beds (v2.11ab): %d of his beds as %d reed clumps (GDL, on the bed, %.1f m above the water: "
+                   u"ASSUMED, no source); %d dry spots left out of beds that have water%s" % (
+                       REED_N[0], REED_N[1], REED_H_M, REED_N[2],
+                       (u"; FLAG %d bed(s) with no spot under the water: clumps on the ground there" % REED_N[3])
+                       if REED_N[3] else u""))
+        if REED_DRY:                                      # v2.12
+            log.append(u"reed beds (v2.12): examples of beds with no spot under the water (survey x,y): " +
+                       u"; ".join(REED_DRY))
+        for lab_, dat_ in ((u"boulders (his stones / rocks of %.0f m2 and more)" % ROCK_MIN_M2, rocks),):   # v2.11ac
             if not dat_:
                 continue
             g_ = ac.create("CreateSlabs", "slabsData", dat_, lab_)
@@ -3747,6 +4027,31 @@ GDL3D = {
                         leaf="Foliage - Wild grapes"),
     "rosemary": _tree3d([], [(0, 0, 0.3, 0.45, 0.7), (0.2, 0.1, 0.35, 0.3, 0.8), (-0.2, -0.1, 0.35, 0.3, 0.8)],
                         leaf="Foliage - Wild grapes"),
+    # v2.11ab (Aras 25 Nov 09:20 UTC "we need bushes and such"): a rounded leafy shrub
+    "shrub": _tree3d([], [(0, 0, 0.42, 0.4, 0.95), (0.2, 0.12, 0.38, 0.3, 0.9), (-0.2, -0.14, 0.36, 0.3, 0.9),
+                          (0.1, -0.22, 0.33, 0.27, 0.9), (-0.12, 0.2, 0.34, 0.27, 0.9)], res=6),
+    # v2.11ab (Aras 25 Nov 09:13 UTC "reed beds should be drawn more properly mroe detailed and in the water"): a reed
+    # clump: 14 thin stems spread over its width A (golden-angle), leaning a little, every other one with a seed head;
+    # it stands on the river bed and rises through the water (ZZYZX = bed to tips)
+    "reed": u"""RESOL 3
+MATERIAL "%s"
+nn = 14
+FOR ii = 1 TO nn
+aa = ii * 137.508
+rr = A / 2 * SQR(ii / nn)
+hh = ZZYZX * (0.78 + 0.02 * (ii MOD 10))
+ADD rr * COS(aa), rr * SIN(aa), 0
+ROTZ aa
+ROTY ((ii MOD 7) - 3) * 2
+CONE hh, 0.007, 0.002, 90, 90
+IF (ii MOD 2) = 0 THEN
+ADDZ hh * 0.84
+CONE hh * 0.14, 0.016, 0.003, 90, 90
+DEL 1
+ENDIF
+DEL 3
+NEXT ii
+""" % MAT["reed"][0],
     "lamp": u"""RESOL 12
 MATERIAL "Paint - Anthracite"
 CYLIND ZZYZX, 0.07
@@ -4088,7 +4393,7 @@ def _setup_library(ac, log):
             for kind, s3 in GDL3D.items():
                 nm = u"BGA %s" % kind.replace("_", " ").title()
                 s2 = GDL2D_TREE if kind in ("olive", "plane", "ash", "deciduous", "stone_pine", "evergreen", "rosemary",
-                                            "willow", "tamarisk") else GDL2D_OBJ
+                                            "willow", "tamarisk", "shrub") else GDL2D_OBJ
                 kinds_.append(kind)
                 data_.append(dict(name=nm, parentName=par, path=u"BGA/%s.gsm" % nm, script3D=s3, script2D=s2))
             import hashlib                                # v1.79: the same scripts already embedded: not sent again
@@ -4206,6 +4511,11 @@ def _jit(x, y):
 PARK_FURNISH = True       # v2.10 (Aras 24 Nov 17:49-17:50 UTC: "that park looks weird it needs some furnishing to look
                           # proper please fix that aswell", "and do it for other parks aswell"): the survey parks get trees
                           # and benches; ALL sizes, spacings and the species mix below are ASSUMED (no design for them)
+GREEN_FURNISH = True      # v2.11ab: his own green areas furnished too (shrubs, benches, lamps)
+SHRUB_GRID_M = 5.0        # v2.11ab: m, one shrub group per this grid cell (ASSUMED)
+SHRUB_EDGE_M = 0.8        # v2.11ab: m, shrubs keep this far inside a green area's edge (ASSUMED)
+SHRUB_LINE_M = 4.0        # v2.11ad: m, a shrub every this much along a green area's edge (ASSUMED)
+SHRUB_H_M, SHRUB_D_M = 1.2, 1.4   # v2.11ab: m, shrub height and width (ASSUMED)
 PARK_EDGE_SMALL_M = 1.5   # v2.11aa: m, a small park's one tree keeps this far inside its outline (ASSUMED)
 PARK_MIN_M2 = 30.0        # v2.11aa: was 100 (v2.11 run: 4 of 31 parks); m2: a smaller survey park gets nothing (v2.11: was 300; the v2.10 run found none that big:
                           # the survey parks are many small pieces, now joined first)
@@ -4229,7 +4539,8 @@ def _park_items(log, gz):
     except Exception as ex:
         log.append(u"FLAG park furnishing (v2.10): MapBase not read (%s)" % ex)
         return [], []
-    hard = [p_["poly"] for p_ in COVER_PIECES if p_.get("solid") or p_["mat"] in ("road", "pavement", "quay_grey")]
+    hard = [p_["poly"] for p_ in COVER_PIECES if p_.get("solid") or p_["mat"] in ("road", "pavement", "quay_grey",
+                                                                                  "bike", "path")]
     S_ = _shp()
     tr_ = S_[3].STRtree(hard) if (S_ and hard) else None
 
@@ -4258,9 +4569,33 @@ def _park_items(log, gz):
             log.append(u"FLAG park pieces not joined (%s): each piece on its own" % ex)
     log.append(u"park furnishing (v2.11): %d survey park piece(s) joined into %d park(s) (pieces within %.1f m "
                u"taken as one)" % (n_raw, len(rings_), PARK_JOIN_M))
-    for R in rings_:
+    rings_ = [(R, None) for R in rings_]
+    if S_ and GREEN_FURNISH:                              # v2.11ab (Aras 25 Nov 09:20 UTC "need more furnishing and
+        try:                                              # assets in greenary we need bushes and such"): his own green
+            mg_ = [p_["poly"] for p_ in COVER_PIECES if p_["mat"] == "park" and (p_.get("label") or u"").startswith(
+                u"masterplan")]                           # areas too: shrubs, benches, lamps (his trees stay his own
+            if mg_:                                       # planting layer: no grid trees there)
+                U_ = S_[2].unary_union([g_.buffer(PARK_JOIN_M / 2.0, join_style=2) for g_ in mg_]).buffer(
+                    -PARK_JOIN_M / 2.0, join_style=2)
+                n_mg_ = 0
+                for g_ in getattr(U_, "geoms", [U_]):
+                    if g_.is_empty or g_.geom_type != "Polygon" or g_.area < PARK_MIN_M2:
+                        continue
+                    from shapely.prepared import prep as prep_
+                    rings_.append(([tuple(q) for q in list(g_.exterior.coords)[:-1]], prep_(g_)))
+                    n_mg_ += 1
+                log.append(u"green furnishing (v2.11ab): %d of his green area(s) of %.0f m2 or more furnished like the "
+                           u"parks (shrubs, benches, lamps; no grid trees: his planting layer has them)" % (n_mg_, PARK_MIN_M2))
+        except Exception as ex:
+            log.append(u"FLAG his green areas not furnished (%s)" % ex)
+    n_sh = [0]
+    for R, own_ in rings_:
         if len(R) < 3 or abs(area(R)) < PARK_MIN_M2 or (SITE_POLY and not _inpoly(R[0], SITE_POLY)):
             continue
+        if own_ is not None:
+            in_ = lambda q, R=R, own_=own_: own_.contains(S_[1].Point(q))
+        else:
+            in_ = lambda q, R=R: _inpoly(q, R)
         n_p += 1
         nt0_, nb0_ = len(trees), len(benches)              # v2.11aa
         E = list(zip(R, R[1:] + R[:1]))
@@ -4268,7 +4603,7 @@ def _park_items(log, gz):
         x0, y0 = min(q[0] for q in R), min(q[1] for q in R)
         x1, y1 = max(q[0] for q in R), max(q[1] for q in R)
         x = x0 + PARK_TREE_M / 2.0
-        while x < x1:
+        while x < x1 and own_ is None:
             y = y0 + PARK_TREE_M / 2.0
             while y < y1:
                 j1, j2 = _jit(x * 1.7, y * 0.9)
@@ -4279,7 +4614,43 @@ def _park_items(log, gz):
                     trees.append((kind, c, g, H_, D))
                 y += PARK_TREE_M
             x += PARK_TREE_M
-        if len(trees) == nt0_ and S_:                    # v2.11aa: a small park gets one tree at its most inner point
+        sx_ = x0 + SHRUB_GRID_M / 2.0                    # v2.11ab: shrub groups (2-3 shrubs) on a jittered grid
+        while sx_ < x1:                                   # inside, kept off paths, the edge and tree trunks
+            sy_ = y0 + SHRUB_GRID_M / 2.0
+            while sy_ < y1:
+                j1, j2 = _jit(sx_ * 0.77, sy_ * 1.31)
+                c0_ = (sx_ + (j1 - 0.5) * SHRUB_GRID_M * 0.6, sy_ + (j2 - 0.5) * SHRUB_GRID_M * 0.6)
+                for k_ in range(2 + int(j1 * 2)):
+                    a_ = 2.0 * math.pi * (j2 + k_ / 3.0)
+                    c = (c0_[0] + 0.9 * k_ * math.cos(a_), c0_[1] + 0.9 * k_ * math.sin(a_))
+                    g = gz(c)
+                    if g is None or not in_(c) or dedge(c) < SHRUB_EDGE_M or on_hard(c) or any(
+                            math.hypot(t_[1][0] - c[0], t_[1][1] - c[1]) < 2.5 for t_ in trees[nt0_:]
+                            if t_[0] != "shrub"):
+                        continue
+                    f_ = 0.8 + 0.4 * _jit(c[0], c[1])[0]
+                    trees.append(("shrub", c, g, round(SHRUB_H_M * f_, 2), round(SHRUB_D_M * f_, 2)))
+                    n_sh[0] += 1
+                sy_ += SHRUB_GRID_M
+            sx_ += SHRUB_GRID_M
+        for a, b in zip(R, R[1:] + R[:1]):               # v2.11ad (v2.11ac run: 35 shrubs in all): shrubs along
+            L_ = math.hypot(b[0] - a[0], b[1] - a[1])     # the edges too, every SHRUB_LINE_M, SHRUB_EDGE_M inside
+            if L_ < SHRUB_LINE_M:
+                continue
+            u_ = ((b[0] - a[0]) / L_, (b[1] - a[1]) / L_)
+            t_ = SHRUB_LINE_M / 2.0
+            while t_ < L_:
+                for s_ in (1.0, -1.0):
+                    c = (a[0] + u_[0] * t_ - s_ * u_[1] * SHRUB_EDGE_M, a[1] + u_[1] * t_ + s_ * u_[0] * SHRUB_EDGE_M)
+                    if in_(c):
+                        g = gz(c)
+                        if g is not None and not on_hard(c) and dedge(c) >= SHRUB_EDGE_M - 0.05:
+                            f_ = 0.8 + 0.4 * _jit(c[0], c[1])[0]
+                            trees.append(("shrub", c, g, round(SHRUB_H_M * f_, 2), round(SHRUB_D_M * f_, 2)))
+                            n_sh[0] += 1
+                        break
+                t_ += SHRUB_LINE_M
+        if len(trees) == nt0_ and S_ and own_ is None:   # v2.11aa: a small park gets one tree at its most inner point
             try:
                 from shapely.ops import polylabel as pl_
                 q_ = pl_(S_[1].Polygon(R).buffer(0), 0.25)
@@ -4301,7 +4672,7 @@ def _park_items(log, gz):
                 y = y0 + 5.0
                 while y < y1:
                     c = (x, y)
-                    if _inpoly(c, R) and gz(c) is not None and not on_hard(c):
+                    if in_(c) and gz(c) is not None and not on_hard(c):
                         d_ = dedge(c)
                         if d_ >= 6.0:
                             G_.append((d_, c))
@@ -4328,7 +4699,7 @@ def _park_items(log, gz):
             t = run_l
             while t <= L_:
                 c = (a[0] + u[0] * t - u[1] * 0.8, a[1] + u[1] * t + u[0] * 0.8)
-                if gz(c) is not None and _inpoly(c, R) and not on_hard(c):
+                if gz(c) is not None and in_(c) and not on_hard(c):
                     lamps.append((c, math.atan2(u[0], -u[1])))
                 t += PARK_LAMP_M
             run_l = t - L_
@@ -4343,7 +4714,7 @@ def _park_items(log, gz):
             while t <= L_:
                 if t >= BENCH_SIZE[0] and L_ - t >= BENCH_SIZE[0]:
                     c = (a[0] + u[0] * t + nin[0] * PARK_BENCH_IN_M, a[1] + u[1] * t + nin[1] * PARK_BENCH_IN_M)
-                    if gz(c) is not None and _inpoly(c, R) and not on_hard(c):
+                    if gz(c) is not None and in_(c) and not on_hard(c):
                         benches.append((c, math.atan2(nin[0], -nin[1])))   # its back (+y) to the outline
                 t += PARK_BENCH_M
             run = t - L_
@@ -4354,9 +4725,12 @@ def _park_items(log, gz):
                 u = ((b[0] - a[0]) / L_, (b[1] - a[1]) / L_)
                 nin = (-u[1], u[0])
                 c = (a[0] + u[0] * L_ / 2.0 + nin[0] * PARK_BENCH_IN_M, a[1] + u[1] * L_ / 2.0 + nin[1] * PARK_BENCH_IN_M)
-                if gz(c) is not None and _inpoly(c, R) and not on_hard(c):
+                if gz(c) is not None and in_(c) and not on_hard(c):
                     benches.append((c, math.atan2(nin[0], -nin[1])))
                     n_small[1] += 1
+    log.append(u"green furnishing (v2.11ab): %d shrubs (%.1f m high, %.1f m wide +-20 %%, groups of 2-3 every %.0f m, "
+               u"%.1f m inside the edge; sizes and spacing ASSUMED)" % (n_sh[0], SHRUB_H_M, SHRUB_D_M, SHRUB_GRID_M,
+                                                                        SHRUB_EDGE_M))
     log.append(u"park furnishing (v2.11aa): small parks: %d got one tree at their most inner point (%.1f m or more from "
                u"the edge), %d got one bench mid their longest side" % (n_small[0], PARK_EDGE_SMALL_M, n_small[1]))
     log.append(u"park furnishing (v2.10): %d survey park(s) of %.0f m2 or more: %d tree(s) on a %.0f m grid (%.0f m inside "
@@ -4400,6 +4774,12 @@ def build_objects(ac, miss, log, xy, z0, tin, ox, oy, survey):
         return False
     for kind, c, g, H_, D in trees:
         if kind not in LIBN:
+            continue
+        if kind == "reed":                                # v2.11ab: reed clumps stand close in the water
+            j1, j2 = _jit(c[0], c[1])
+            objs.append(dict(libraryPartName=LIBN[kind], coordinates=dict(xy(c), z=round(g - z0, 3)),
+                             dimensions=dict(x=round(D, 2), y=round(D, 2), z=round(H_, 2)), angle=round(2 * math.pi * j2, 4)))
+            n_k[kind] = n_k.get(kind, 0) + 1
             continue
         if CAN_ and _under_can(c, D * 0.575):            # v1.89: crown radius incl. the +15 % size jitter
             n_can[0] += 1
@@ -4675,27 +5055,39 @@ def _merge_runs(ch):
 # pin the edge), so the ground lies UNDER the road / park / paving and never in the same space. No solid element
 # operation. Needs the Python package shapely (2.x); without it v1.87's roads / parks / slabs are built and a FLAG says so.
 COVER = True
-COVER_LAYERS = {"kesin_yesil": "park", "belki_yesil": "park", "begum_yesil": "park", "Layer_49": "park", "master": "park",
+COVER_LAYERS = {"kesin_yesil": "park", "belki_yesil": "park", "begum_yesil": "park", "Layer_49": "path", "master": "park",
+                "bisiklet": "bike",
                 "normal": "pavement", "path": "pavement", "yeni": "pavement", "yol_kenar": "pavement",
                 "circulation": "pavement", "araba_yolu": "road", "iskele_kenari": "quay_grey", "doldrurma": "park",
                 "Doldurma_renk": "park", "Layer_50": "park"}   # v2.08: Aras 24 Nov, all green
 # his surface layer -> material: by the layer's name (yesil = green, yol = road, path / circulation = paving, iskele kenari
 # = his quay paving, doldurma = fill); ASSUMED where the name does not say it (master, Layer_49 = green, yeni = paving)
 COVER_SOLID = ("teras", "bina_cerceve", "begum_su_merdiven")   # his slabs on the ground: the ground goes under their bottom
-COVER_T = {"road": 0.30, "pavement": 0.25, "quay_grey": 0.25, "park": 0.30, "ground": 0.20}   # m build-up: ASSUMED
+COVER_T = {"road": 0.30, "pavement": 0.25, "quay_grey": 0.25, "park": 0.30, "ground": 0.20, "bike": 0.25,
+           "path": 0.20}   # m build-up: ASSUMED
+STRIP_M = 1.5              # v2.11ab: m, his green pieces thinner than this on average give way to the streets
+COVER_CLOSE_M = 0.0        # v2.11ab: m, gaps up to twice this between his green pieces filled as green; OFF: the
+                           # gaps Aras saw (25 Nov 09:10 UTC) were pieces built in the other file of the split
 COVER_BOX_M = 200.0        # m: pieces start as the areas cut by this grid ... (v1.97: was 100 m; hilly pieces still end at the 100 m grid or finer)
 COVER_RELIEF_M = 1.0       # m: ... and a piece whose ground rises more than this is quartered (body at most T + 1 m deep)
 COVER_MIN_M = 6.25         # m: smallest quarter (steeper ground keeps a deeper body there)
 COVER_TOL_M = 0.02         # v1.93: m, a cover mesh keeps a height point only where the ground leaves a straight line /
 #                            one plane by more than this (3D speed, no visible change)
 COVER_EDGE_M = 2.0         # m: height points along a piece's outline (its own mesh and the ground under it)
-COVER_IN_M = 4.0           # m: height points inside a piece (its own mesh)
+COVER_IN_M = 2.0           # m: height points inside a piece (its own mesh); v2.12: was 4.0 (2,309 of 5,310 pieces had none,
+#                            narrow strips: their tops folded between the edge points, Desktop v2.11ag check)
 COVER_OUT_M = 0.05         # m: the ground point just outside an outline, at the surveyed height
+COVER_RIM_M = 0.03         # v2.12: m, on a free edge the ground keeps the surveyed height ON the outline and drops to
+#                            the piece's bottom this far inside it (hidden under the piece); 0 = as before (a groove)
+COVER_UP = {"road": 0.05, "pavement": 0.05, "quay_grey": 0.05, "bike": 0.05, "path": 0.05}   # v2.11af (Aras 25 Nov
+# 12:30 UTC "they should finish smoothly and there should be 5cm difference in height"): m, a hard surface's top stands
+# this much over the surveyed ground beside it: a clean 5 cm edge; green areas stay flush
 COVER_GAP_M = 0.02         # m: the ground stays this much under a piece's bottom
 COVER_MIN_M2 = 2.0         # m2: a smaller leftover is not built (the ground shows there, not lowered)
 COVER_THIN_M = 0.5         # m: a leftover thinner than this on average (2 x area / perimeter) is not built either
 COVER_PIECES = []          # dicts: mat, label, poly (shapely, survey m), low (m), plat (m), solid (bool)
 COVER_IDX = [None, None]   # STRtree of the pieces grown by COVER_GAP_M, STRtree of the outline lines
+COVER_RIM = [None, []]     # v2.12: STRtree of the free outline runs (no other piece beyond), the runs
 COVER_TILE_PTS = {}        # (tile i, j) -> [(x, y, z)] ground heights on and just outside the outlines
 COVER_ON = [False]
 COVER_STAT = {}
@@ -4711,6 +5103,184 @@ def _shp():
         return shapely, sg_, so_, st_
     except Exception:
         return None
+
+
+SMOOTH_FLAT = True       # v2.11ag: lift the flat triangles of the survey triangulation (False = as before)
+SMOOTH_PASSES = 6        # v2.11ag: a run of flat triangles takes its height from the next one this many deep
+SMOOTH_ON_C = 0.30       # v2.11ag: m, a triangle side whose middle lies this close to its own contour runs along it
+
+
+def _smooth_flat(tin, contours, ox, oy, log):
+    """v2.11ag (Aras 25 Nov 09:20 UTC "ground needs to be smoother"): a triangle of the survey triangulation whose three
+    corners lie on the same contour is flat: a terrace in the ground between two contours. Its middle, and the middle
+    of each side that does not run along the contour (an open side), get the height the slope gives there: between
+    its own contour and the next height beyond the open side, by distance to each (contour interpolation); the
+    triangle becomes a fan round its middle, and the triangle on the other side of an open side is split at the same
+    side middle, so the ground stays one surface without steps. Every survey height and contour stays as surveyed; a
+    flat triangle with no open side to another height (a hill top, a valley floor) stays flat"""
+    if not SMOOTH_FLAT or not getattr(tin, "t", None):
+        return
+    m_ = _shp()
+    if m_ is None:
+        log.append(u"FLAG ground smoothing (v2.11ag) skipped: shapely 2 not found")
+        return
+    _sh, sg_, _so, st_ = m_
+    P = tin.p
+    t0_ = time.time()
+    T_ = [tuple(t) for t in tin.t]
+    flat = {}
+    for t in T_:
+        za, zb, zc = P[t[0]][2], P[t[1]][2], P[t[2]][2]
+        if max(za, zb, zc) - min(za, zb, zc) < 0.01:
+            flat[t] = (za + zb + zc) / 3.0
+    if not flat:
+        log.append(u"ground smoothing (v2.11ag): no flat triangle in the survey triangulation")
+        return
+    E = {}                                               # side -> the triangles on it
+    for t in T_:
+        for a, b in ((t[0], t[1]), (t[1], t[2]), (t[2], t[0])):
+            E.setdefault((min(a, b), max(a, b)), []).append(t)
+    CL, CZ = [], []                                      # the contours, local coordinates
+    for pl in contours:
+        q_ = [(p[0] - ox, p[1] - oy) for p in pl]
+        if len(q_) >= 2:
+            CL.append(sg_.LineString(q_))
+            CZ.append(sum(p[2] for p in pl) / len(pl))
+    CT = st_.STRtree(CL) if CL else None
+
+    def dcont(q, z, lim):                                # distance to the nearest contour of this height (or None)
+        if CT is None:
+            return None
+        pt = sg_.Point(q)
+        best = None
+        for j in CT.query(pt.buffer(lim)):
+            if abs(CZ[int(j)] - z) < 0.05:
+                d = CL[int(j)].distance(pt)
+                if d <= lim and (best is None or d < best):
+                    best = d
+        return best
+
+    def zint(q, zf, zo, o_xy):                           # contour interpolation between zf and zo at q
+        d1 = dcont(q, zf, 60.0)
+        if d1 is None:
+            return None
+        d2 = dcont(q, zo, 60.0)
+        if d2 is None:
+            d2 = math.hypot(q[0] - o_xy[0], q[1] - o_xy[1])
+        return zf + (zo - zf) * d1 / (d1 + d2) if d1 + d2 > 1e-6 else zf
+    opn = {}                                             # flat triangle -> [(side, neighbour, its far corner)]
+    for t, zf in flat.items():
+        op = []
+        for a, b in ((t[0], t[1]), (t[1], t[2]), (t[2], t[0])):
+            mid = ((P[a][0] + P[b][0]) / 2.0, (P[a][1] + P[b][1]) / 2.0)
+            dm_ = dcont(mid, zf, SMOOTH_ON_C)
+            if dm_ is not None:                          # the side runs along its contour
+                continue
+            for u in E.get((min(a, b), max(a, b)), []):
+                if u != t:
+                    op.append(((min(a, b), max(a, b)), u, [i for i in u if i not in (a, b)][0]))
+        if op:
+            opn[t] = op
+    TGT = {}                                             # flat triangle -> (target height, a point at it)
+    for _pass in range(SMOOTH_PASSES):
+        new_ = {}
+        for t, op in opn.items():
+            if t in TGT:
+                continue
+            zf = flat[t]
+            for _e, u, o in op:
+                if u in flat:
+                    if u in TGT:
+                        new_[t] = TGT[u]
+                        break
+                elif abs(P[o][2] - zf) >= 0.01:
+                    new_[t] = (P[o][2], (P[o][0], P[o][1]))
+                    break
+        if not new_:
+            break
+        TGT.update(new_)
+    EM, ZC = {}, {}                                      # side middle heights, triangle middle heights
+    for t, (zo, oxy) in TGT.items():
+        zf = flat[t]
+        c_ = (sum(P[i][0] for i in t) / 3.0, sum(P[i][1] for i in t) / 3.0)
+        zc_ = zint(c_, zf, zo, oxy)
+        if zc_ is None or abs(zc_ - zf) < 0.005:
+            continue
+        ZC[t] = (c_[0], c_[1], zc_)
+        for e, u, o in opn[t]:
+            if u in flat and u not in TGT:
+                continue                                 # the flat one beyond stays flat: the side stays at zf
+            m_xy = ((P[e[0]][0] + P[e[1]][0]) / 2.0, (P[e[0]][1] + P[e[1]][1]) / 2.0)
+            zm_ = zint(m_xy, zf, zo, oxy)
+            if zm_ is not None and abs(zm_ - zf) >= 0.005:
+                EM[e] = (m_xy[0], m_xy[1], (zm_ + EM[e][2]) / 2.0 if e in EM else zm_)
+    if not ZC:
+        log.append(u"ground smoothing (v2.11ag): %d flat triangle(s), none with an open side to another height" % len(flat))
+        return
+    REF = {}                                             # triangle -> its parts [(p, q, r)] with (x, y, z)
+
+    def V(i):
+        return (P[i][0], P[i][1], P[i][2])
+    for t in set(ZC) | set(u for e in EM for u in E.get(e, [])):
+        ring = []
+        for a, b in ((t[0], t[1]), (t[1], t[2]), (t[2], t[0])):
+            ring.append(V(a))
+            e = (min(a, b), max(a, b))
+            if e in EM:
+                ring.append(EM[e])
+        if t in ZC:                                      # a fan round the middle
+            C = ZC[t]
+            REF[t] = [(C, ring[k], ring[(k + 1) % len(ring)]) for k in range(len(ring))]
+            continue
+        ks = [k for k in range(3) if (min(t[k], t[(k + 1) % 3]), max(t[k], t[(k + 1) % 3])) in EM]
+        A, B, Cc = V(t[0]), V(t[1]), V(t[2])
+        M = [EM.get((min(t[k], t[(k + 1) % 3]), max(t[k], t[(k + 1) % 3]))) for k in range(3)]
+        if len(ks) == 1:                                 # split from the far corner
+            k = ks[0]
+            p0, p1, p2 = V(t[k]), V(t[(k + 1) % 3]), V(t[(k + 2) % 3])
+            REF[t] = [(p2, p0, M[k]), (p2, M[k], p1)]
+        elif len(ks) == 2:
+            k = [x for x in range(3) if x not in ks][0]  # the side with no middle: t[k] -> t[k+1]
+            p0, p1, p2 = V(t[k]), V(t[(k + 1) % 3]), V(t[(k + 2) % 3])
+            m1, m2 = M[(k + 1) % 3], M[(k + 2) % 3]       # on p1-p2 and on p2-p0
+            REF[t] = [(m1, p2, m2), (p0, p1, m1), (p0, m1, m2)]
+        else:
+            REF[t] = [(A, M[0], M[2]), (M[0], B, M[1]), (M[2], M[1], Cc), (M[0], M[1], M[2])]
+    cell_ = tin.cell
+
+    def bary(x, y, a, b, c):
+        det = (b[1] - c[1]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[1] - c[1])
+        if abs(det) < 1e-12:
+            return None
+        l1 = ((b[1] - c[1]) * (x - c[0]) + (c[0] - b[0]) * (y - c[1])) / det
+        l2 = ((c[1] - a[1]) * (x - c[0]) + (a[0] - c[0]) * (y - c[1])) / det
+        l3 = 1.0 - l1 - l2
+        if min(l1, l2, l3) >= -1e-9:
+            return l1 * a[2] + l2 * b[2] + l3 * c[2]
+        return None
+
+    def z_(x, y):
+        for t in cell_.get((int(x // 5), int(y // 5)), ()):
+            z0_ = bary(x, y, P[t[0]], P[t[1]], P[t[2]])
+            if z0_ is None:
+                continue
+            parts = REF.get(tuple(t))
+            if parts is None:
+                return z0_
+            for a, b, c in parts:
+                zp_ = bary(x, y, a, b, c)
+                if zp_ is not None:
+                    return zp_
+            return z0_
+        return None
+    tin.z = z_
+    dz_ = [abs(ZC[t][2] - flat[t]) for t in ZC]
+    log.append(u"ground smoothing (v2.11ag): %d of %d triangle(s) of the survey triangulation were flat (three corners "
+               u"on one contour); %d got a middle height from the slope beyond their open side (change at the middle "
+               u"mean %.2f m, max %.2f m; %d side middles shared with the triangle beyond), %d stay flat (hill tops, "
+               u"valley floors, thin slivers along a contour); survey heights unchanged; %.1f s"
+               % (len(flat), len(T_), len(ZC), sum(dz_) / len(dz_), max(dz_), len(EM), len(flat) - len(ZC),
+                  time.time() - t0_))
 
 
 def _cover_items(SP, survey, tin, ox, oy):
@@ -4761,7 +5331,8 @@ def _cover_items(SP, survey, tin, ox, oy):
         if nm in COVER_LAYERS:
             mat = PIECE_KEY.get(id(H)) or COVER_LAYERS[nm]
             lab = (u"masterplan unsure %s: best guess %s on the ground (v1.88)" % (nm, mat)) if nm in MP_UNSURE else \
-                u"masterplan covers on the ground (v1.88)"
+                {"bike": u"masterplan cycle path on the ground (v2.11ab)", "path": u"masterplan park paths on the "
+                 u"ground (v2.11ab)"}.get(mat, u"masterplan covers on the ground (v1.88)")
             items.append(("mp", mat, lab, list(H), [], None))
         elif nm in COVER_SOLID:
             items.append(("solid", nm, None, list(H), [], nm))
@@ -4772,6 +5343,7 @@ def cover_plan(log, tin, ox, oy, SP, bld, survey):
     """v1.88: COVER_PIECES (non-overlapping, his drawing order wins) + the ground heights that lower the ground under them"""
     del COVER_PIECES[:]
     COVER_IDX[:] = [None, None]
+    COVER_RIM[:] = [None, []]
     COVER_TILE_PTS.clear()
     COVER_STAT.clear()
     COVER_ON[0] = False
@@ -4799,6 +5371,14 @@ def cover_plan(log, tin, ox, oy, SP, bld, survey):
     nogo += [mk(R) for R in NB_RINGS]                     # v2.10: no road / green cover runs under a node building
     nogo = so_.unary_union([g for g in nogo if g is not None]) if any(g is not None for g in nogo) else None
     items = []
+    parts_ = []
+    WU_ = None
+    if SPLIT_FILES and WORK_RINGS:
+        try:
+            WU_ = so_.unary_union([mk(W) for W in WORK_RINGS if mk(W) is not None])
+        except Exception:
+            WU_ = None
+    N_WACUT[0] = 0
     for kind, mat, lab, R, holes, solid in _cover_items(SP, survey, tin, ox, oy):
         if kind == "road":
             g = None
@@ -4816,6 +5396,19 @@ def cover_plan(log, tin, ox, oy, SP, bld, survey):
             g = g.difference(nogo)
         if g.is_empty or g.area < COVER_MIN_M2:
             continue
+        if WU_ is not None:                               # v2.11ae (Aras 25 Nov 12:25 UTC "the connections in the
+            try:                                          # roads are fucked": a strip in the proposal file stopped at
+                gi_, go_ = g.intersection(WU_), g.difference(WU_)   # a 50 m tile whose middle lay outside the working
+                if not gi_.is_empty and not go_.is_empty:  # area, so that tile went to the context file): pieces are
+                    N_WACUT[0] += 1                        # cut AT the working-area border, so the proposal file runs
+                    for gg_ in (gi_, go_):                 # up to it and the context file goes on from it
+                        if gg_.area >= COVER_MIN_M2:
+                            parts_.append((kind, mat, lab, R, gg_, solid))
+                    continue
+            except Exception:
+                pass
+        parts_.append((kind, mat, lab, R, g, solid))
+    for kind, mat, lab, R, g, solid in parts_:
         bot = None
         if solid:                                         # the bottom of his slab as build_site makes it
             gs = [z for z in (gz(q) for q in R) if z is not None]
@@ -4829,6 +5422,48 @@ def cover_plan(log, tin, ox, oy, SP, bld, survey):
                 th, up = MP_SLABS[solid]
                 bot = min((gc if gc is not None else min(gs)) + up - th, min(gs))
         items.append((len(items), kind, mat, lab, g, bot))
+    if N_WACUT[0]:
+        log.append(u"ground covers (v2.11ae): %d area(s) cut at the working-area border (proposal file up to it, "
+                   u"context file from it)" % N_WACUT[0])
+    rd_ = [it[4] for it in items if it[1] == "road"]       # v2.11ab (Aras 25 Nov 09:19 UTC junction screenshot): a
+    if rd_:                                               # thin green strip of his (under STRIP_M wide on average)
+        try:                                              # never runs across a street: the street wins there
+            RU_ = so_.unary_union(rd_)
+            n_st_ = 0
+            for k_, it in enumerate(items):
+                g = it[4]
+                if it[1] == "mp" and it[2] == "park" and 2.0 * g.area / max(g.length, 1e-9) < STRIP_M and \
+                        g.intersects(RU_):
+                    g2 = g.difference(RU_)
+                    if g2.area < g.area - 0.01:
+                        items[k_] = it[:4] + (g2,) + it[5:]
+                        n_st_ += 1
+            log.append(u"ground covers (v2.11ab): %d thin green strip(s) of his cut back where they ran across a "
+                       u"street" % n_st_)
+        except Exception as ex:
+            log.append(u"FLAG thin green strips vs streets not checked (%s)" % ex)
+        items = [it for it in items if not it[4].is_empty and it[4].area >= COVER_MIN_M2]
+        items = [(k_,) + it[1:] for k_, it in enumerate(items)]
+    if COVER_CLOSE_M > 0 and items:                       # v2.11ab (Aras 25 Nov 09:10 UTC "these should meet"): the
+        try:                                              # gaps between his green pieces filled as green, under all
+            gp_ = [it[4] for it in items if it[1] == "mp" and it[2] == "park"]
+            if gp_:
+                U_ = so_.unary_union(gp_)
+                F_ = U_.buffer(COVER_CLOSE_M, join_style=2).buffer(-COVER_CLOSE_M, join_style=2).difference(U_)
+                if nogo is not None:
+                    F_ = F_.difference(nogo)
+                if site is not None:
+                    F_ = F_.intersection(site)
+                fl_ = [q for q in (list(F_.geoms) if hasattr(F_, "geoms") else [F_])
+                       if q.geom_type == "Polygon" and not q.is_empty and q.area >= 0.05]
+                if fl_:
+                    items = [(i_, k_, m_, l_, g_, b_) for i_, (_o, k_, m_, l_, g_, b_) in enumerate(
+                        [(0, "mp", "park", u"masterplan covers on the ground (v1.88)", q, None) for q in fl_] + items)]
+                log.append(u"ground covers (v2.11ab): %d gap(s) up to %.1f m wide between his green pieces filled as "
+                           u"green (%.0f m2), under everything else" % (len(fl_), 2 * COVER_CLOSE_M,
+                                                                       sum(q.area for q in fl_)))
+        except Exception as ex:
+            log.append(u"FLAG ground covers: gaps between the green pieces not filled (%s)" % ex)
     if not items:
         log.append(u"ground covers (v1.88): nothing to cover (no survey roads / parks, no masterplan surface pieces)")
         return
@@ -4865,8 +5500,10 @@ def cover_plan(log, tin, ox, oy, SP, bld, survey):
         return (min(zs), max(zs)) if zs else (None, None)
 
     def add(P, it, size):
+        """v2.11ab: returns the area actually planned (a dropped sliver is given back to the piece under it)"""
+        kept_ = []
         if P.is_empty:
-            return
+            return kept_
         for Q in (list(P.geoms) if hasattr(P, "geoms") else [P]):
             if Q.geom_type != "Polygon" or Q.is_empty:
                 continue
@@ -4884,7 +5521,7 @@ def cover_plan(log, tin, ox, oy, SP, bld, survey):
                 while x < bx[2]:
                     y = math.floor(bx[1] / h_) * h_
                     while y < bx[3]:
-                        add(Q.intersection(sg_.box(x, y, x + h_, y + h_)), it, h_)
+                        kept_ += add(Q.intersection(sg_.box(x, y, x + h_, y + h_)), it, h_)
                         y += h_
                     x += h_
                 continue
@@ -4900,6 +5537,8 @@ def cover_plan(log, tin, ox, oy, SP, bld, survey):
                 low = lo - COVER_T.get(it[2], 0.25)
             pieces.append(dict(mat=it[2], label=it[3], poly=Q, low=low, plat=low - COVER_GAP_M, solid=it[1] == "solid",
                                top=hi))
+            kept_.append(Q)
+        return kept_
     B = COVER_BOX_M
     x = math.floor(xs0 / B) * B
     while x < xs1:
@@ -4914,9 +5553,11 @@ def cover_plan(log, tin, ox, oy, SP, bld, survey):
                 if g.is_empty:
                     continue
                 vis = g if above is None else g.difference(above)
-                above = g if above is None else above.union(g)
                 if not vis.is_empty and vis.area >= COVER_MIN_M2:
-                    add(vis.buffer(0), it, B)
+                    k_ = add(vis.buffer(0), it, B)       # v2.11ab: only what is planned covers the pieces under it:
+                    if k_:                                # a sliver too small to build no longer leaves a hole
+                        k_ = so_.unary_union(k_)          # (Aras 25 Nov 09:13 UTC road screenshot: the ground stood
+                        above = k_ if above is None else above.union(k_)   # up through an empty hole in a road)
             y += B
         x += B
     COVER_PIECES.extend(pieces)
@@ -4929,7 +5570,14 @@ def cover_plan(log, tin, ox, oy, SP, bld, survey):
         rings += [sg_.LineString(r.coords) for r in [p["poly"].exterior] + list(p["poly"].interiors)]
     COVER_IDX[1] = (st_.STRtree(rings), rings)
     # the ground heights on every outline (every COVER_EDGE_M) and COVER_OUT_M outside it where no other piece is
+    V_ = []
+    for p in pieces:
+        if not p["solid"]:
+            for r in [p["poly"].exterior] + list(p["poly"].interiors):
+                V_ += list(r.coords)[:-1]
+    COVER_VT[:] = [st_.STRtree([sg_.Point(v) for v in V_]) if V_ else None, V_]
     seen, pts, seqs = set(), [], []                       # v1.94: seqs = per edge, [(index in pts)] on / outside
+    RIM_K, RIM_SEG, PK_ = set(), [], {}                   # v2.12: free-edge outline points, free-edge runs
     for p in pieces:
         P = p["poly"]
         for r in [P.exterior] + list(P.interiors):
@@ -4938,16 +5586,38 @@ def cover_plan(log, tin, ox, oy, SP, bld, survey):
                 L_ = math.hypot(b[0] - a[0], b[1] - a[1])
                 if L_ < 1e-6:
                     continue
-                n_ = max(1, int(math.ceil(L_ / COVER_EDGE_M)))
                 nx, ny = (b[1] - a[1]) / L_, -(b[0] - a[0]) / L_
                 on_, out_ = [], {1.0: [], -1.0: []}
-                for k in range(n_ + 1):
-                    q = (a[0] + (b[0] - a[0]) * k / n_, a[1] + (b[1] - a[1]) * k / n_)
+                prev_ = None
+                for q in _cover_stations(a, b) + [b]:     # v2.11af: the cover's own stations
                     key = (round(q[0], 2), round(q[1], 2))
                     if key not in seen:
                         seen.add(key)
                         pts.append(q)
                         on_.append(len(pts) - 1)
+                        PK_[key] = len(pts) - 1
+                    if COVER_RIM_M > 0:                   # v2.12: is the ground beyond this point free of pieces?
+                        s0_ = 1.0 if not P.contains(sg_.Point(q[0] + nx * COVER_OUT_M, q[1] + ny * COVER_OUT_M)) \
+                            else -1.0
+                        o0_ = sg_.Point(q[0] + s0_ * nx * COVER_OUT_M, q[1] + s0_ * ny * COVER_OUT_M)
+                        fr_ = not len(COVER_IDX[0].query(o0_, predicate="intersects"))
+                        if fr_ and key not in RIM_K:
+                            # v2.12: a free edge (no other piece beyond it): the ground ON the outline keeps the
+                            # surveyed height and drops to the piece's bottom only COVER_RIM_M inside, under the
+                            # piece (it dropped right on the outline, and a groove ran along every edge: the cover
+                            # top stood a median 0.81 m over the ground vertex there, Desktop v2.11ag check)
+                            RIM_K.add(key)
+                            i_ = (q[0] - s0_ * nx * COVER_RIM_M, q[1] - s0_ * ny * COVER_RIM_M)
+                            ki_ = (round(i_[0], 2), round(i_[1], 2))
+                            if P.contains(sg_.Point(i_)) and ki_ not in seen:
+                                seen.add(ki_)
+                                pts.append(i_)
+                        if prev_ is not None:              # the run prev_-q is free when its middle is
+                            m_ = ((prev_[0] + q[0]) / 2.0, (prev_[1] + q[1]) / 2.0)
+                            om_ = sg_.Point(m_[0] + s0_ * nx * COVER_OUT_M, m_[1] + s0_ * ny * COVER_OUT_M)
+                            if not len(COVER_IDX[0].query(om_, predicate="intersects")):
+                                RIM_SEG.append(sg_.LineString([prev_, q]))
+                        prev_ = q
                     for s_ in (1.0, -1.0):                    # the side away from this piece
                         o_ = (q[0] + s_ * nx * COVER_OUT_M, q[1] + s_ * ny * COVER_OUT_M)
                         if P.contains(sg_.Point(o_)):
@@ -4957,10 +5627,38 @@ def cover_plan(log, tin, ox, oy, SP, bld, survey):
                             seen.add(key)
                             pts.append(o_)
                             out_[s_].append(len(pts) - 1)
-                seqs += [(on_, COVER_TOL_M / 2.0)]       # v2.10: the ground points just outside are all kept (every
+                # v2.11ab (Aras 25 Nov 09:12 UTC "fix terrain + road collisions"): the points ON the outline are all
+                # kept too: they all sit at the piece's bottom, one flat height, so the straight-line thinning left
+                # only the corners, and the ground between the kept points just outside on both sides of a road ran
+                # straight across it at the surveyed height, through the road (the diagonal creases)
+                # v2.10: the ground points just outside are all kept (every
                 # COVER_EDGE_M at the surveyed height; v1.94-v2.09 thinned them, and the ground between two far-apart
                 # kept points followed its own +-0.30 m tile heights, so it rose over or sank under the cover's edge)
+    n_in_ = 0                                             # v2.11ab: ground points INSIDE every piece too (every
+    for p in pieces:                                      # COVER_IN_M, at least 0.3 m in from its outline), so no
+        P = p["poly"]                                     # ground triangle can span a piece at the surveyed height
+        bx = P.bounds                                     # (Aras 25 Nov 09:17 UTC: the ground showed through a
+        try:                                              # road in saw teeth)
+            from shapely.prepared import prep as prep_
+            pr = prep_(P.buffer(-0.3))
+        except Exception:
+            continue
+        x = math.floor(bx[0] / COVER_IN_M) * COVER_IN_M + COVER_IN_M / 2.0
+        while x < bx[2]:
+            y = math.floor(bx[1] / COVER_IN_M) * COVER_IN_M + COVER_IN_M / 2.0
+            while y < bx[3]:
+                if pr.contains(sg_.Point(x, y)):
+                    key = (round(x, 2), round(y, 2))
+                    if key not in seen:
+                        seen.add(key)
+                        pts.append((x, y))
+                        n_in_ += 1
+                y += COVER_IN_M
+            x += COVER_IN_M
+    COVER_STAT["pts_in"] = n_in_
+    COVER_RIM[:] = [st_.STRtree(RIM_SEG) if RIM_SEG else None, RIM_SEG]   # v2.12, used by cover_z_many
     zs = cover_z_many(pts, [gz(q) for q in pts])
+    COVER_STAT["rim"] = len(RIM_K)
     keep_ = [True] * len(pts)                             # v1.94: drop the heights a straight run does not need
     for ix_, tol_ in seqs:
         if len(ix_) <= 2 or any(zs[i] is None for i in ix_):
@@ -4983,11 +5681,47 @@ def cover_plan(log, tin, ox, oy, SP, bld, survey):
         by[k] = by.get(k, 0) + 1
     COVER_STAT.update(n=len(pieces), pts=len(pts), drop=n_drop[0], noz=n_drop[1], t=time.time() - t0_)
     log.append(u"ground covers (v1.88): %d pieces with no overlap (his drawing order wins), %s; the ground lowered under "
-               u"them (%d outline heights); %d leftovers under %.0f m2 or thinner than %.1f m and %d with no surveyed "
+               u"them (%d heights on and inside their outlines); %d leftovers under %.0f m2 or thinner than %.1f m and %d with no surveyed "
                u"ground not built; build-ups ASSUMED %s; %.1f s" % (
                    len(pieces), u", ".join(u"%s %d" % kv for kv in sorted(by.items())), len(pts), n_drop[0],
                    COVER_MIN_M2, COVER_THIN_M, n_drop[1],
                    u", ".join(u"%s %.2f m" % kv for kv in sorted(COVER_T.items())), time.time() - t0_))
+
+
+COVER_VT = [None, []]       # v2.11af: STRtree of every cover piece corner, the corners
+
+
+def _cover_stations(a, b):
+    """v2.11ab/v2.11af: the height stations of the edge a->b (b left out): a, where it crosses the fixed COVER_EDGE_M
+    site grid, and every corner of another piece lying on it. The cover meshes AND the ground just outside them take
+    exactly these stations, so their edges run on the same line (v2.11ae: the ground took its own spacing, and its
+    edge zig-zagged against the cover's: the saw teeth Aras saw along his cycle path, 25 Nov 12:30 UTC)"""
+    ts_ = {0.0}
+    G_ = COVER_EDGE_M
+    for d_ in (0, 1):
+        if abs(b[d_] - a[d_]) > 1e-9:
+            lo_, hi_ = sorted((a[d_], b[d_]))
+            k_ = math.floor(lo_ / G_) + 1
+            while k_ * G_ < hi_:
+                ts_.add(round((k_ * G_ - a[d_]) / (b[d_] - a[d_]), 9))
+                k_ += 1
+    L2_ = (b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2
+    VT_, V_ = COVER_VT
+    if VT_ is not None and L2_ > 1e-6:
+        sg_ = _shp()[1]
+        sgm_ = sg_.LineString([a, b])
+        for j_ in VT_.query(sgm_.buffer(0.01)):
+            v_ = V_[int(j_)]
+            t_ = ((v_[0] - a[0]) * (b[0] - a[0]) + (v_[1] - a[1]) * (b[1] - a[1])) / L2_
+            if 0.0 < t_ < 1.0 and sgm_.distance(sg_.Point(v_)) <= 0.01:
+                ts_.add(round(t_, 9))
+    out_ = []
+    for t_ in sorted(ts_):
+        if 0.0 <= t_ < 1.0:
+            q_ = (a[0] + (b[0] - a[0]) * t_, a[1] + (b[1] - a[1]) * t_)
+            if not out_ or math.hypot(q_[0] - out_[-1][0], q_[1] - out_[-1][1]) > 0.005:
+                out_.append(q_)
+    return out_
 
 
 def cover_z_many(qs, zs):
@@ -5015,7 +5749,118 @@ def cover_z_many(qs, zs):
                 pl = COVER_PIECES[int(j)]["plat"]
                 if out[i] is None or pl < out[i]:
                     out[i] = pl
+    if COVER_RIM[0] is not None:                          # v2.12: ON a free edge the ground keeps its height
+        try:
+            rr_ = COVER_RIM[0].query(pts, predicate="dwithin", distance=0.005)
+            for i in set(int(i) for i in rr_[0]):
+                out[i] = zs[i]
+        except Exception:
+            for i, pt in enumerate(pts):
+                if any(COVER_RIM[1][int(j)].distance(pt) <= 0.005 for j in COVER_RIM[0].query(pt.buffer(0.005))):
+                    out[i] = zs[i]
+    if REED_IDX[0] is not None:                           # v2.12: the reed beds dug under the water
+        try:
+            rq_ = REED_IDX[0].query(pts, predicate="intersects")
+            for i, j in zip(rq_[0], rq_[1]):
+                i, t_ = int(i), REED_DIG[int(j)][1]
+                if out[i] is not None and t_ < out[i]:
+                    out[i] = t_
+        except Exception:
+            for i, q in enumerate(qs):
+                out[i] = reed_dig_z(q, out[i])
     return out
+
+
+REED_DIG_D = 0.30           # v2.12: m, the ground in a reed bed stands this far under the water (ASSUMED, no source)
+REED_DIG = []               # v2.12: (shapely polygon, ground target z, water z) per reed bed, survey m
+REED_IDX = [None]           # v2.12: STRtree of REED_DIG polygons
+REED_DIG_N = [0, 0, 0.0]    # v2.12: beds dug, ground points added, deepest cut (m)
+
+
+def _reed_dig_plan(log, tin, ox, oy, rects, SP):
+    """v2.12 (Aras 25 Nov 16:32 UTC "all reed beds needs to be in water so terrain should be modified accordingly water
+    height should be increased"): every reed bed of his (su_bitkii, sazlik) gets the ground under it at the shown
+    season's water level there less REED_DIG_D (only lowered, never raised), and a water surface over it at that level
+    (build_selinos); the river's own level (his Sections levels) is unchanged"""
+    del REED_DIG[:]
+    REED_IDX[0] = None
+    REED_DIG_N[:] = [0, 0, 0.0]
+    S_ = _shp()
+    if not S_:
+        return
+    sg_, st_ = S_[1], S_[3]
+    try:
+        with open(os.path.join(BERGAMA_ROOT, "cached", "bergama_sections", "cuts.json"), encoding="utf-8") as f:
+            CJ = json.load(f).get("cuts", {})
+    except Exception:
+        CJ = {}
+    rings = SEL.get("river") or []
+    if SITE_POLY:
+        rings = [R for R in (clean(_clip_convex([tuple(q) for q in R], SITE_POLY)) for R in rings) if len(R) >= 3]
+    gz = lambda p: tin.z(p[0] - ox, p[1] - oy)
+    tmp_ = []
+    bed = _bed_fn(rects, CJ, rings, gz, tmp_)
+    wl = _water_level_fn(rects, CJ, rings, tmp_, bed) if rings else None
+    if wl is None:
+        log.append(u"FLAG reed beds (v2.12): no water level (no section line with levels crosses the river): not dug")
+        return
+    for nm, R, H in SP:
+        if nm not in ("su_bitkii", "sazlik") or len(H) < 3:
+            continue
+        try:
+            P = sg_.Polygon(H).buffer(0)
+        except Exception:
+            continue
+        if P.is_empty or P.area < 0.05:
+            continue
+        c = P.representative_point()
+        lv = wl(c.x, c.y)
+        if lv is None:
+            continue
+        REED_DIG.append((P, lv - REED_DIG_D, lv))
+    if REED_DIG:
+        REED_IDX[0] = st_.STRtree([d[0] for d in REED_DIG])
+
+
+def reed_dig_z(q, z):
+    """v2.12: the ground height at q after the reed bed digging (z itself outside every bed, never raised)"""
+    if REED_IDX[0] is None or z is None:
+        return z
+    pt = _shp()[1].Point(q[0], q[1])
+    for j in REED_IDX[0].query(pt, predicate="intersects"):
+        t_ = REED_DIG[int(j)][1]
+        if t_ < z:
+            z = t_
+    return z
+
+
+def _reed_dig_pts(gz):
+    """v2.12: ground heights inside every reed bed (every 2 m, its middle) at the dug level, for the ground tiles"""
+    n_ = 0
+    for P, t_, _lv in REED_DIG:
+        bx = P.bounds
+        c = P.representative_point()
+        qs = [(c.x, c.y)]
+        x = math.floor(bx[0] / 2.0) * 2.0 + 1.0
+        while x < bx[2]:
+            y = math.floor(bx[1] / 2.0) * 2.0 + 1.0
+            while y < bx[3]:
+                if P.contains(_shp()[1].Point(x, y)):
+                    qs.append((x, y))
+                y += 2.0
+            x += 2.0
+        dug_ = False
+        for q in qs:
+            z = gz(q)
+            if z is None:
+                continue
+            if t_ < z:
+                REED_DIG_N[2] = max(REED_DIG_N[2], z - t_)
+                dug_ = True
+            COVER_TILE_PTS.setdefault((int(q[0] // 10.0), int(q[1] // 10.0)), []).append((q[0], q[1], min(z, t_)))
+            n_ += 1
+        REED_DIG_N[0] += 1 if dug_ else 0
+    REED_DIG_N[1] = n_
 
 
 def cover_edge_ts(a, b):
@@ -5054,6 +5899,7 @@ def cover_tile_pts(Pc, x0, y0, x1, y1):
     return out
 
 
+COV_BAD = []             # v2.12: the refused cover pieces, for the log
 COVER_SLIM = [0, 0]                                   # v1.93: outline points kept, inner points left out
 
 
@@ -5120,20 +5966,20 @@ def build_covers(ac, miss, log, xy, z0, tin, ox, oy):
     if not COVER_ON[0] or "CreateMeshes" in miss:
         return made
     sg_ = _shp()[1]
-    gz = lambda p: tin.z(p[0] - ox, p[1] - oy)
     by = {}
     for p in COVER_PIECES:
         if p["solid"]:
             continue
+        up_ = COVER_UP.get(p["mat"], 0.0)                 # v2.11af: hard surfaces stand COVER_UP above the ground
+        gz = lambda q, up_=up_: (lambda z_: None if z_ is None else z_ + up_)(tin.z(q[0] - ox, q[1] - oy))
         P, low = p["poly"], p["low"]
 
         def ring_(r):
+            """v2.11af: the stations shared with the neighbours and the ground (_cover_stations)"""
             C = list(r.coords)[:-1]
             out_ = []
             for a, b in zip(C, C[1:] + C[:1]):
-                n_ = max(1, int(math.ceil(math.hypot(b[0] - a[0], b[1] - a[1]) / COVER_EDGE_M)))
-                E_ = [(a[0] + (b[0] - a[0]) * k / n_, a[1] + (b[1] - a[1]) * k / n_) for k in range(n_ + 1)]
-                out_ += _keep_bends(E_, [gz(q) for q in E_])[:-1]   # v1.93: only where the ground bends
+                out_ += _cover_stations(a, b)
             return out_
         Ex = ring_(P.exterior)
         zs = [gz(q) for q in Ex]
@@ -5174,10 +6020,12 @@ def build_covers(ac, miss, log, xy, z0, tin, ox, oy):
             d_["sublines"] = [s_ for s_, _v in sub]
         COVER_SLIM[0] += len(Ex)
         by.setdefault(p["label"], []).append(d_)
-    n_ok = n_bad = 0
+    n_ok = n_bad = n_other = 0
     for lab, ds in sorted(by.items()):
         g_ = ac.create("CreateMeshes", "meshesData", ds, lab)
-        bad = [d for d, g in zip(ds, g_) if not g]
+        drop_ = getattr(ac, "last_drop", set())           # v2.11ab: built in the other file, not refused
+        n_other += len(drop_)
+        bad = [d for i_, (d, g) in enumerate(zip(ds, g_)) if not g and i_ not in drop_]
         made += [g for g in g_ if g]
         n_ok += sum(1 for g in g_ if g)
         if bad:                                           # again with the outline and holes only
@@ -5187,12 +6035,22 @@ def build_covers(ac, miss, log, xy, z0, tin, ox, oy):
             made += [g for g in g2 if g]
             n_ok += sum(1 for g in g2 if g)
             n_bad += sum(1 for g in g2 if not g)
+            for d, g in zip(bad, g2):                     # v2.12: where, for the next check
+                if not g and len(COV_BAD) < 12:
+                    xs_ = [c["x"] for c in d.get("polygonCoordinates", [])]
+                    ys_ = [c["y"] for c in d.get("polygonCoordinates", [])]
+                    if xs_:
+                        COV_BAD.append(u"%s at %.1f,%.1f (%.1f x %.1f m, %d points)" % (
+                            lab, (min(xs_) + max(xs_)) / 2, (min(ys_) + max(ys_)) / 2, max(xs_) - min(xs_),
+                            max(ys_) - min(ys_), len(xs_)))
+    if COV_BAD:
+        log.append(u"ground covers (v2.12): refused pieces (model x,y): " + u"; ".join(COV_BAD))
     log.append(u"ground covers (v1.93, 3D speed): %d outline height points kept (only where the ground bends more than "
                u"%.0f cm), %d inner height points left out (pieces within %.0f cm of one plane)" % (
                    COVER_SLIM[0], 100 * COVER_TOL_M, COVER_SLIM[1], 100 * COVER_TOL_M))
     log.append(u"ground covers (v1.88): %d Mesh bodies made (top = the surveyed ground, bottom %s under its lowest "
-               u"point, no solid element operation)%s" % (
-                   n_ok, u"/".join(u"%.2f" % v for v in sorted(set(COVER_T.values()))),
+               u"point, no solid element operation); %d built in the other file of the split%s" % (
+                   n_ok, u"/".join(u"%.2f" % v for v in sorted(set(COVER_T.values()))), n_other,
                    (u"; FLAG %d refused by Archicad even without inner heights: the lowered ground shows there" % n_bad)
                    if n_bad else u""))
     return made
@@ -5200,6 +6058,7 @@ def build_covers(ac, miss, log, xy, z0, tin, ox, oy):
 
 MORPH_WALLS = True        # v2.10: survey walls outside the working area, away from the section lines, as Morphs
 MORPH_SEC_M = 5.0         # m: a wall run closer than this to a section line stays a native Wall (ASSUMED)
+MORPH_LINE = True        # v2.12: a survey wall line built as Morphs is ONE Morph, mitred at its bends
 MORPH_STEP_M = 2.0        # m: the Morph wall's top and foot follow the ground at points this far apart
 
 
@@ -5242,6 +6101,61 @@ def _wall_morph(a, b, h, t, gz, xy, z0):
         lo, hi = round(g - 0.3 - z0, 3), round(g + h - z0, 3)
         V += [dict(x=round(x_ + nx, 4), y=round(y_ + ny, 4), z=lo), dict(x=round(x_ - nx, 4), y=round(y_ - ny, 4), z=lo),
               dict(x=round(x_ - nx, 4), y=round(y_ - ny, 4), z=hi), dict(x=round(x_ + nx, 4), y=round(y_ + ny, 4), z=hi)]
+    for i in range(k_n):                                  # LB, RB, RT, LT = 4i .. 4i + 3; L = the left (+n) side
+        LB, RB, RT, LT = 4 * i, 4 * i + 1, 4 * i + 2, 4 * i + 3
+        LB2, RB2, RT2, LT2 = LB + 4, RB + 4, RT + 4, LT + 4
+        F += [[LB, LT, LT2, LB2], [RB, RB2, RT2, RT], [LT, RT, RT2, LT2], [LB, LB2, RB2, RB]]
+    e = 4 * k_n
+    F += [[0, 1, 2, 3], [e, e + 3, e + 2, e + 1]]          # end caps (counter-clockwise from outside)
+    return dict(basePoint=dict(o_, z=0.0), body=dict(bodyType="Solid", vertices=V,
+                                                     polygons=[dict(vertexIds=f_) for f_ in F]))
+
+
+def _wall_morph_line(P, h, t, gz, xy, z0):
+    """v2.12 (Aras 25 Nov 16:31 UTC "still these walls and their connections are fucked up": one Morph per straight run
+    met the next run with square ends, and its top stepped at every MORPH_STEP_M): one Morph for the whole survey line
+    P (survey m): t thick about the line, mitred at every bend (the mitre at most 2 x t/2 long), its top h over the
+    ground and its foot 0.3 m under the lowest ground along it, at every bend and every MORPH_STEP_M between; None when
+    the ground is unknown somewhere"""
+    P = [tuple(q) for i, q in enumerate(P) if i == 0 or math.hypot(q[0] - P[i - 1][0], q[1] - P[i - 1][1]) >= 0.05]
+    if len(P) < 2:
+        return None
+    U = []
+    for a, b in zip(P, P[1:]):
+        L_ = math.hypot(b[0] - a[0], b[1] - a[1])
+        U.append(((b[0] - a[0]) / L_, (b[1] - a[1]) / L_, L_))
+    st_ = []                                              # (point, offset vector to the left face)
+    for i, (a, b) in enumerate(zip(P, P[1:])):
+        ux, uy, L_ = U[i]
+        k_n = max(1, int(math.ceil(L_ / MORPH_STEP_M)))
+        for k in range(k_n):
+            q = (a[0] + (b[0] - a[0]) * k / k_n, a[1] + (b[1] - a[1]) * k / k_n)
+            if k == 0 and i > 0:                          # a bend: the mitre of the two runs
+                px_, py_ = -U[i - 1][1], U[i - 1][0]
+                nx_, ny_ = -uy, ux
+                mx_, my_ = px_ + nx_, py_ + ny_
+                ml_ = math.hypot(mx_, my_)
+                if ml_ < 1e-6:
+                    mx_, my_, ml_ = nx_, ny_, 1.0
+                cos_ = (mx_ * nx_ + my_ * ny_) / ml_
+                f_ = min(2.0, 1.0 / max(cos_, 0.5)) * t / 2.0
+                st_.append((q, (mx_ / ml_ * f_, my_ / ml_ * f_)))
+            else:
+                st_.append((q, (-uy * t / 2.0, ux * t / 2.0)))
+    st_.append((P[-1], (-U[-1][1] * t / 2.0, U[-1][0] * t / 2.0)))
+    gs_ = [gz(q) for q, _o in st_]
+    if any(g is None for g in gs_):
+        return None
+    lo = round(min(gs_) - 0.3 - z0, 3)
+    o_ = xy(P[0])
+    V, F = [], []
+    for (q, (nx, ny)), g in zip(st_, gs_):
+        c_ = xy(q)
+        x_, y_ = c_["x"] - o_["x"], c_["y"] - o_["y"]
+        hi = round(g + h - z0, 3)
+        V += [dict(x=round(x_ + nx, 4), y=round(y_ + ny, 4), z=lo), dict(x=round(x_ - nx, 4), y=round(y_ - ny, 4), z=lo),
+              dict(x=round(x_ - nx, 4), y=round(y_ - ny, 4), z=hi), dict(x=round(x_ + nx, 4), y=round(y_ + ny, 4), z=hi)]
+    k_n = len(st_) - 1
     for i in range(k_n):                                  # LB, RB, RT, LT = 4i .. 4i + 3; L = the left (+n) side
         LB, RB, RT, LT = 4 * i, 4 * i + 1, 4 * i + 2, 4 * i + 3
         LB2, RB2, RT2, LT2 = LB + 4, RB + 4, RT + 4, LT + 4
@@ -5595,6 +6509,7 @@ def build_town(ac, miss, log, xy, z0, tin, ox, oy, rects, inside):
     st_in, st_edge, w_ok = None, None, None
     morphs = []                                           # v2.10: survey walls as Morphs (outside the working area)
     n_wst, n_wsense = [0], [0]
+    n_wh = [0]                                            # v2.11ae: wall pieces cut back at a house
     try:
         G_ = _street_geom([p_["poly"] for p_ in COVER_PIECES if p_["mat"] in ("road", "pavement")])
         if G_ is not None:
@@ -5658,19 +6573,46 @@ def build_town(ac, miss, log, xy, z0, tin, ox, oy, rects, inside):
                 continue
             li_ = li_run[0]                               # v1.77: this line's number (same order as LN_)
             li_run[0] += 1
+            # v2.11ab (Aras 25 Nov 09:18 UTC "intersections still fail, also use outside core whenever you can where
+            # you can use outside face"): the survey line is the wall's OUTSIDE face; its body goes to the side away
+            # from the street (left when no street is near), the same side along the whole line so its corners meet
+            sd_ = 1.0
+            if st_in is not None and sgP_ is not None and len(P) >= 2:
+                nl_ = nr_ = 0
+                for a_, b_ in zip(P, P[1:]):
+                    l_ = math.hypot(b_[0] - a_[0], b_[1] - a_[1])
+                    if l_ < 0.3:
+                        continue
+                    lx_, ly_ = -(b_[1] - a_[1]) / l_, (b_[0] - a_[0]) / l_
+                    for f_ in (0.25, 0.5, 0.75):
+                        m_ = (a_[0] + (b_[0] - a_[0]) * f_, a_[1] + (b_[1] - a_[1]) * f_)
+                        nl_ += st_edge.contains(sgP_.Point(m_[0] + lx_ * 1.5, m_[1] + ly_ * 1.5)) if st_edge else 0
+                        nr_ += st_edge.contains(sgP_.Point(m_[0] - lx_ * 1.5, m_[1] - ly_ * 1.5)) if st_edge else 0
+                sd_ = -1.0 if nl_ > nr_ else 1.0
+                SW_SIDE[0 if sd_ > 0 else 1] += 1
+            fw_ = (sd_ > 0) == (WALL_SIDE[0] != "rev")     # body left of beg->end (Archicad 30, see _wall_side)
+            mo_all_ = key == "walls" and ac.has("CreateMorphs") and all(   # v2.11ab: a line is all Morph or all
+                _morph_ok(a, b, rects) and all(inr(q) and not _in_bld(q) for q in samp_([a, b], 0.5)) and   # Wall
+                not on_bank_(a, b) and not (st_in is not None and sgP_ is not None and any(
+                    st_in.contains(sgP_.Point(q)) for q in samp_([a, b], 0.5)))
+                for a, b in zip(P, P[1:]) if math.hypot(b[0] - a[0], b[1] - a[1]) >= 0.3)
             if len(P) >= 2:                               # v1.76: ends meet the other lines' ends; v1.77: or their line
                 for e_ in (0, -1):
                     q0_ = P[e_]
                     q1_ = snap_(q0_)
                     P[e_] = tee_(q0_, li_) if q1_ is q0_ else q1_
+            if mo_all_ and MORPH_LINE:                    # v2.12: the whole line as one mitred Morph
+                mo_ = _wall_morph_line(P, h, t, gz, xy, z0)
+                if mo_:
+                    morphs.append(dict(mo_, _mat=mat))
+                    n_by["walls (Morph, one per line)"] = n_by.get("walls (Morph, one per line)", 0) + 1
+                    continue
             for a, b in zip(P, P[1:]):
                 Ls = math.hypot(b[0] - a[0], b[1] - a[1])
                 if Ls < 0.3:
                     continue
-                if key == "walls" and _morph_ok(a, b, rects) and ac.has("CreateMorphs"):
-                    S = samp_([a, b], 0.5)
-                    if all(inr(q) and not _in_bld(q) for q in S) and not on_bank_(a, b) and not (
-                            st_in is not None and sgP_ is not None and any(st_in.contains(sgP_.Point(q)) for q in S)):
+                if mo_all_:
+                    if True:
                         mo_ = _wall_morph(a, b, h, t, gz, xy, z0)
                         if mo_:
                             morphs.append(dict(mo_, _mat=mat))
@@ -5681,7 +6623,9 @@ def build_town(ac, miss, log, xy, z0, tin, ox, oy, rects, inside):
                 if za_ is not None and zb_ is not None:   # v1.56: on a slope shorter pieces (each a flat-topped wall
                     k_n = max(k_n, min(int(Ls // LINE_MIN_M) or 1,   # stood above the ground by its own rise:
                                        int(math.ceil(abs(zb_ - za_) / LINE_STEP_M.get(key, LINE_RISE_M)))))   # v1.88: stepped
-                for k_ in range(k_n):
+                zs_seg_ = [z for z in (gz(q) for q in samp_([a, b], 1.0)) if z is not None]
+                lo_seg_ = (min(zs_seg_) - 0.3) if zs_seg_ else None   # v2.11ab: one foot for the whole segment, so
+                for k_ in range(k_n):                                 # its steps join
                     p0 = (a[0] + (b[0] - a[0]) * k_ / k_n, a[1] + (b[1] - a[1]) * k_ / k_n)
                     p1 = (a[0] + (b[0] - a[0]) * (k_ + 1) / k_n, a[1] + (b[1] - a[1]) * (k_ + 1) / k_n)
                     m_ = ((p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2)
@@ -5705,13 +6649,30 @@ def build_town(ac, miss, log, xy, z0, tin, ox, oy, rects, inside):
                                     if math.hypot(qb_[0] - qa_[0], qb_[1] - qa_[1]) >= LINE_MIN_M:
                                         runs_.append((qa_, qb_))
                                     r0_ = None
-                    for p0, p1 in runs_:
+                    rh_ = []                              # v2.11ae (Aras 25 Nov 12:25 UTC "road and buildings
+                    for qa_, qb_ in runs_:                # clashes"): a wall / kerb stops at a house wall: the parts
+                        S = samp_([qa_, qb_], 0.25)       # within half its thickness of a house come out
+                        fl_ = [not _in_bld(q, t / 2.0 + 0.02) for q in S]
+                        if all(fl_):
+                            rh_.append((qa_, qb_))
+                            continue
+                        n_wh[0] += 1
+                        r0_ = None
+                        for i_, f_ in enumerate(fl_ + [False]):
+                            if f_ and r0_ is None:
+                                r0_ = i_
+                            elif not f_ and r0_ is not None:
+                                if math.hypot(S[i_ - 1][0] - S[r0_][0], S[i_ - 1][1] - S[r0_][1]) >= LINE_MIN_M:
+                                    rh_.append((S[r0_], S[i_ - 1]))
+                                r0_ = None
+                    for p0, p1 in rh_:
                         zs = [z for z in (gz(p0), gz(p1)) if z is not None]
                         if not zs:
                             continue
-                        lo = min(zs) - 0.3
-                        walls.append(dict(begCoordinate=xy(p0), endCoordinate=xy(p1), zCoordinate=round(lo - z0, 3),
-                                          height=round(max(zs) + h - lo, 3), thickness=t, referenceLineLocation="Center",
+                        lo = min(zs) - 0.3 if lo_seg_ is None else min(lo_seg_, min(zs) - 0.3)
+                        e0_, e1_ = (p0, p1) if fw_ else (p1, p0)
+                        walls.append(dict(begCoordinate=xy(e0_), endCoordinate=xy(e1_), zCoordinate=round(lo - z0, 3),
+                                          height=round(max(zs) + h - lo, 3), thickness=t, referenceLineLocation="Outside",
                                           _mat=mat))
                         n_by[key] = n_by.get(key, 0) + 1
     if morphs:
@@ -5734,6 +6695,10 @@ def build_town(ac, miss, log, xy, z0, tin, ox, oy, rects, inside):
                    (u"%d of %d lines left out as stand-alone (touch no house within %.1f m, line no street edge, meet no "
                     u"such wall)" % (n_wsense[0], len(L.get("walls") or []), WALL_HOUSE_M)) if w_ok is not None else
                    u"all lines kept (WALL_SENSE off)", n_wst[0], STREET_IN_M, LINE_STEP_M["walls"]))
+    log.append(u"survey walls (v2.11ae): %d kerb / wall piece(s) cut back where they ran into a house" % n_wh[0])
+    log.append(u"survey walls (v2.11ab): reference line = the survey line on the wall's outside face; body away from "
+               u"the street on %d line(s), on the left where no street is near on %d; one foot per segment; a line is "
+               u"all Morph or all Wall" % (SW_SIDE[1], SW_SIDE[0]))
     log.append(u"collisions (v1.76): %d kerb / wall piece(s) left out (through a house or on a bank wall line); line ends "
                u"within %.2f m joined; %d T-junction end(s) moved onto the other line (v1.77)" % (n_kc[0], SNAP_M, n_t[0]))
     # ---- v1.44 pavements: from each survey kerb piece to the nearest building face on its side
@@ -5857,9 +6822,20 @@ def site_pieces(log):
         if "su_outline" in parts:                          # v1.19: his river outline, for the tier direction
             for p in pieces:
                 RIVER_PTS.extend(tuple(v[:2]) for v in p[4])
+        if "su_texture" in parts:                          # v2.11ab: his water pictures: the season water is the water
+            n_skip[parts[-1]] = n_skip.get(parts[-1], 0) + len(pieces)
+            continue
         nm = next((p_ for p_ in reversed(parts) if p_ in MP_SLABS), None)
+        if "kopruler" in parts and "texture" in parts:     # v2.11ab (Aras 25 Nov 09:13 UTC screenshot): his bridge
+            n_skip["kopruler texture"] = n_skip.get("kopruler texture", 0) + len(pieces)   # pictures are no decks:
+            continue                                       # a 1,829 m2 picture clip stood as a flat 0.5 m deck over the bank
         if "kopruler" in parts:
             nm = "kopruler"                                # v1.21: every bridge piece is a bridge (0.50 m)
+        if "sazlik" in parts:                              # v2.11ab: his reed bed pieces (reed clumps)
+            nm = "sazlik"
+        if "bisiklet" in parts:
+            nm = "bisiklet"                                # v2.11ab (Aras 09:14 UTC "red road is bicycle road"): his
+            #                                                bisiklet/yeni was read as "yeni" and built as grey paving
         if "tas" in parts or "kaya" in parts:
             nm = "rock"                                    # v1.29: his stones and rocks (boulders from ROCK_MIN_M2)
         if nm is None:
@@ -5870,12 +6846,30 @@ def site_pieces(log):
             R = [tuple(v[:2]) for v in p[4]]
             ol_ = nm in OUTLINE_LAYERS or any(p_ in OUTLINE_LAYERS for p_ in parts)   # v1.21: outline-only layers
             if p[0] not in ("r", "a") or (not p[1] and not (ol_ and (p[0] == "r" or nm == "kopruler"))) or len(R) < 3 or \
-                    abs(area(R)) < (ROCK_MIN_M2 if nm == "rock" else 0.5) or abs(area(R)) > MP_MAX_M2:
+                    abs(area(R)) < (ROCK_MIN_M2 if nm == "rock" else 0.01 if nm == "sazlik" else 0.5) or \
+                    abs(area(R)) > MP_MAX_M2:
                 continue                                   # v1.29: his bridge picture-clip shapes count as outlines
             if p[0] == "a" and len(R) == 4:
                 continue                                   # a picture's own rectangle (nodes common v8.2)
             c = (sum(q[0] for q in R) / len(R), sum(q[1] for q in R) / len(R))
             if wa and not any(_inpoly(c, W) for W in wa):
+                if nm in COVER_LAYERS and _shp():          # v2.11ad (v2.11ac run: "bisiklet/yeni 1 piece(s), 0 taken"):
+                    try:                                   # a surface piece whose middle lies outside the working area
+                        S_ = _shp()                        # (his one long cycle path ring) keeps its part inside it
+                        WU_ = S_[2].unary_union([S_[1].Polygon(W).buffer(0) for W in wa])
+                        G_ = S_[1].Polygon(R).buffer(0).intersection(WU_)
+                        for g_ in getattr(G_, "geoms", [G_]):
+                            if g_.geom_type != "Polygon" or g_.area < 0.5:
+                                continue
+                            H = clean([tuple(q) for q in list(g_.exterior.coords)[:-1]])
+                            if len(H) >= 3:
+                                AUDIT[key][1] += 1
+                                out.append((nm, list(H) + [H[0]], H))
+                                PIECE_KEY[id(H)] = next((m_ for w_, m_ in PIECE_MAT if w_ in parts), None)
+                                N_CLIPWA[0] += 1
+                        continue
+                    except Exception:
+                        pass
                 n_out += 1
                 continue
             H = clean(R[:-1] if R[0] == R[-1] else R)
@@ -5897,6 +6891,10 @@ def site_pieces(log):
         out = [o for i, o in enumerate(out) if i not in drop]
         log.append(u"outline layers (bridges, stepped terraces): %d inner rings inside a bigger one left out" % len(drop))
     SEL["bridges"] = [o for o in out if o[0] == "kopruler"]
+    if N_CLIPWA[0]:
+        log.append(u"masterplan (v2.11ad): %d surface piece part(s) inside the working area kept from pieces whose middle "
+                   u"lies outside it (e.g. his cycle path)" % N_CLIPWA[0])
+    out = _mp_visible(out, log)                            # v2.11ab
     log.append(u"masterplan layer audit (master.svg via MasterplanBase; masterplan2.svg in the next pass): " + u"; ".join(
         u"%s %d piece(s), %d taken: %s" % (k, v[0], v[1], v[2] or (u"built: slabs" if v[1] else
                                                                      u"not built: no filled outline in the working area"))
@@ -5905,6 +6903,62 @@ def site_pieces(log):
         len(out), u", ".join(u"%s %d" % (k, sum(1 for o in out if o[0] == k)) for k in sorted(set(o[0] for o in out))),
         n_out, u", ".join(u"%s %d" % kv for kv in sorted(n_skip.items())) or u"none"))
     return out
+
+
+MP_CLIP = ("teras", "bina_cerceve", "begum_su_merdiven", "su_bitkii")   # v2.11ab: his slab layers cut by what he drew over them
+MP_OVER_SKIP = ("kopruler", "rock")                    # v2.11ab: bridges and boulders hide nothing under them
+
+
+def _mp_visible(out, log):
+    """v2.11ab (Aras 25 Nov 09:11 UTC "some layers are overlapping such as hardscape and green areas however the most top
+    layer being green area so we view it as green area however in archicad you draw both"): a slab piece of MP_CLIP
+    keeps only the part no later piece of his drawing (higher in his layer order) covers; covered wholly: not built"""
+    S_ = _shp()
+    if not S_:
+        return out
+    sg_, so_, st_ = S_[1], S_[2], S_[3]
+
+    def mk(R):
+        try:
+            g = sg_.Polygon(R).buffer(0)
+            return g if not g.is_empty else None
+        except Exception:
+            return None
+    G = [mk(H) if nm not in MP_OVER_SKIP else None for nm, R, H in out]
+    idx = [i for i, g in enumerate(G) if g is not None]
+    if not idx:
+        return out
+    tree = st_.STRtree([G[i] for i in idx])
+    new, n_cut, n_gone, a_hid = [], 0, 0, 0.0
+    for i, (nm, R, H) in enumerate(out):
+        g = G[i]
+        if nm not in MP_CLIP or g is None:
+            new.append((nm, R, H))
+            continue
+        over = [G[idx[int(j)]] for j in tree.query(g) if idx[int(j)] > i]
+        if not over:
+            new.append((nm, R, H))
+            continue
+        vis = g.difference(so_.unary_union(over))
+        if vis.is_empty or vis.area < 0.05 * g.area:
+            n_gone += 1
+            a_hid += g.area
+            continue
+        if vis.area >= g.area - 0.01:
+            new.append((nm, R, H))
+            continue
+        n_cut += 1
+        a_hid += g.area - vis.area
+        for q in (list(vis.geoms) if hasattr(vis, "geoms") else [vis]):
+            if q.geom_type != "Polygon" or q.area < 0.5 or 2.0 * q.area / max(q.length, 1e-9) < 0.2:
+                continue
+            H2 = [tuple(c) for c in list(q.exterior.coords)[:-1]]
+            PIECE_KEY[id(H2)] = PIECE_KEY.get(id(H))
+            new.append((nm, H2 + [H2[0]], H2))
+    log.append(u"masterplan pieces under his upper layers (v2.11ab): %d slab piece(s) (%s) cut to the part nothing drawn "
+               u"over them covers, %d covered wholly and not built; %.0f m2 hidden" % (
+                   n_cut, u", ".join(MP_CLIP), n_gone, a_hid))
+    return new
 
 
 def build_site(ac, miss, log, xy, z0, tin, ox, oy, pieces):
@@ -6383,6 +7437,7 @@ def main():
                     SURVEY_CACHE, len(pts), len(tin.t)))
             except Exception as ex:
                 log.append(u"FLAG survey cache not written (%s)" % ex)
+    _smooth_flat(tin, contours, ox, oy, log)              # v2.11ag
     zmin_all = min(p[2] for p in pts) if pts else 0.0
     bld, skipped = [], 0
     LB_ = {}                                              # v1.44: survey floor labels by 20 m cell
@@ -6445,6 +7500,7 @@ def main():
     except Exception as ex:
         log.append(u"FLAG node buildings vs streets (v2.10) not checked (%s: %s)" % (type(ex).__name__, ex))
     NB_RINGS[:] = [[tuple(q[:2]) for q in b["foot"]] for b in NB if len(b.get("foot") or []) >= 3]   # v2.10
+    _whole_set([b["ring"] for b in bld if b.get("ring") and len(b["ring"]) >= 3] + list(NB_RINGS), log)   # v2.11ab
     if NB:                                                # v1.33: a node building replaces the survey building under it
         n0 = len(bld)
         bld = [b for b in bld if b["fl"] < 0 or not any(_overlap_frac(b["ring"], [tuple(q[:2]) for q in nb["foot"]], (
@@ -6768,6 +7824,18 @@ def main():
             COVER_ON[0] = False
             log.append(u"FLAG ground covers not planned (%s: %s) %s: roads, parks and his areas as in v1.87" % (
                 type(ex).__name__, ex, traceback.format_exc()[-400:]))
+        try:                                              # v2.12: the reed beds dug under the water
+            _reed_dig_plan(log, tin, ox, oy, rects, SP)
+            if COVER_ON[0]:
+                _reed_dig_pts(lambda q: tin.z(q[0] - ox, q[1] - oy))
+            log.append(u"reed beds (v2.12): %d of his beds, %d dug down to %.2f m under the %s water there (ASSUMED depth), "
+                       u"deepest cut %.2f m, %d ground heights set inside them; water laid over each bed" % (
+                           len(REED_DIG), REED_DIG_N[0], REED_DIG_D, WATER_SHOW, REED_DIG_N[2], REED_DIG_N[1]))
+        except Exception as ex:
+            import traceback
+            del REED_DIG[:]
+            REED_IDX[0] = None
+            log.append(u"FLAG reed beds not dug (%s: %s) %s" % (type(ex).__name__, ex, traceback.format_exc()[-300:]))
     if not reuse:
         # ---- v1.31 (Aras 21:19-21:20 "ground has gaps", "it all should be one large block", "with many control
         # points on it"); v1.32 (the v1.31 publish stalled): the one ground surface in GROUND_TILE_M tiles whose edge
@@ -6797,7 +7865,19 @@ def main():
         def zg(s_, ix_, iy_):
             k_ = (s_, ix_, iy_)
             if k_ not in ZG:
-                ZG[k_] = tin.z(gb[0] + ix_ * s_ - ox, gb[1] + iy_ * s_ - oy)
+                cx_, cy_ = gb[0] + ix_ * s_ - ox, gb[1] + iy_ * s_ - oy
+                if GROUND_AA and s_ > 1.0:                # v2.12: the grid height is the ground averaged over the
+                    h_ = s_ / 2.0                         # grid cell (3 x 3 samples, weights 1-2-1), not one point
+                    sw_ = sz_ = 0.0                       # that may hit a facet of the survey triangulation (the
+                    for dx_, wx_ in ((-h_, 1.0), (0.0, 2.0), (h_, 1.0)):   # bumps Aras saw on the 8 m grid)
+                        for dy_, wy_ in ((-h_, 1.0), (0.0, 2.0), (h_, 1.0)):
+                            v_ = tin.z(cx_ + dx_, cy_ + dy_)
+                            if v_ is not None:
+                                sw_ += wx_ * wy_
+                                sz_ += wx_ * wy_ * v_
+                    ZG[k_] = sz_ / sw_ if sw_ >= 4.0 else tin.z(cx_, cy_)
+                else:
+                    ZG[k_] = tin.z(cx_, cy_)
             return ZG[k_]
         ACC = []                                          # v1.45: (grid, max deviation, tolerance) per tile
         have_ = set((int(p[0] // GROUND_GRID_M), int(p[1] // GROUND_GRID_M)) for p in spot)
@@ -6943,6 +8023,13 @@ def main():
                             cq_.append(q)
                             cz_.append(z_)
                             BUILT_KEPT.add((pick, ix_, iy_))       # v1.78
+                    if err_ is not None and err_ > tol and tp_:   # v2.11ah: over tolerance even at 1 m: the survey
+                        for p in tp_:                             # heights themselves become control points
+                            if min(_seg_d(p, a_, b_) for a_, b_ in zip(Pc, Pc[1:] + Pc[:1])) >= 0.3:
+                                cq_.append((p[0], p[1]))
+                                cz_.append(p[2])
+                                N_SURVPTS[0] += 1
+                        N_SURVPTS[1] += 1
                     sub = [{"coordinates": [dict(xy(q), z=zr(z_))]} for q, z_ in zip(cq_, cover_z_many(cq_, cz_))]
                     if COVER_ON[0]:                       # v1.88: the heights that pin the cover outlines
                         sub += [{"coordinates": [dict(xy((x_, y_)), z=zr(z_))]} for x_, y_, z_ in
@@ -7119,6 +8206,10 @@ def main():
                            len(ACC), u", ".join(u"%.0f m x %d" % (k, v) for k, v in sorted(cg_.items())),
                            max(a_[1] for a_ in ACC), sum(a_[1] for a_ in ACC) / len(ACC), GROUND_TOL_F * 100,
                            GROUND_TOL_MIN, sum(1 for a_ in ACC if a_[1] > a_[2]), GROUND_GRIDS[-1]))
+        if N_SURVPTS[1]:                                  # v2.11ah
+            log.append(u"ground (v2.11ah): in the %d tile(s) over the tolerance even at the finest grid, %d survey "
+                       u"height(s) were added as control points, so the ground passes through them exactly" % (
+                           N_SURVPTS[1], N_SURVPTS[0]))
         log.append(u"ground: %d tile(s) with no survey point of their own filled from the survey triangulation (no gaps)" % N_TINONLY[0])
         if THIN[1]:                                       # v1.54
             log.append(u"ground thinned (v1.54): %d of %d finer-grid heights dropped (each within its tile's tolerance "
@@ -7408,6 +8499,27 @@ def main():
                            **L("BG buildings")) for r_, g in zip(roofs, rg) if not g]   # a roof Archicad refused: flat
         if "CreateSlabs" not in miss:
             gs_ = ac.create("CreateSlabs", "slabsData", flats + slabs, u"flat roofs + cut floor slabs")
+            fx_ = [i_ for i_, g in enumerate(gs_) if not g]   # v2.11ah: refused (v2.11af context: 86): outline cleaned
+            if fx_:
+                sd_ = flats + slabs
+                re_, ri_ = [], []
+                for i_ in fx_:
+                    pc2_ = _clean_ring_dicts(sd_[i_]["polygonCoordinates"])
+                    if pc2_:
+                        re_.append(dict(sd_[i_], polygonCoordinates=pc2_))
+                        ri_.append(i_)
+                g3_ = ac.create("CreateSlabs", "slabsData", re_, u"flat roofs + cut floor slabs, outlines cleaned") \
+                    if re_ else []
+                n3_ = 0
+                for i_, g in zip(ri_, g3_):
+                    if g:
+                        gs_[i_] = g
+                        n3_ += 1
+                        if i_ >= len(flats):
+                            slabs[i_ - len(flats)] = re_[ri_.index(i_)]
+                log.append(u"flat roofs + cut floor slabs (v2.11ah): %d refused, %d made again from a cleaned outline "
+                           u"(self-crossings and slivers under 1 cm taken out)%s" % (
+                               len(fx_), n3_, u"" if n3_ == len(fx_) else u"; FLAG %d still refused" % (len(fx_) - n3_)))
             made += [g for g in gs_ if g]
             gsl_ = gs_[len(flats):]                   # v1.31: each building's ground slab cuts the ground above it
             for g, bi_ in zip(gsl_, SL_BI):               # v1.45: the house group
@@ -7557,7 +8669,7 @@ def main():
             import traceback
             log.append(u"FLAG canopies not built (%s: %s) %s" % (type(ex).__name__, ex, traceback.format_exc()[-400:]))
         try:                                              # v1.16: his masterplan pieces on his points
-            made += build_site(ac, miss, log, xy, z0, tin, ox, oy, [p for p in SP if p[0] not in ("rock", "su_bitkii")])
+            made += build_site(ac, miss, log, xy, z0, tin, ox, oy, [p for p in SP if p[0] not in ("rock", "su_bitkii", "sazlik")])
             site_accuracy(ac, log, ox, oy)                # v1.16: read back + compare, FLAG over 5 cm
         except Exception as ex:
             import traceback
@@ -7565,7 +8677,7 @@ def main():
                                                                           traceback.format_exc()[-400:]))
         try:                                              # v1.29: the whole Selinos
             made += build_selinos(ac, miss, log, xy, z0, tin, ox, oy, rects, inside, contours, pts, CJ_,
-                                  [p for p in SP if p[0] in ("rock", "su_bitkii")])
+                                  [p for p in SP if p[0] in ("rock", "su_bitkii", "sazlik")])
         except Exception as ex:
             import traceback
             log.append(u"FLAG Selinos not built (%s: %s) %s" % (type(ex).__name__, ex, traceback.format_exc()[-400:]))
