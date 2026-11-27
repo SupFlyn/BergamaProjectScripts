@@ -37,7 +37,7 @@ Works when: the log's first line is "TAPIR OK <version>" and Archicad's Navigato
 """
 import os, re, json, math, time, glob
 
-VERSION = "v2.16ai"   # v2.16ai (27 Nov 2026; own fixes for what the v2.16ah check left open, each cause measured on the Desktop first, logs\check_v2_16ah_2026-11-27.txt M1-M7, R1-R2; lettered: he has not seen the 3D yet). (1) CANOPY BASE PLATES (20 of 28 plates lay over two decks, 16 of them 3 cm and more into the higher one: the column lines are the deck cut lines; 19 reached past the deck edge: the column stood 1.20 m from a corner of 24 to 32 degrees of his outline, 0.06 to 0.33 m from its edge): the decks, rooms and planters stay as they are and each COLUMN takes the nearest place where its whole plate stands on one deck inside the outline: CAN_PLATE_CLR beside its cut line, the lower deck first, or the nearest place clear of the outline at a sharp corner (three earlier v2.16ai tries, never built, moved the deck cuts instead: their dry runs lost the one glazed room); a Y arm keeps its reach past the column: its end lies CAN_Y_ARM_M - CAN_COL_IN beyond the column's foot on the edge (4 columns moved in along a sharp corner stood level with their arm ends and had no arm). (2) BOULDERS (two refused as drawn in v2.16ah: one whose spike tip lies on another side, one that crosses itself and came back from the 4 cm simplify with a part folded flat): _spikes_out sends an outline that neither crosses nor touches itself as drawn (_ring_touch, ROCK_TOUCH_M) and any other without its parts and notches under 1 cm, then 2, 4, 10 cm, the finest that leaves it clear (shrunk, grown, shrunk back with sharp corners; no simplify), every piece of ROCK_PIECE_M2 and more kept; the 4 cm versions of the two were accepted in a scratch test. Of two pairs of the same stone drawing with a corner ON another side Archicad accepted one and refused the other, so such an outline is made or not by chance: all 81 that touch or cross themselves as drawn are sent clean. (3) HOUSE OUTLINES: "still changing after 4 rounds" was one 6.7 m2 wedge: growing a shrunk outline back cuts corners sharper than about 23 degrees flat, the join put the 5 to 13 cm back; _house_thin does not make a cut shallower than the snap distance where growing back with sharp corners whole (HOUSE_MITRE) returns the whole outline. (4) PARK FURNITURE LOG: an item built in the other file is no longer counted as refused (8 / 35 / 43 "refused" were 0). KNOWN, NOT FIXED: _house_thin does not cut a narrow strip or tooth when the shrunk outline keeps a sliver at its mouth (the sliver grows back over it): rings 206, 892, 1603 of the v2.16ah dry run; 10 of the 11 double wall rows are sharp corners of ONE surveyed outline (15 to 43 degrees), not faults.
+VERSION = "v2.16ai"   # v2.16ai (27 Nov 2026; own fixes for what the v2.16ah check left open, each cause measured on the Desktop first, logs\check_v2_16ah_2026-11-27.txt M1-M7, R1-R2; lettered: he has not seen the 3D yet). (1) CANOPY BASE PLATES (20 of 28 plates lay over two decks, 16 of them 3 cm and more into the higher one: the column lines are the deck cut lines; 19 reached past the deck edge: the column stood 1.20 m from a corner of 24 to 32 degrees of his outline, 0.06 to 0.33 m from its edge): the decks, rooms and planters stay as they are and each COLUMN takes the nearest place where its whole plate stands on one deck inside the outline: CAN_PLATE_CLR beside its cut line, the lower deck first, or the nearest place clear of the outline at a sharp corner (three earlier v2.16ai tries, never built, moved the deck cuts instead: their dry runs lost the one glazed room); a Y arm keeps its reach past the column: its end lies CAN_Y_ARM_M - CAN_COL_IN beyond the column's foot on the edge (4 columns moved in along a sharp corner stood level with their arm ends and had no arm). (2) BOULDERS (two refused as drawn in v2.16ah: one whose spike tip lies on another side, one that crosses itself and came back from the 4 cm simplify with a part folded flat): _spikes_out sends an outline that neither crosses nor touches itself as drawn (_ring_touch, ROCK_TOUCH_M) and any other without its parts and notches under 1 cm, then 2, 4, 10 cm, the finest that leaves it clear (shrunk, grown, shrunk back with sharp corners; no simplify), every piece of ROCK_PIECE_M2 and more kept; the 4 cm versions of the two were accepted in a scratch test. Of two pairs of the same stone drawing with a corner ON another side Archicad accepted one and refused the other, so such an outline is made or not by chance: all 81 that touch or cross themselves as drawn are sent clean. (3) HOUSE OUTLINES: "still changing after 4 rounds" was one 6.7 m2 wedge: growing a shrunk outline back cuts corners sharper than about 23 degrees flat, the join put the 5 to 13 cm back; _house_thin does not make a cut shallower than the snap distance where growing back with sharp corners whole (HOUSE_MITRE) returns the whole outline. (4) PARK FURNITURE LOG: an item built in the other file is no longer counted as refused (8 / 35 / 43 "refused" were 0). (5) ARAS'S OWN OBJECTS (27 Nov 2026 12:35 UTC "please also apply those items directly into the archicad file", 11:52 "only in proposal file", 14:42 "mix and match the file types to maximise the quality"; files kit/objects on main, read from <Project Files>\\objects): _setup_objects puts them into the proposal file's embedded library: his planter .gsm as it is (AddFilesToEmbeddedLibrary), his parasol (.fbx), market stall (the solids of the 3D .dwg) and kiosk (.glb, thinned from 232,187 to 30,855 triangles) as GDL mesh parts (CreateLibraryParts) at their true size; _lib_sym finds them by name. sym_objects places them at their real size: the grid of a picture is at least the object + SYM_GAP_M, a stall stands with its parasol BESIDE it (v2.16af put both on one spot, 63 pairs), a bench beside the foot of its parasol, and none of his objects stands closer than SYM_GAP_M / 2 to another. KNOWN, NOT FIXED: _house_thin does not cut a narrow strip or tooth when the shrunk outline keeps a sliver at its mouth (the sliver grows back over it): rings 206, 892, 1603 of the v2.16ah dry run; 10 of the 11 double wall rows are sharp corners of ONE surveyed outline (15 to 43 degrees), not faults.
 # v2.16ah (27 Nov 2026; Aras 11:40 UTC "fold in other fixes", 11:43 "solve the problems on the root cause dont implement band aid fixes"; every cause measured on the Desktop first, logs\check_v2_16ah_pre_2026-11-27.txt; lettered: he has not seen the 3D yet). (1) PLANS: ONE story per file (_one_story, set_stories): a plan draws walls, slabs, roofs, beams, columns and stairs on the story whose height range holds them and objects, lamps and meshes only on their home story, so none of the 18 stories showed the town; SetStories with story 0 alone before the model is listed (Archicad removes the other stories' elements, this pass makes them again); the node plans are views of the one plan; the plan views get the "BGA - all" layer combination (the template's "01 Site" hides every BGA layer, the node views had a layer state of their own) and each node plan its own frame on its building. (2) HOUSE OUTLINES: _snap_houses written anew (every corner ONE point shared by the outlines it belongs to; the 5 % area guard that kept small outlines apart is gone; no corner beside a corner); _ring_keep drops a computed corner under HOUSE_PT_M from a kept one; the cut / join rounds repeat until nothing changes; _house_check logs the outlines as they go to the walls (FLAG on any short side, overlap, near miss or spike); _party_skip takes sides from 2 cm; _wall_drop FLAGs what it still has to leave out. (3) LOCKS: a beam or column whose box differs up to EDIT_TOL_WALL_M (Archicad trims them where they meet) is not "hand-edited"; an element not made because a locked one stands there is no longer reported as refused. (4) MASTER: only its own elements are listed (FilterElements IsEditable; it took the 58,948 hotlinked ones as its own and spent 134 s on deletes Archicad refused). (5) BOULDERS: spikes and notches under 4 cm leave the outline before it is sent (_spikes_out; one boulder was refused as drawn in every build). (6) SLAB OVERLAPS (49 in v2.16ag): what _create adds ("Basic", "Top") is part of the fingerprint, so the canopy decks kept from before v2.16 (level = core top, 12 cm too high: 41 overlaps with base plates and planters) are made again; corners of two of his canopy outlines drawn within CAN_WELD_M are one corner (canopy_groups: two triangles lay 9 cm in each other); a building outline of his lying partly in a bigger one is cut back to it (design_roofs: N1 / N1b, 0.19 m along 13 m); a node box stands clear of his canopies and of the buildings he drew, as of the streets (_nb_off_streets: the N2 box stood 118 m2 under a canopy). (7) PARKS: no shrub where a bench, its bin or a lamp stands (2 of 46 benches were placed: the shrub line stood on their places); left-out furniture counted per kind and reason. (8) LIBRARY PARTS: the balcony railing and the two bridge parts are sent only when new or changed (_part_same; 52 s per context build).
 # v2.16ag (own fix, 27 Nov 2026, from the Desktop check of the v2.16af build and its dry check on the survey): (1) house outlines lying partly IN each other (30 of the 32 double wall pairs of two houses, 0.02 to 43.7 m2) are cut apart: the lower one (same height: the smaller) is cut back to the other's outline (_house_overlaps), outlines that cross or touch themselves are made valid first; (2) narrow parts from 0.05 m2 (was 0.30: 8 spikes stayed); (3) one-house outlines: a long side of a small outline may move (area guard half the outline x 0.46 m), a corner beside a side's end goes onto the side from RING_MIN_M; (4) the half-round is never dug under the river-bed level beside it (v2.16af: 0.23 m under); (5) "Shower Stall" is no market stall (94 wrong objects in v2.16af): only "market stall" / "market stand" parts are taken; (6) wall pieces under 0.10 m left out (one 0.02 m long was built); (7) the FLAG "stepped terraces built flat" only when no rows are built; the stairs line no longer flags the stairs of the other file
 # v2.16af (27 Nov 2026; Aras 06:25-06:58 UTC "Find fixes for all", "And push at once", his symbol layers, "Both places"; lettered: he has not seen the 3D yet). SYMBOL LAYERS (alanlar/*, agaclar-2/tas-2; sym_plan, sym_objects): one drawn symbol = real-size Archicad library objects filling its footprint (benches, tables with benches, loungers, bicycle holders, garden tables; shrubs on beds), decks / planting beds / courts ONE slab each, courts as the Basketball Court part sized to his box, his stones as boulders, people on their own layer shown only in section / elevation views (BGA - sections + elevations, BGA - section *); kinds with no library part (3D umbrella, market stall, kiosk, planter, truck) left out and logged until Aras adds the objects. SEATING (_seat_plan): his river steps (begum_su_merdiven) and his half-round (aras_alan) as rows 0.90 x 0.45 m (slabs) from the river bed up to the bank top, the half-round dug down to the bed level beside it, Stair-tool stairs 30 x 15 cm at both ends and the middle (CreateStairs; 1.50 m wide ASSUMED). FIXES: master hotlinks repointed (ChangeHotlinkNodes), not deleted and placed again (the v2.16ae master held the town twice); reed clumps capped at REED_MAX_M; bare strips between covers (COVER_SLIT_M 0.50); street lamps through the Lamp tool (CreateLamps, Street Lamp 02, pole 6 m); two outlines with the same floors and height read as one house and closed up to HOUSE_SAME_M; house outline parts narrower than HOUSE_MIN_W cut off (the double walls); twin and short loose wall pieces left out; the top story set again when it alone is off; a refused beam sent once more alone (the one glass roof mullion)
@@ -6354,6 +6354,7 @@ def setup_library(ac, log):
     """v1.79: AcBuild's GDL objects, then Archicad's own detailed trees per species in EVERY case (v1.78 picked them only
     when the embedded library call succeeded; it timed out on 19 Nov and all 803 trees were left out)"""
     _setup_library(ac, log)
+    _setup_objects(ac, log)                               # v2.16ai: Aras's own objects (proposal file only)
     if GDL_OBJECTS:
         try:
             av = ac.t("GetAvailableLibraryParts", {}, 900.0).get("libraryParts") or []
@@ -10805,6 +10806,13 @@ SYM_MISSING = {"parasol": ("parasol 3d", "umbrella 3d", "garden umbrella", "mark
                "stall": ("market stall", "market stand"), "kiosk": ("kiosk",), "planter": ("planter", "flower box"),
                "truck": ("pickup", "pick-up")}             # words looked for in the loaded part names (his own objects)
 SYMLIB = {}                # library kind -> (part name, offset) found in this Archicad
+# v2.16ai: Aras's own objects (kit/objects on main; the Desktop keeps them in <Project Files>\objects). objects.json
+# lists them: a native .gsm goes into the embedded library as it is, a mesh object as GDL text with its texture picture
+OBJ_DIR = os.path.join(BERGAMA_ROOT, "objects")
+OBJ_SIZE = {}              # part name -> (length along its x, width along its y, half width of its foot or 0): m, from objects.json
+SYM_GAP_M = 0.6            # m: room to walk between two of his objects (ASSUMED)
+SYM_ROW = ("stall_umb",)   # pictures whose kinds stand side by side across the row (a stall with a parasol beside it), not on one spot
+SYM_BENCH_D = 0.65         # m: depth of the Outdoor Bench (measured 27 Nov 2026, SYM_LIB): a bench under a parasol stands beside its foot
 SYM_PLAN = []              # the pictures of this run: dict(layer, n, kind, people, c, L, W, ang, U)
 SYM_DECK_T = 0.15          # m: a timber deck: one slab, boards as its surface (ASSUMED thickness)
 SYM_BED_H = 0.40           # m: a planting bed stands this high (ASSUMED)
@@ -10945,6 +10953,76 @@ def sym_plan(J, in_wa, log):
     return out
 
 
+def _setup_objects(ac, log):
+    """v2.16ai (Aras 27 Nov 2026 12:35 UTC "please also apply those items directly into the archicad file", 11:52 "only
+    in proposal file", 14:42 "mix and match the file types to maximise the quality"): his own objects into the embedded
+    library of the proposal file. objects.json in OBJ_DIR/gdl lists them: "gsm" = a native Archicad object, added as
+    it is (AddFilesToEmbeddedLibrary); "script3d" = a mesh object as GDL text, made like the BGA parts
+    (CreateLibraryParts) with its true size as A, B, ZZYZX and its texture picture stored in the part
+    (SetLibraryPartPictureImages). _lib_sym then finds them by their names. Nothing is made in the other files"""
+    OBJ_SIZE.clear()
+    if SCOPE[0] != "proposal" or not GDL_OBJECTS:
+        return
+    import base64
+    import hashlib
+    gd_ = os.path.join(OBJ_DIR, "gdl")
+    try:
+        with open(os.path.join(gd_, "objects.json"), encoding="utf-8") as f_:
+            items = json.load(f_)
+    except Exception as ex:
+        log.append(u"FLAG Aras's objects (v2.16ai): %s not read (%s): his parasols, stalls, planters and kiosk are left "
+                   u"out" % (os.path.join(gd_, "objects.json"), ex))
+        return
+    made, same, bad = [], [], []
+    for it in items:
+        nm = it.get("name") or u"?"
+        try:
+            if it.get("gsm"):
+                path = os.path.join(OBJ_DIR, it["gsm"])
+                with open(path, "rb") as f_:
+                    raw = f_.read()
+                same_, h_ = _part_same(nm, hashlib.sha1(raw).hexdigest(), u"gsm")
+                if not same_:
+                    ac.t("AddFilesToEmbeddedLibrary", {"files": [{"inputPath": path, "outputPath": u"Aras/%s" % os.path.basename(path),
+                                                                  "type": "Object"}], "overwriteExisting": True}, 900.0)
+            else:
+                with open(os.path.join(gd_, it["script3d"]), encoding="utf-8") as f_:
+                    s3 = f_.read()
+                s2 = GDL2D_OBJ
+                if it.get("script2d"):
+                    with open(os.path.join(gd_, it["script2d"]), encoding="utf-8") as f_:
+                        s2 = f_.read()
+                pic = None
+                if it.get("picture"):
+                    with open(os.path.join(gd_, it["picture"]), "rb") as f_:
+                        pic = f_.read()
+                same_, h_ = _part_same(nm, s3 + (hashlib.sha1(pic).hexdigest() if pic else u""), s2)
+                if not same_:
+                    r_ = ac.t("CreateLibraryParts", {"libraryParts": [dict(
+                        name=nm, parentName=LIB_PAR[0] or u"Model Element", path=u"Aras/%s.gsm" % nm, script3D=s3, script2D=s2,
+                        a=it["a"], b=it["b"], parameters=[dict(name="ZZYZX", type="Length", value=it["zzyzx"])])],
+                        "overwriteExisting": True}, 900.0)
+                    e = (r_.get("libraryParts") or [None])[0]
+                    if not isinstance(e, dict) or e.get("error"):
+                        raise RuntimeError(json.dumps(e)[:300])
+                    if pic:
+                        ac.t("SetLibraryPartPictureImages", {"name": nm + u".gsm", "gdlPictures": [base64.b64encode(pic).decode("ascii")]}, 900.0)
+            if same_:
+                same.append(nm)
+            else:
+                _part_sent(nm, h_)
+                made.append(nm)
+            if it.get("a") and it.get("b"):
+                OBJ_SIZE[nm] = (float(it["a"]), float(it["b"]), float(it.get("foot") or 0.0))
+        except Exception as ex:
+            if _ac_gone(ex):
+                raise
+            bad.append(u"%s (%s)" % (nm, str(ex)[:200]))
+    log.append(u"Aras's objects (v2.16ai, embedded library folder Aras): %d made (%s), %d already in the project with the "
+               u"same content (%s)%s" % (len(made), u", ".join(made) or u"none", len(same), u", ".join(same) or u"none",
+                                         u"; FLAG not made: " + u"; ".join(bad) if bad else u""))
+
+
 def _lib_sym(names, log):
     """v2.16af: the Archicad library parts for his symbol layers that are loaded in this Archicad (SYMLIB)"""
     SYMLIB.clear()
@@ -10990,12 +11068,32 @@ def sym_objects(xy, z0, gz, ins, free, log):
     """v2.16af: (furniture items, people items) of his symbol layers for CreateObjects: per picture real-size library
     objects on a grid inside its footprint (SYM_KIND); people as standing figures beside the picture's middle"""
     fur, ppl, n_k, n_miss, n_out = [], [], {}, {}, 0
+    placed, n_over, S_ = [], {}, _shp()                   # v2.16ai: footprints of his own objects placed so far
     for g in SYM_PLAN:
         kd = SYM_KIND.get(g["kind"])
         if not kd:
             continue
         ca, sn = math.cos(g["ang"]), math.sin(g["ang"])
-        spots = _sym_spots(g, kd[1], kd[2])
+        # v2.16ai: his own objects have a real size (OBJ_SIZE): the grid of the picture is at least the object + room to
+        # walk; in a SYM_ROW picture the kinds stand side by side across the row (v2.16af put the stall and the
+        # parasol on ONE spot: 63 pairs, the dump of 27 Nov 2026); a bench under a parasol stands beside its foot
+        sized = [(lk_, OBJ_SIZE[SYMLIB[lk_][0]]) for lk_ in kd[0]
+                 if isinstance(SYMLIB.get(lk_), tuple) and SYMLIB[lk_][0] in OBJ_SIZE]
+        sa_, sb_, shift = kd[1], kd[2], {}
+        if sized and sa_ > 0:
+            sa_ = max(sa_, max(z_[0] for _l, z_ in sized) + SYM_GAP_M)
+            if g["kind"] in SYM_ROW:
+                tot_ = sum(z_[1] + SYM_GAP_M for _l, z_ in sized)
+                sb_, o_ = max(sb_, tot_), -tot_ / 2.0
+                for lk_, z_ in sized:
+                    shift[lk_] = o_ + (z_[1] + SYM_GAP_M) / 2.0
+                    o_ += z_[1] + SYM_GAP_M
+            else:
+                sb_ = max(sb_, max(z_[1] for _l, z_ in sized) + SYM_GAP_M)
+        foot_ = max([z_[2] for _l, z_ in sized] or [0.0])
+        if foot_ > 0 and "bench" in kd[0] and "bench" not in shift:
+            shift["bench"] = foot_ + SYM_BENCH_D / 2.0 + 0.1
+        spots = _sym_spots(g, sa_, sb_)
         for lk in kd[0]:
             if lk == "shrub":
                 part, off, dim = (LIBN.get("shrub"), (0.0, 0.0), dict(x=SHRUB_D_M, y=SHRUB_D_M, z=SHRUB_H_M))
@@ -11012,10 +11110,20 @@ def sym_objects(xy, z0, gz, ins, free, log):
                 n_miss[lk] = n_miss.get(lk, 0) + len(spots)
                 continue
             for p in spots:
+                if shift.get(lk):
+                    p = (p[0] - shift[lk] * sn, p[1] + shift[lk] * ca)
                 z = gz(p)
                 if z is None or not ins(p) or (lk != "court" and not free(p, 0.4 if lk == "shrub" else 0.9)):
                     n_out += 1
                     continue
+                if part in OBJ_SIZE and S_:               # v2.16ai: never on another of his objects (real footprints)
+                    hx_, hy_ = OBJ_SIZE[part][0] / 2.0, OBJ_SIZE[part][1] / 2.0
+                    fp_ = S_[1].Polygon([(p[0] + x_ * ca - y_ * sn, p[1] + x_ * sn + y_ * ca)
+                                         for x_, y_ in ((-hx_, -hy_), (hx_, -hy_), (hx_, hy_), (-hx_, hy_))])
+                    if any(fp_.distance(q_) < SYM_GAP_M / 2.0 for q_ in placed):
+                        n_over[lk] = n_over.get(lk, 0) + 1
+                        continue
+                    placed.append(fp_)
                 a_ = g["ang"]                             # a sized court part's long side is its x axis
                 o = (p[0] - (off[0] * math.cos(a_) - off[1] * math.sin(a_)), p[1] - (off[0] * math.sin(a_) + off[1] * math.cos(a_)))
                 d_ = dict(libraryPartName=part, coordinates=dict(xy(o), z=round(z - z0, 3)), angle=round(a_, 4))
@@ -11042,6 +11150,12 @@ def sym_objects(xy, z0, gz, ins, free, log):
                u"site_alan or on another object); spacing ASSUMED" % (
                    len(fur), u", ".join(u"%s %d" % kv for kv in sorted(n_k.items())) or u"none", len(ppl), len(SYM_PLAN),
                    n_out))
+    if OBJ_SIZE:
+        log.append(u"symbol layers (v2.16ai): Aras's own objects stand at their real size: grid of a picture = the object "
+                   u"+ %.1f m (ASSUMED), a stall with its parasol beside it across the row, a bench beside the foot of its "
+                   u"parasol; %d footprint(s) placed, left out because closer than %.1f m to another of his objects: %s" % (
+                       SYM_GAP_M, len(placed), SYM_GAP_M / 2.0,
+                       u", ".join(u"%s %d" % kv for kv in sorted(n_over.items())) or u"none"))
     if n_miss:
         log.append(u"FLAG symbol layers (v2.16af): no library object for %s: left out (Aras provides the objects)" % (
             u", ".join(u"%s %d" % kv for kv in sorted(n_miss.items()))))
