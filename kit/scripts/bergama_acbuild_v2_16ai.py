@@ -37,7 +37,7 @@ Works when: the log's first line is "TAPIR OK <version>" and Archicad's Navigato
 """
 import os, re, json, math, time, glob
 
-VERSION = "v2.16ai"   # v2.16ai (27 Nov 2026; own fixes for what the v2.16ah check left open, each cause measured on the Desktop first, logs\check_v2_16ah_2026-11-27.txt M1-M7, R1-R2; lettered: he has not seen the 3D yet). (1) CANOPY BASE PLATES (20 of 97 plates lay over two decks, 16 of them 3 cm and more into the higher one; 19 of the 28 on a deck reached past its edge): the deck bays are cut HALFWAY BETWEEN two column lines, not through the columns (CAN_PLATE_CLR), and a column at a sharp corner of his outline (24 to 32 degrees) goes further in along the same line until its whole plate stands inside the outline (pull_in). (2) BOULDERS (two refused as drawn in v2.16ah: one whose spike tip lies on another side, one that crosses itself and came back from the 4 cm simplify with a part folded flat): _spikes_out sends an outline that neither crosses nor touches itself as drawn (_ring_touch, ROCK_TOUCH_M) and any other without its parts and notches under 4 cm, then 10 cm (shrunk, grown, shrunk back with sharp corners; no simplify); both new outlines were accepted in a scratch test. Archicad accepted 17 other outlines that touch or cross themselves, so its own limit is NOT known; those 17 are sent clean now too. (3) HOUSE OUTLINES: "still changing after 4 rounds" was one 6.7 m2 wedge: growing a shrunk outline back cuts corners sharper than about 23 degrees flat, the join put the 5 to 13 cm back; _house_thin cuts nothing where growing back with sharp corners whole (HOUSE_MITRE) returns the whole outline. (4) PARK FURNITURE LOG: an item built in the other file is no longer counted as refused (8 / 35 / 43 "refused" were 0). KNOWN, NOT FIXED: _house_thin does not cut a narrow strip or tooth when the shrunk outline keeps a sliver at its mouth (the sliver grows back over it): rings 206, 892, 1603 of the v2.16ah dry run; 10 of the 11 double wall rows are sharp corners of ONE surveyed outline (15 to 43 degrees), not faults.
+VERSION = "v2.16ai"   # v2.16ai (27 Nov 2026; own fixes for what the v2.16ah check left open, each cause measured on the Desktop first, logs\check_v2_16ah_2026-11-27.txt M1-M7, R1-R2; lettered: he has not seen the 3D yet). (1) CANOPY BASE PLATES (20 of 97 plates lay over two decks, 16 of them 3 cm and more into the higher one; 19 of the 28 on a deck reached past its edge): the deck bays are cut CAN_PLATE_CLR past their column lines and past any other plate, not through the columns (the first v2.16ai, never built, cut halfway between the lines: its dry run lost the one glazed room), and a column at a sharp corner of his outline (24 to 32 degrees) goes further in along the same line until its whole plate stands inside the outline (pull_in). (2) BOULDERS (two refused as drawn in v2.16ah: one whose spike tip lies on another side, one that crosses itself and came back from the 4 cm simplify with a part folded flat): _spikes_out sends an outline that neither crosses nor touches itself as drawn (_ring_touch, ROCK_TOUCH_M) and any other without its parts and notches under 1 cm, then 2, 4, 10 cm, the finest that leaves it clear (shrunk, grown, shrunk back with sharp corners; no simplify), every piece of ROCK_PIECE_M2 and more kept; the 4 cm versions of the two were accepted in a scratch test. Of two pairs of the same stone drawing with a corner ON another side Archicad accepted one and refused the other, so such an outline is made or not by chance: all 81 that touch or cross themselves as drawn are sent clean. (3) HOUSE OUTLINES: "still changing after 4 rounds" was one 6.7 m2 wedge: growing a shrunk outline back cuts corners sharper than about 23 degrees flat, the join put the 5 to 13 cm back; _house_thin does not make a cut shallower than the snap distance where growing back with sharp corners whole (HOUSE_MITRE) returns the whole outline. (4) PARK FURNITURE LOG: an item built in the other file is no longer counted as refused (8 / 35 / 43 "refused" were 0). KNOWN, NOT FIXED: _house_thin does not cut a narrow strip or tooth when the shrunk outline keeps a sliver at its mouth (the sliver grows back over it): rings 206, 892, 1603 of the v2.16ah dry run; 10 of the 11 double wall rows are sharp corners of ONE surveyed outline (15 to 43 degrees), not faults.
 # v2.16ah (27 Nov 2026; Aras 11:40 UTC "fold in other fixes", 11:43 "solve the problems on the root cause dont implement band aid fixes"; every cause measured on the Desktop first, logs\check_v2_16ah_pre_2026-11-27.txt; lettered: he has not seen the 3D yet). (1) PLANS: ONE story per file (_one_story, set_stories): a plan draws walls, slabs, roofs, beams, columns and stairs on the story whose height range holds them and objects, lamps and meshes only on their home story, so none of the 18 stories showed the town; SetStories with story 0 alone before the model is listed (Archicad removes the other stories' elements, this pass makes them again); the node plans are views of the one plan; the plan views get the "BGA - all" layer combination (the template's "01 Site" hides every BGA layer, the node views had a layer state of their own) and each node plan its own frame on its building. (2) HOUSE OUTLINES: _snap_houses written anew (every corner ONE point shared by the outlines it belongs to; the 5 % area guard that kept small outlines apart is gone; no corner beside a corner); _ring_keep drops a computed corner under HOUSE_PT_M from a kept one; the cut / join rounds repeat until nothing changes; _house_check logs the outlines as they go to the walls (FLAG on any short side, overlap, near miss or spike); _party_skip takes sides from 2 cm; _wall_drop FLAGs what it still has to leave out. (3) LOCKS: a beam or column whose box differs up to EDIT_TOL_WALL_M (Archicad trims them where they meet) is not "hand-edited"; an element not made because a locked one stands there is no longer reported as refused. (4) MASTER: only its own elements are listed (FilterElements IsEditable; it took the 58,948 hotlinked ones as its own and spent 134 s on deletes Archicad refused). (5) BOULDERS: spikes and notches under 4 cm leave the outline before it is sent (_spikes_out; one boulder was refused as drawn in every build). (6) SLAB OVERLAPS (49 in v2.16ag): what _create adds ("Basic", "Top") is part of the fingerprint, so the canopy decks kept from before v2.16 (level = core top, 12 cm too high: 41 overlaps with base plates and planters) are made again; corners of two of his canopy outlines drawn within CAN_WELD_M are one corner (canopy_groups: two triangles lay 9 cm in each other); a building outline of his lying partly in a bigger one is cut back to it (design_roofs: N1 / N1b, 0.19 m along 13 m); a node box stands clear of his canopies and of the buildings he drew, as of the streets (_nb_off_streets: the N2 box stood 118 m2 under a canopy). (7) PARKS: no shrub where a bench, its bin or a lamp stands (2 of 46 benches were placed: the shrub line stood on their places); left-out furniture counted per kind and reason. (8) LIBRARY PARTS: the balcony railing and the two bridge parts are sent only when new or changed (_part_same; 52 s per context build).
 # v2.16ag (own fix, 27 Nov 2026, from the Desktop check of the v2.16af build and its dry check on the survey): (1) house outlines lying partly IN each other (30 of the 32 double wall pairs of two houses, 0.02 to 43.7 m2) are cut apart: the lower one (same height: the smaller) is cut back to the other's outline (_house_overlaps), outlines that cross or touch themselves are made valid first; (2) narrow parts from 0.05 m2 (was 0.30: 8 spikes stayed); (3) one-house outlines: a long side of a small outline may move (area guard half the outline x 0.46 m), a corner beside a side's end goes onto the side from RING_MIN_M; (4) the half-round is never dug under the river-bed level beside it (v2.16af: 0.23 m under); (5) "Shower Stall" is no market stall (94 wrong objects in v2.16af): only "market stall" / "market stand" parts are taken; (6) wall pieces under 0.10 m left out (one 0.02 m long was built); (7) the FLAG "stepped terraces built flat" only when no rows are built; the stairs line no longer flags the stairs of the other file
 # v2.16af (27 Nov 2026; Aras 06:25-06:58 UTC "Find fixes for all", "And push at once", his symbol layers, "Both places"; lettered: he has not seen the 3D yet). SYMBOL LAYERS (alanlar/*, agaclar-2/tas-2; sym_plan, sym_objects): one drawn symbol = real-size Archicad library objects filling its footprint (benches, tables with benches, loungers, bicycle holders, garden tables; shrubs on beds), decks / planting beds / courts ONE slab each, courts as the Basketball Court part sized to his box, his stones as boulders, people on their own layer shown only in section / elevation views (BGA - sections + elevations, BGA - section *); kinds with no library part (3D umbrella, market stall, kiosk, planter, truck) left out and logged until Aras adds the objects. SEATING (_seat_plan): his river steps (begum_su_merdiven) and his half-round (aras_alan) as rows 0.90 x 0.45 m (slabs) from the river bed up to the bank top, the half-round dug down to the bed level beside it, Stair-tool stairs 30 x 15 cm at both ends and the middle (CreateStairs; 1.50 m wide ASSUMED). FIXES: master hotlinks repointed (ChangeHotlinkNodes), not deleted and placed again (the v2.16ae master held the town twice); reed clumps capped at REED_MAX_M; bare strips between covers (COVER_SLIT_M 0.50); street lamps through the Lamp tool (CreateLamps, Street Lamp 02, pole 6 m); two outlines with the same floors and height read as one house and closed up to HOUSE_SAME_M; house outline parts narrower than HOUSE_MIN_W cut off (the double walls); twin and short loose wall pieces left out; the top story set again when it alone is off; a refused beam sent once more alone (the one glass roof mullion)
@@ -3047,15 +3047,22 @@ def build_canopies(ac, miss, log, rects, inside, tin, ox, oy, z0, xy, q500_at, w
                 dmin = min([math.hypot(p[0] - c[1][0], p[1] - c[1][1]) for c in cols] or [1e9])
                 if (not want_hi and dmin >= CAN_COL_MIN) or (want_hi and dmin > CAN_COL_MAX):
                     cols.append((k, p))
-        # bays along the long axis: plinth + deck = the outline cut HALFWAY BETWEEN two column lines (v2.16ai: the cut
-        # ran through the columns themselves, so a base plate lay over two decks of different height), where the gap
-        # leaves a whole plate on each side, so every column stands with its plate on the deck of one bay
+        # bays between the column lines along the long axis: plinth + deck = the outline cut there (v2.16ai: the cut
+        # ran through the columns themselves, so a base plate lay over two decks of different height): each cut runs
+        # CAN_PLATE_CLR past its column line, and past any other column whose plate it would run through, so every
+        # column stands with its whole plate on the deck of one bay and the bays keep their lengths
         ts = sorted(T(p) for _k, p in cols)
-        cuts = []
-        for t_a, t_b in zip(ts, ts[1:]):
-            t = (t_a + t_b) / 2.0
-            if t_b - t_a >= 2.0 * CAN_PLATE_CLR and (not cuts or t - cuts[-1] >= 3.0):
-                cuts.append(t)
+        cuts, t_last = [], None
+        for t in ts:
+            if t_last is not None and t - t_last < 3.0:
+                continue
+            t_last = t
+            c_ = t + CAN_PLATE_CLR
+            for t2 in ts:
+                if abs(t2 - c_) < CAN_PLATE_CLR - 1e-9:
+                    c_ = t2 + CAN_PLATE_CLR
+            if not cuts or c_ - cuts[-1] >= 1.0:
+                cuts.append(c_)
         ta, tb = min(T(p) for p in H), max(T(p) for p in H)
         edges = [ta - 1.0] + [t for t in cuts if ta + 2.0 < t < tb - 2.0] + [tb + 1.0]
         HT = [(T(p), W(p)) for p in H]
@@ -3237,9 +3244,9 @@ def build_canopies(ac, miss, log, rects, inside, tin, ox, oy, z0, xy, q500_at, w
                   len(room_roofs), len(planters), n_x["tiny"], CAN_MIN_FACET, n_x["low"], CAN_CLEAR_M, CAN_Q500_M,
                   CAN_RISE_M, CAN_T, CAN_SLAT_H, CAN_FR_W, CAN_FR_H, CAN_PLINTH_M, CAN_DECK_M))
     log.append(u"canopy columns (v2.16ai): every base plate stands whole inside its canopy outline and on one deck bay "
-               u"(bays cut halfway between the column lines): %d column(s) stand further in than %.2f m from their corner "
+               u"(bays cut %.2f m past the column lines): %d column(s) stand further in than %.2f m from their corner "
                u"(a sharp corner), %d corner(s) with no place for a whole plate have no column"
-               % (n_x.get("deep", 0), CAN_COL_IN, n_x.get("nofit", 0)))
+               % (CAN_PLATE_CLR, n_x.get("deep", 0), CAN_COL_IN, n_x.get("nofit", 0)))
     if n_x.get("noarm"):
         log.append(u"canopies (v2.16ab): %d Y arm(s) left out: no frame member within 0.5 m of where they would end"
                    % n_x["noarm"])
@@ -3735,7 +3742,8 @@ def _ring_bad(pc):
         return True
 
 
-ROCK_SPIKES = [0, 0]       # v2.16ah / v2.16ai: boulder outlines cleaned before they were sent; outlines no cleaning made clear
+ROCK_SPIKES = [0, 0, 0]    # v2.16ah / v2.16ai: boulder outlines cleaned before they were sent; outlines no cleaning made clear; extra pieces
+ROCK_PIECE_M2 = 0.1        # v2.16ai: m2, a piece of a cleaned boulder outline from this size is built (smaller: a crumb of a spike)
 ROCK_TOUCH_M = 0.001       # v2.16ai (Desktop 27 Nov 2026): m, a corner this close to a side it does not belong to = the
 #                            outline touches itself (all 803 boulder outlines with 1 mm or more were accepted as drawn)
 ROCK_PT_M = 0.01           # v2.16ai: m, points of a cleaned boulder outline closer than this are one point
@@ -3765,41 +3773,48 @@ def _ring_touch(pc):
 
 
 def _spikes_out(pc):
-    """v2.16ai (v2.16ah took out spikes only and tested by the area lost, so the boulder at 114.7,-231.8, where the tip
-    of a spike of his drawing lies ON another side, went out as drawn, and the one at -615.3,737.5, which crosses
-    itself, came back from the 4 cm simplify with a part folded flat onto a side; Archicad refused both): an outline
-    that neither crosses nor touches itself is sent as drawn; any other is sent without its parts and notches narrower
-    than 4 cm (shrunk, grown and shrunk back with sharp corners; the largest piece; no simplify, points within
-    ROCK_PT_M made one), then 10 cm, and is tested the same way before it is used"""
+    """v2.16ai (Desktop 27 Nov 2026: of two pairs of the same stone drawing, each with a corner lying ON another
+    side, Archicad accepted one and refused the other, so an outline that touches or crosses itself is made or not
+    by chance; v2.16ah tested by the area lost and its 4 cm simplify folded a part of one outline flat): returns the
+    outline(s) to send. One that neither crosses nor touches itself goes out as drawn; any other without its parts
+    and notches narrower than 1 cm (shrunk, grown and shrunk back with sharp corners, no simplify, points within
+    ROCK_PT_M made one), then 2, 4, 10 cm: the finest that leaves it clear. Every piece of ROCK_PIECE_M2 and more is
+    kept (two lobes joined at a point are two stones)"""
     m_ = _shp()
     if m_ is None or len(pc) < 4:
-        return pc
+        return [pc]
     t0_ = _ring_touch(pc)
     if not _ring_bad(pc) and t0_ is not None and t0_ >= ROCK_TOUCH_M:
-        return pc
+        return [pc]
     try:
         P = m_[0].make_valid(m_[1].Polygon([(q["x"], q["y"]) for q in pc]))
-        for w_ in (0.02, 0.05):
+        for w_ in (0.005, 0.01, 0.02, 0.05):
             g = P.buffer(-w_, join_style=2).buffer(2.0 * w_, join_style=2).buffer(-w_, join_style=2)
-            ps = [x for x in getattr(g, "geoms", [g]) if x.geom_type == "Polygon" and not x.is_empty]
-            if not ps:
-                break
-            out = []
-            for x, y in list(max(ps, key=lambda x: x.area).exterior.coords)[:-1]:
-                q = dict(x=round(x, 3), y=round(y, 3))
-                if out and math.hypot(out[-1]["x"] - q["x"], out[-1]["y"] - q["y"]) < ROCK_PT_M:
+            res = []
+            for x_ in getattr(g, "geoms", [g]):
+                if x_.geom_type != "Polygon" or x_.area < ROCK_PIECE_M2:
                     continue
-                out.append(q)
-            while len(out) > 3 and math.hypot(out[0]["x"] - out[-1]["x"], out[0]["y"] - out[-1]["y"]) < ROCK_PT_M:
-                out.pop()
-            t1_ = _ring_touch(out)
-            if not _ring_bad(out) and t1_ is not None and t1_ >= ROCK_TOUCH_M:
+                out = []
+                for x, y in list(x_.exterior.coords)[:-1]:
+                    q = dict(x=round(x, 3), y=round(y, 3))
+                    if out and math.hypot(out[-1]["x"] - q["x"], out[-1]["y"] - q["y"]) < ROCK_PT_M:
+                        continue
+                    out.append(q)
+                while len(out) > 3 and math.hypot(out[0]["x"] - out[-1]["x"], out[0]["y"] - out[-1]["y"]) < ROCK_PT_M:
+                    out.pop()
+                t1_ = _ring_touch(out)
+                if _ring_bad(out) or t1_ is None or t1_ < ROCK_TOUCH_M:
+                    res = []
+                    break
+                res.append(out)
+            if res:
                 ROCK_SPIKES[0] += 1
-                return out
+                ROCK_SPIKES[2] += len(res) - 1
+                return res
     except Exception:
         pass
     ROCK_SPIKES[1] += 1
-    return pc
+    return [pc]
 
 
 def _clean_ring_dicts(pc, ws=(0.005, 0.02, 0.05)):
@@ -5467,8 +5482,9 @@ def build_selinos(ac, miss, log, xy, z0, tin, ox, oy, rects, inside, contours, p
                 REED_TALL[0] += 1 if top_ - base_ > 3.0 else 0
         elif nm == "rock":
             h = min(ROCK_H_MAX, 0.5 * math.sqrt(abs(area(H))))
-            rocks.append(dict(level=round(g + h - z0, 3), thickness=round(h + 0.2, 3),
-                              polygonCoordinates=_spikes_out([xy(q) for q in H]), _mat="bridge_stone"))
+            for pc_ in _spikes_out([xy(q) for q in H]):
+                rocks.append(dict(level=round(g + h - z0, 3), thickness=round(h + 0.2, 3),
+                                  polygonCoordinates=pc_, _mat="bridge_stone"))
     if "CreateSlabs" not in miss:
         RP_ = [(tg_, _pip_fast(H_)) for tg_, H_ in RIVER_MESH]
         log.append(u"reed beds (v2.11ab): %d of his beds as %d reed clumps (GDL, on the bed, %.1f m above the water: "
@@ -5514,8 +5530,9 @@ def build_selinos(ac, miss, log, xy, z0, tin, ox, oy, rects, inside, contours, p
                         break
             if ROCK_SPIKES[0] or ROCK_SPIKES[1]:
                 log.append(u"%s (v2.16ai): %d outline(s) that cross or touch themselves (a corner within %.0f mm of another "
-                           u"side) sent without their parts and notches under 4 or 10 cm%s" % (
-                               lab_, ROCK_SPIKES[0], 1000.0 * ROCK_TOUCH_M,
+                           u"side) sent without their parts and notches under 1 to 10 cm, the finest that leaves them "
+                           u"clear; %d more piece(s) where an outline was two lobes joined at a point%s" % (
+                               lab_, ROCK_SPIKES[0], 1000.0 * ROCK_TOUCH_M, ROCK_SPIKES[2],
                                (u"; FLAG %d outline(s) still not clear, sent as drawn" % ROCK_SPIKES[1]) if ROCK_SPIKES[1] else u""))
             if n_rf:
                 log.append(u"%s (v2.16ae): %d refused as drawn, %d of them made with spikes under 4 or 10 cm taken out of the "
@@ -7874,9 +7891,12 @@ def _house_thin(bld, log):
                 continue
             # v2.16ai (v2.16ah dry run: a 6.7 m2 wedge between two neighbours lost 0.06 m2 off its 0.62 m end in
             # every round and the join put it back, "still changing after 4 rounds"): growing back cuts corners
-            # sharper than about 23 degrees flat. When growing back with those corners left whole (HOUSE_MITRE)
-            # gives the whole outline back, no part of it is narrow and nothing is cut
-            if P.area - P.buffer(-d, join_style=2, mitre_limit=5.0).buffer(
+            # sharper than about 23 degrees flat. A cut shallower than the snap distance everywhere (the join takes
+            # it back) is not made when growing back with those corners left whole (HOUSE_MITRE) gives the whole
+            # outline back; deeper cuts are made as before (v2.16ai dry run: without the depth test three narrow
+            # parts v2.16ah cut stayed)
+            if P.difference(O).buffer(-HOUSE_SNAP_M / 2.0).is_empty and P.area - P.buffer(
+                    -d, join_style=2, mitre_limit=5.0).buffer(
                     d, join_style=2, mitre_limit=HOUSE_MITRE).intersection(P).area < 0.001:
                 continue
             parts = [g_ for g_ in getattr(O, "geoms", [O]) if g_.geom_type == "Polygon" and g_.area >= HOUSE_MIN_M2]
@@ -11400,7 +11420,7 @@ def main():
     NET_C.clear()
     SEO_OPS[:], SEO_TERR[:], CANOPY_REC[:], EXTRA_OPS[:], KERB_OPS[:] = [], [], [], [], []   # v1.27: fresh per run (a re-run in the same Rhino kept old ones)
     KEEP.clear(); ITEMS[:] = []; NEW_G.clear(); SRC_OF.clear(); BUILT_PICK.clear(); BUILT_KEPT.clear(); BUILT_ZG[0] = None; N_KEPT[0] = 0; FOUND_OWN[0] = -1
-    LOCKED_BB[:] = []; EXTRA_LINKS[:] = []; TREE_OBJ[:] = []; N_NOTREE[0] = 0; PART_G.clear(); OWN_PART.clear(); BGRP.clear(); N_LOCKSKIP[0] = 0; ROCK_SPIKES[:] = [0, 0]; N_TINONLY[0] = 0; N_RAFT[:] = [0, 0.0]; LINK_T.clear(); PID[0] = None             # v1.44          # v1.34: fresh per run
+    LOCKED_BB[:] = []; EXTRA_LINKS[:] = []; TREE_OBJ[:] = []; N_NOTREE[0] = 0; PART_G.clear(); OWN_PART.clear(); BGRP.clear(); N_LOCKSKIP[0] = 0; ROCK_SPIKES[:] = [0, 0, 0]; N_TINONLY[0] = 0; N_RAFT[:] = [0, 0.0]; LINK_T.clear(); PID[0] = None             # v1.44          # v1.34: fresh per run
     log = []
     ac = AC(log)
     try:
