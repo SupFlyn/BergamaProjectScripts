@@ -37,7 +37,7 @@ Works when: the log's first line is "TAPIR OK <version>" and Archicad's Navigato
 """
 import os, re, json, math, time, glob
 
-VERSION = "v2.16ai"   # v2.16ai (27 Nov 2026; own fixes for what the v2.16ah check left open, each cause measured on the Desktop first, logs\check_v2_16ah_2026-11-27.txt M1-M7, R1-R2; lettered: he has not seen the 3D yet). (1) CANOPY BASE PLATES (20 of 97 plates lay over two decks, 16 of them 3 cm and more into the higher one; 19 of the 28 on a deck reached past its edge): the deck bays are cut CAN_PLATE_CLR beside their column lines, on the side where the ground is higher, and past any other plate, not through the columns; the lines themselves stay CAN_COL_IN from the corners (two earlier v2.16ai cuts, never built, moved the bays: their dry runs lost the one glazed room), and a column at a sharp corner of his outline (24 to 32 degrees) goes further in along the same line until its whole plate stands inside the outline (pull_in). (2) BOULDERS (two refused as drawn in v2.16ah: one whose spike tip lies on another side, one that crosses itself and came back from the 4 cm simplify with a part folded flat): _spikes_out sends an outline that neither crosses nor touches itself as drawn (_ring_touch, ROCK_TOUCH_M) and any other without its parts and notches under 1 cm, then 2, 4, 10 cm, the finest that leaves it clear (shrunk, grown, shrunk back with sharp corners; no simplify), every piece of ROCK_PIECE_M2 and more kept; the 4 cm versions of the two were accepted in a scratch test. Of two pairs of the same stone drawing with a corner ON another side Archicad accepted one and refused the other, so such an outline is made or not by chance: all 81 that touch or cross themselves as drawn are sent clean. (3) HOUSE OUTLINES: "still changing after 4 rounds" was one 6.7 m2 wedge: growing a shrunk outline back cuts corners sharper than about 23 degrees flat, the join put the 5 to 13 cm back; _house_thin does not make a cut shallower than the snap distance where growing back with sharp corners whole (HOUSE_MITRE) returns the whole outline. (4) PARK FURNITURE LOG: an item built in the other file is no longer counted as refused (8 / 35 / 43 "refused" were 0). KNOWN, NOT FIXED: _house_thin does not cut a narrow strip or tooth when the shrunk outline keeps a sliver at its mouth (the sliver grows back over it): rings 206, 892, 1603 of the v2.16ah dry run; 10 of the 11 double wall rows are sharp corners of ONE surveyed outline (15 to 43 degrees), not faults.
+VERSION = "v2.16ai"   # v2.16ai (27 Nov 2026; own fixes for what the v2.16ah check left open, each cause measured on the Desktop first, logs\check_v2_16ah_2026-11-27.txt M1-M7, R1-R2; lettered: he has not seen the 3D yet). (1) CANOPY BASE PLATES (20 of 28 plates lay over two decks, 16 of them 3 cm and more into the higher one: the column lines are the deck cut lines; 19 reached past the deck edge: the column stood 1.20 m from a corner of 24 to 32 degrees of his outline, 0.06 to 0.33 m from its edge): the decks, rooms and planters stay as they are and each COLUMN takes the nearest place where its whole plate stands on one deck inside the outline: CAN_PLATE_CLR beside its cut line, the lower deck first, and further in along its corner line where the outline is too near (three earlier v2.16ai tries, never built, moved the deck cuts instead: their dry runs lost the one glazed room). (2) BOULDERS (two refused as drawn in v2.16ah: one whose spike tip lies on another side, one that crosses itself and came back from the 4 cm simplify with a part folded flat): _spikes_out sends an outline that neither crosses nor touches itself as drawn (_ring_touch, ROCK_TOUCH_M) and any other without its parts and notches under 1 cm, then 2, 4, 10 cm, the finest that leaves it clear (shrunk, grown, shrunk back with sharp corners; no simplify), every piece of ROCK_PIECE_M2 and more kept; the 4 cm versions of the two were accepted in a scratch test. Of two pairs of the same stone drawing with a corner ON another side Archicad accepted one and refused the other, so such an outline is made or not by chance: all 81 that touch or cross themselves as drawn are sent clean. (3) HOUSE OUTLINES: "still changing after 4 rounds" was one 6.7 m2 wedge: growing a shrunk outline back cuts corners sharper than about 23 degrees flat, the join put the 5 to 13 cm back; _house_thin does not make a cut shallower than the snap distance where growing back with sharp corners whole (HOUSE_MITRE) returns the whole outline. (4) PARK FURNITURE LOG: an item built in the other file is no longer counted as refused (8 / 35 / 43 "refused" were 0). KNOWN, NOT FIXED: _house_thin does not cut a narrow strip or tooth when the shrunk outline keeps a sliver at its mouth (the sliver grows back over it): rings 206, 892, 1603 of the v2.16ah dry run; 10 of the 11 double wall rows are sharp corners of ONE surveyed outline (15 to 43 degrees), not faults.
 # v2.16ah (27 Nov 2026; Aras 11:40 UTC "fold in other fixes", 11:43 "solve the problems on the root cause dont implement band aid fixes"; every cause measured on the Desktop first, logs\check_v2_16ah_pre_2026-11-27.txt; lettered: he has not seen the 3D yet). (1) PLANS: ONE story per file (_one_story, set_stories): a plan draws walls, slabs, roofs, beams, columns and stairs on the story whose height range holds them and objects, lamps and meshes only on their home story, so none of the 18 stories showed the town; SetStories with story 0 alone before the model is listed (Archicad removes the other stories' elements, this pass makes them again); the node plans are views of the one plan; the plan views get the "BGA - all" layer combination (the template's "01 Site" hides every BGA layer, the node views had a layer state of their own) and each node plan its own frame on its building. (2) HOUSE OUTLINES: _snap_houses written anew (every corner ONE point shared by the outlines it belongs to; the 5 % area guard that kept small outlines apart is gone; no corner beside a corner); _ring_keep drops a computed corner under HOUSE_PT_M from a kept one; the cut / join rounds repeat until nothing changes; _house_check logs the outlines as they go to the walls (FLAG on any short side, overlap, near miss or spike); _party_skip takes sides from 2 cm; _wall_drop FLAGs what it still has to leave out. (3) LOCKS: a beam or column whose box differs up to EDIT_TOL_WALL_M (Archicad trims them where they meet) is not "hand-edited"; an element not made because a locked one stands there is no longer reported as refused. (4) MASTER: only its own elements are listed (FilterElements IsEditable; it took the 58,948 hotlinked ones as its own and spent 134 s on deletes Archicad refused). (5) BOULDERS: spikes and notches under 4 cm leave the outline before it is sent (_spikes_out; one boulder was refused as drawn in every build). (6) SLAB OVERLAPS (49 in v2.16ag): what _create adds ("Basic", "Top") is part of the fingerprint, so the canopy decks kept from before v2.16 (level = core top, 12 cm too high: 41 overlaps with base plates and planters) are made again; corners of two of his canopy outlines drawn within CAN_WELD_M are one corner (canopy_groups: two triangles lay 9 cm in each other); a building outline of his lying partly in a bigger one is cut back to it (design_roofs: N1 / N1b, 0.19 m along 13 m); a node box stands clear of his canopies and of the buildings he drew, as of the streets (_nb_off_streets: the N2 box stood 118 m2 under a canopy). (7) PARKS: no shrub where a bench, its bin or a lamp stands (2 of 46 benches were placed: the shrub line stood on their places); left-out furniture counted per kind and reason. (8) LIBRARY PARTS: the balcony railing and the two bridge parts are sent only when new or changed (_part_same; 52 s per context build).
 # v2.16ag (own fix, 27 Nov 2026, from the Desktop check of the v2.16af build and its dry check on the survey): (1) house outlines lying partly IN each other (30 of the 32 double wall pairs of two houses, 0.02 to 43.7 m2) are cut apart: the lower one (same height: the smaller) is cut back to the other's outline (_house_overlaps), outlines that cross or touch themselves are made valid first; (2) narrow parts from 0.05 m2 (was 0.30: 8 spikes stayed); (3) one-house outlines: a long side of a small outline may move (area guard half the outline x 0.46 m), a corner beside a side's end goes onto the side from RING_MIN_M; (4) the half-round is never dug under the river-bed level beside it (v2.16af: 0.23 m under); (5) "Shower Stall" is no market stall (94 wrong objects in v2.16af): only "market stall" / "market stand" parts are taken; (6) wall pieces under 0.10 m left out (one 0.02 m long was built); (7) the FLAG "stepped terraces built flat" only when no rows are built; the stairs line no longer flags the stairs of the other file
 # v2.16af (27 Nov 2026; Aras 06:25-06:58 UTC "Find fixes for all", "And push at once", his symbol layers, "Both places"; lettered: he has not seen the 3D yet). SYMBOL LAYERS (alanlar/*, agaclar-2/tas-2; sym_plan, sym_objects): one drawn symbol = real-size Archicad library objects filling its footprint (benches, tables with benches, loungers, bicycle holders, garden tables; shrubs on beds), decks / planting beds / courts ONE slab each, courts as the Basketball Court part sized to his box, his stones as boulders, people on their own layer shown only in section / elevation views (BGA - sections + elevations, BGA - section *); kinds with no library part (3D umbrella, market stall, kiosk, planter, truck) left out and logged until Aras adds the objects. SEATING (_seat_plan): his river steps (begum_su_merdiven) and his half-round (aras_alan) as rows 0.90 x 0.45 m (slabs) from the river bed up to the bank top, the half-round dug down to the bed level beside it, Stair-tool stairs 30 x 15 cm at both ends and the middle (CreateStairs; 1.50 m wide ASSUMED). FIXES: master hotlinks repointed (ChangeHotlinkNodes), not deleted and placed again (the v2.16ae master held the town twice); reed clumps capped at REED_MAX_M; bare strips between covers (COVER_SLIT_M 0.50); street lamps through the Lamp tool (CreateLamps, Street Lamp 02, pole 6 m); two outlines with the same floors and height read as one house and closed up to HOUSE_SAME_M; house outline parts narrower than HOUSE_MIN_W cut off (the double walls); twin and short loose wall pieces left out; the top story set again when it alone is off; a refused beam sent once more alone (the one glass roof mullion)
@@ -3018,7 +3018,7 @@ def build_canopies(ac, miss, log, rects, inside, tin, ox, oy, z0, xy, q500_at, w
             return best_[1] if best_ else None
         # the column places: under the low vertices, pulled inside; then under high vertices left too far from any
         cols = []
-        nom_ = {}                                               # corner -> its column place CAN_COL_IN inside (v2.16ai)
+        dir_ = {}                                               # corner -> the direction its column is pulled in (v2.16ai)
 
         def pull_in(k):
             a, b, c = H[k - 1], H[k], H[(k + 1) % len(H)]
@@ -3028,18 +3028,9 @@ def build_canopies(ac, miss, log, rects, inside, tin, ox, oy, z0, xy, q500_at, w
             ld = math.hypot(*d)
             if ld < 1e-6:
                 return None
-            # v2.16ai (Desktop 27 Nov 2026: 19 of 28 base plates on a deck reached past its edge: the column stood
-            # 1.20 m from a corner of 24 to 32 degrees, so 0.06 to 0.33 m from the outline): the column goes further
-            # in along the same line until its whole plate stands inside the outline; no such place: no column here
-            for s_ in (1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0):
-                p = (b[0] + d[0] / ld * CAN_COL_IN * s_, b[1] + d[1] / ld * CAN_COL_IN * s_)
-                if s_ == 1.0 and _inpoly(p, H):
-                    nom_[k] = p
-                if _inpoly(p, H) and min(_seg_d(p, H[i_ - 1], H[i_]) for i_ in range(len(H))) >= CAN_PLATE_CLR:
-                    n_x["deep"] = n_x.get("deep", 0) + (1 if s_ > 1.0 else 0)
-                    return p
-            n_x["nofit"] = n_x.get("nofit", 0) + 1
-            return None
+            dir_[k] = (d[0] / ld, d[1] / ld)
+            p = (b[0] + d[0] / ld * CAN_COL_IN, b[1] + d[1] / ld * CAN_COL_IN)
+            return p if _inpoly(p, H) else None
         for want_hi in (False, True):
             for k in range(len(H)):
                 if hi_[k] != want_hi:
@@ -3050,27 +3041,13 @@ def build_canopies(ac, miss, log, rects, inside, tin, ox, oy, z0, xy, q500_at, w
                 dmin = min([math.hypot(p[0] - c[1][0], p[1] - c[1][1]) for c in cols] or [1e9])
                 if (not want_hi and dmin >= CAN_COL_MIN) or (want_hi and dmin > CAN_COL_MAX):
                     cols.append((k, p))
-        # bays between the column lines along the long axis: plinth + deck = the outline cut there. v2.16ai (the cut
-        # ran through the columns themselves, so a base plate lay over two decks of different height): the column
-        # lines stay where they were (CAN_COL_IN from the corners, so the bays, rooms and planters keep their
-        # places), and each cut steps CAN_PLATE_CLR off its line to the side where the ground is higher, and past
-        # any column whose plate it would still run through: every column stands with its whole plate on the lower
-        # deck of the two
+        # bays between the column lines along the long axis: plinth + deck = the outline cut there (the columns step
+        # off these lines afterwards, v2.16ai below)
         ts = sorted(T(p) for _k, p in cols)
-        cuts, t_last = [], None
-        for t, p in sorted((T(nom_[k]), p) for k, p in cols if k in nom_):
-            if t_last is not None and t - t_last < 3.0:
-                continue
-            t_last = t
-            z_a = tin.z(p[0] + 1.5 * u[0] - ox, p[1] + 1.5 * u[1] - oy)
-            z_b = tin.z(p[0] - 1.5 * u[0] - ox, p[1] - 1.5 * u[1] - oy)
-            sg_ = -1.0 if (z_a is not None and z_b is not None and z_a < z_b) else 1.0
-            c_ = t + sg_ * CAN_PLATE_CLR
-            for t2 in (ts if sg_ > 0 else ts[::-1]):
-                if abs(t2 - c_) < CAN_PLATE_CLR - 1e-9:
-                    c_ = t2 + sg_ * CAN_PLATE_CLR
-            cuts.append(c_)
-        cuts = [c_ for i_, c_ in enumerate(sorted(cuts)) if i_ == 0 or c_ - sorted(cuts)[i_ - 1] >= 1.0]
+        cuts = []
+        for t in ts:
+            if not cuts or t - cuts[-1] >= 3.0:
+                cuts.append(t)
         ta, tb = min(T(p) for p in H), max(T(p) for p in H)
         edges = [ta - 1.0] + [t for t in cuts if ta + 2.0 < t < tb - 2.0] + [tb + 1.0]
         HT = [(T(p), W(p)) for p in H]
@@ -3123,6 +3100,43 @@ def build_canopies(ac, miss, log, rects, inside, tin, ox, oy, z0, xy, q500_at, w
                 if all(_inpoly(c, H) for c in C4):
                     planters.append(dict(level=round(fl + 0.6 - z0, 3), thickness=0.6, polygonCoordinates=[xy(p) for p in C4],
                                          _zz=(round(fl - z0, 3), round(fl + 0.6 - z0, 3))))
+        # v2.16ai (Desktop 27 Nov 2026: 20 of 28 base plates lay over two decks, 16 of them 3 cm and more into the
+        # higher one, because the column lines ARE the deck cut lines; 19 reached past the deck edge because the
+        # column stood 1.20 m from a corner of 24 to 32 degrees, 0.06 to 0.33 m from the outline). The decks, rooms
+        # and planters stay as they are; each COLUMN takes the nearest place where its whole plate stands on one
+        # deck inside the outline: CAN_PLATE_CLR beside the cut line it stood on (the lower deck of the two first),
+        # and further in from its corner along the same line where the outline is too near. No such place: no column
+        cl_ = edges[1:-1]
+
+        def _deck(p):
+            return next((fl_ for R_, fl_ in bays if _inpoly(p, R_)), None)
+
+        def _fits(p):
+            return (_inpoly(p, H) and all(abs(T(p) - c_) >= CAN_PLATE_CLR - 1e-6 for c_ in cl_)
+                    and min(_seg_d(p, H[i_ - 1], H[i_]) for i_ in range(len(H))) >= CAN_PLATE_CLR)
+        cols0, cols = cols, []
+        for k, p0 in cols0:
+            best = None
+            for s_ in (1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0):
+                q = (H[k][0] + dir_[k][0] * CAN_COL_IN * s_, H[k][1] + dir_[k][1] * CAN_COL_IN * s_)
+                cand = [q]
+                for c_ in cl_:
+                    if abs(T(q) - c_) < CAN_PLATE_CLR:
+                        cand += [(q[0] + u[0] * (c_ + sg_ * CAN_PLATE_CLR - T(q)), q[1] + u[1] * (c_ + sg_ * CAN_PLATE_CLR - T(q)))
+                                 for sg_ in (-1.0, 1.0)]
+                cand = [c_ for c_ in cand if _fits(c_)]
+                if cand:
+                    best = min(cand, key=lambda c_: (_deck(c_) is None, _deck(c_) or 0.0,
+                                                     math.hypot(c_[0] - p0[0], c_[1] - p0[1])))
+                    break
+            if best is None:
+                n_x["nofit"] = n_x.get("nofit", 0) + 1
+                continue
+            mv_ = math.hypot(best[0] - p0[0], best[1] - p0[1])
+            if mv_ > 1e-6:
+                n_x["moved"] = n_x.get("moved", 0) + 1
+                n_x["far"] = max(n_x.get("far", 0.0), mv_)
+            cols.append((k, best))
         # Y columns: base plate on the deck of its bay (or a concrete pier in the ground), trunk to the fork, two arms
         # ending inside the frame members of the two outline edges at its corner
         for k, base in cols:
@@ -3251,10 +3265,10 @@ def build_canopies(ac, miss, log, rects, inside, tin, ox, oy, z0, xy, q500_at, w
                % (n_c, len(roofs), len(frame), len(slats), len(trunks), len(plates), len(piers), len(arms), len(plinths),
                   len(room_roofs), len(planters), n_x["tiny"], CAN_MIN_FACET, n_x["low"], CAN_CLEAR_M, CAN_Q500_M,
                   CAN_RISE_M, CAN_T, CAN_SLAT_H, CAN_FR_W, CAN_FR_H, CAN_PLINTH_M, CAN_DECK_M))
-    log.append(u"canopy columns (v2.16ai): every base plate stands whole inside its canopy outline and on one deck bay "
-               u"(bays cut %.2f m beside the column lines, on the higher side): %d column(s) stand further in than %.2f m from their corner "
-               u"(a sharp corner), %d corner(s) with no place for a whole plate have no column"
-               % (CAN_PLATE_CLR, n_x.get("deep", 0), CAN_COL_IN, n_x.get("nofit", 0)))
+    log.append(u"canopy columns (v2.16ai): every base plate stands whole inside its canopy outline and on one deck bay: "
+               u"%d column(s) moved %.2f m off a deck cut line or further in from a sharp corner (at most %.2f m from "
+               u"the old place), %d column(s) with no place for a whole plate left out; decks, rooms and planters unchanged"
+               % (n_x.get("moved", 0), CAN_PLATE_CLR, n_x.get("far", 0.0), n_x.get("nofit", 0)))
     if n_x.get("noarm"):
         log.append(u"canopies (v2.16ab): %d Y arm(s) left out: no frame member within 0.5 m of where they would end"
                    % n_x["noarm"])
