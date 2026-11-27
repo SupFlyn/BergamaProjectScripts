@@ -152,11 +152,12 @@ def body_uv(V, F, UV, smooth_deg=35.0, flat_deg=1.0):
 
 def script(part, groups, texture=None):
     """groups: [dict(name, rgb (0..1), kind 'matte' | 'metal' | 'glass', V, F[, UV])] -> (GDL 3D text, summary);
-    texture = the index of the picture stored in the part (1 = its first): groups with UV get it on their surface"""
+    texture = the file name of its picture in the embedded library (Desktop test 27 Nov 2026: a picture stored IN a
+    part made with CreateLibraryParts cannot be set, the part is not editable): groups with UV get it on their surface"""
     kinds = {"matte": 2, "metal": 3, "plastic": 4, "glass": 5}
     L = ["! %s: mesh object made from Aras's file, sizes in m, origin at the middle of its footprint on the ground" % part]
     if texture:
-        L.append('DEFINE TEXTURE "%s tex" %d, 1, 1, 0, 0' % (part, texture))
+        L.append('DEFINE TEXTURE "%s tex" "%s", 1, 1, 0, 0' % (part, texture))
     tv = tf = 0
     for i, g in enumerate(groups):
         uv = texture and g.get("UV") is not None

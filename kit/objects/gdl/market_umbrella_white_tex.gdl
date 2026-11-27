@@ -1,5 +1,5 @@
 ! Market Umbrella White: mesh object made from Aras's file, sizes in m, origin at the middle of its footprint on the ground
-DEFINE TEXTURE "Market Umbrella White tex" 1, 1, 1, 0, 0
+DEFINE TEXTURE "Market Umbrella White tex" "market_umbrella_white.png", 1, 1, 0, 0
 DEFINE MATERIAL "Market Umbrella White 01" 22, 0.792, 0.786, 0.736, 0, 0, IND(TEXTURE, "Market Umbrella White tex")
 MATERIAL "Market Umbrella White 01"
 BASE
