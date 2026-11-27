@@ -37,7 +37,15 @@ Works when: the log's first line is "TAPIR OK <version>" and Archicad's Navigato
 """
 import os, re, json, math, time, glob
 
-VERSION = "v2.16ad"   # v2.16ad (own fix, 27 Nov 2026 night, from the Desktop checks of v2.16ac, rounds 4 and 4b): (1) meshes: the two remaining causes of "Failed to create new Mesh" are taken out before a mesh is sent: a fold-back needle in the outline (its tip left out, _ring_needle; 8 of the 9 first-try refusals) and a hole that touches the outline (cut back 1 cm, _holes_off; the park at -371.86,620.90, whose retry without the hole laid a second surface over 10.81 m2); (2) reed beds: a joined bed area took ONE water level from its HIGHEST ground, so the area at -330,445 running from the river up the bank stood under a 12.2 m thick water slab and 4,638 clumps were over 3 m tall (tallest 13.7 m): a bed area whose ground differs by more than REED_DIG_MAX is now cut in halves down to REED_SPLIT_M, each part with its own level, and no part holds water more than REED_DIG_MAX + REED_DIG_D over its lowest ground unless the river stands higher (ASSUMED); (3) house walls: an open part of a shared side is built from 2 cm (was 0.30 m: 57 gaps of up to 29.6 cm in a house's own walls); a shared side left to a neighbour standing higher or ending lower gets this house's own wall under the neighbour's wall foot / above its top from PARTY_GAP_M of open height (the one open side at -696.6,915.4: 2.53 m under the neighbour's foot); a corner within HOUSE_SNAP_M of the side of one of the 28 outlines the snap keeps as they were goes onto that side (the kept outline could not bend to it: wedge slits of 15-30 cm); (4) logs: the first refused node-building piece and boulder as sent, the tallest reed clump, no stale version in the time split line
+VERSION = "v2.16al"   # v2.16al (27 Nov 2026; own fix from the v2.16aj build log on the Desktop: the KIOSK was not built, "Not found library part with name 'food_kiosk'"): _lib_sym looked for his objects by words in ALL library names and took the shortest; the kiosk's texture picture food_kiosk is as long as the part Food Kiosk, and the names come as a set, so which one won was chance (v2.16ai happened to get the part). His own objects are now taken by the kind objects.json gives them (OBJ_KIND); the word search is left only for kinds not listed there, never takes a picture file and breaks a tie by name. The rest is v2.16ak.
+# v2.16ak (27 Nov 2026; Aras 18:24 UTC chose "Keep all, set into the ground" on the card "Choose how furniture stands where your ground slopes steeply"; lettered: he has not seen the 3D yet): NO object is left out for the slope any more: every object stands on the lowest surface under what it stands on, its uphill side in the ground; SYM_FALL_M (0.20 m) now only counts in the log how many sit deeper than that and the deepest per kind. The rest is v2.16aj.
+# v2.16aj (27 Nov 2026; own fixes from the Desktop checks of the v2.16ai build, logs\check_v2_16ai_ground_2026-11-27.txt + check_v2_16ai_slope_2026-11-27.txt; lettered: he has not seen the 3D yet). (1) HEIGHT OF EVERY PLACED OBJECT: an object took ONE height, the surveyed ground at its middle, so on sloping ground it stood level with corners in the air and in the ground (stalls up to 0.63 m up and 0.50 m down, 100 of his 132 objects over 5 cm; benches, tables, loungers the same since v2.16af): the height is now the LOWEST surface under what the object stands on (_stand: its footprint, a parasol its foot), so nothing floats; where the surface falls more than SYM_FALL_M (0.20 m, ASSUMED) under it a level object cannot stand: left out and counted per kind (a stall's parasol with it). The surface is the built one: a hard ground cover stands COVER_UP (5 cm) over the surveyed ground, the objects stood that much in it (_cover_up, on_slab). (2) THE 4 BENCHES beside the 4 single parasols were refused: the free-spot test (_Spread.free) registers the parasol first and its bench stands 0.67 m from it: a bench is now tested against everything but its own parasol. (3) Where the middle of a library part's box lies from its origin, measured in the built v2.16ai file: Metal Garden Table 0.27, 0.27, Bicycle Holder 01 0, -0.07, Pick-up 1.96, 0 (they stood that far off their spot); the parts' own sizes (SYM_BOX) from the same measure.
+# v2.16ai (27 Nov 2026; own fixes for what the v2.16ah check left open, each cause measured on the Desktop first, logs\check_v2_16ah_2026-11-27.txt M1-M7, R1-R2; lettered: he has not seen the 3D yet). (1) CANOPY BASE PLATES (20 of 28 plates lay over two decks, 16 of them 3 cm and more into the higher one: the column lines are the deck cut lines; 19 reached past the deck edge: the column stood 1.20 m from a corner of 24 to 32 degrees of his outline, 0.06 to 0.33 m from its edge): the decks, rooms and planters stay as they are and each COLUMN takes the nearest place where its whole plate stands on one deck inside the outline: CAN_PLATE_CLR beside its cut line, the lower deck first, or the nearest place clear of the outline at a sharp corner (three earlier v2.16ai tries, never built, moved the deck cuts instead: their dry runs lost the one glazed room); a Y arm keeps its reach past the column: its end lies CAN_Y_ARM_M - CAN_COL_IN beyond the column's foot on the edge (4 columns moved in along a sharp corner stood level with their arm ends and had no arm). (2) BOULDERS (two refused as drawn in v2.16ah: one whose spike tip lies on another side, one that crosses itself and came back from the 4 cm simplify with a part folded flat): _spikes_out sends an outline that neither crosses nor touches itself as drawn (_ring_touch, ROCK_TOUCH_M) and any other without its parts and notches under 1 cm, then 2, 4, 10 cm, the finest that leaves it clear (shrunk, grown, shrunk back with sharp corners; no simplify), every piece of ROCK_PIECE_M2 and more kept; the 4 cm versions of the two were accepted in a scratch test. Of two pairs of the same stone drawing with a corner ON another side Archicad accepted one and refused the other, so such an outline is made or not by chance: all 81 that touch or cross themselves as drawn are sent clean. (3) HOUSE OUTLINES: "still changing after 4 rounds" was one 6.7 m2 wedge: growing a shrunk outline back cuts corners sharper than about 23 degrees flat, the join put the 5 to 13 cm back; _house_thin does not make a cut shallower than the snap distance where growing back with sharp corners whole (HOUSE_MITRE) returns the whole outline. (4) PARK FURNITURE LOG: an item built in the other file is no longer counted as refused (8 / 35 / 43 "refused" were 0). (5) ARAS'S OWN OBJECTS (27 Nov 2026 12:35 UTC "please also apply those items directly into the archicad file", 11:52 "only in proposal file", 14:42 "mix and match the file types to maximise the quality"; files kit/objects on main, read from <Project Files>\\objects): _setup_objects puts them into the proposal file's embedded library: his planter .gsm as it is (AddFilesToEmbeddedLibrary), his parasol (.fbx), market stall (the solids of the 3D .dwg) and kiosk (.glb, thinned from 232,187 to 30,855 triangles) as GDL mesh parts (CreateLibraryParts) at their true size, the parasol and the kiosk with their texture picture (a Pict file in the same library folder, per-triangle texture coordinates); _lib_sym finds them by name. sym_objects places them at their real size: the grid of a picture is at least the object + SYM_GAP_M, a stall stands with its parasol BESIDE it (v2.16af put both on one spot, 63 pairs), a bench beside the foot of its parasol, and none of his objects stands closer than SYM_GAP_M / 2 to another. KNOWN, NOT FIXED: _house_thin does not cut a narrow strip or tooth when the shrunk outline keeps a sliver at its mouth (the sliver grows back over it): rings 206, 892, 1603 of the v2.16ah dry run; 10 of the 11 double wall rows are sharp corners of ONE surveyed outline (15 to 43 degrees), not faults.
+# v2.16ah (27 Nov 2026; Aras 11:40 UTC "fold in other fixes", 11:43 "solve the problems on the root cause dont implement band aid fixes"; every cause measured on the Desktop first, logs\check_v2_16ah_pre_2026-11-27.txt; lettered: he has not seen the 3D yet). (1) PLANS: ONE story per file (_one_story, set_stories): a plan draws walls, slabs, roofs, beams, columns and stairs on the story whose height range holds them and objects, lamps and meshes only on their home story, so none of the 18 stories showed the town; SetStories with story 0 alone before the model is listed (Archicad removes the other stories' elements, this pass makes them again); the node plans are views of the one plan; the plan views get the "BGA - all" layer combination (the template's "01 Site" hides every BGA layer, the node views had a layer state of their own) and each node plan its own frame on its building. (2) HOUSE OUTLINES: _snap_houses written anew (every corner ONE point shared by the outlines it belongs to; the 5 % area guard that kept small outlines apart is gone; no corner beside a corner); _ring_keep drops a computed corner under HOUSE_PT_M from a kept one; the cut / join rounds repeat until nothing changes; _house_check logs the outlines as they go to the walls (FLAG on any short side, overlap, near miss or spike); _party_skip takes sides from 2 cm; _wall_drop FLAGs what it still has to leave out. (3) LOCKS: a beam or column whose box differs up to EDIT_TOL_WALL_M (Archicad trims them where they meet) is not "hand-edited"; an element not made because a locked one stands there is no longer reported as refused. (4) MASTER: only its own elements are listed (FilterElements IsEditable; it took the 58,948 hotlinked ones as its own and spent 134 s on deletes Archicad refused). (5) BOULDERS: spikes and notches under 4 cm leave the outline before it is sent (_spikes_out; one boulder was refused as drawn in every build). (6) SLAB OVERLAPS (49 in v2.16ag): what _create adds ("Basic", "Top") is part of the fingerprint, so the canopy decks kept from before v2.16 (level = core top, 12 cm too high: 41 overlaps with base plates and planters) are made again; corners of two of his canopy outlines drawn within CAN_WELD_M are one corner (canopy_groups: two triangles lay 9 cm in each other); a building outline of his lying partly in a bigger one is cut back to it (design_roofs: N1 / N1b, 0.19 m along 13 m); a node box stands clear of his canopies and of the buildings he drew, as of the streets (_nb_off_streets: the N2 box stood 118 m2 under a canopy). (7) PARKS: no shrub where a bench, its bin or a lamp stands (2 of 46 benches were placed: the shrub line stood on their places); left-out furniture counted per kind and reason. (8) LIBRARY PARTS: the balcony railing and the two bridge parts are sent only when new or changed (_part_same; 52 s per context build).
+# v2.16ag (own fix, 27 Nov 2026, from the Desktop check of the v2.16af build and its dry check on the survey): (1) house outlines lying partly IN each other (30 of the 32 double wall pairs of two houses, 0.02 to 43.7 m2) are cut apart: the lower one (same height: the smaller) is cut back to the other's outline (_house_overlaps), outlines that cross or touch themselves are made valid first; (2) narrow parts from 0.05 m2 (was 0.30: 8 spikes stayed); (3) one-house outlines: a long side of a small outline may move (area guard half the outline x 0.46 m), a corner beside a side's end goes onto the side from RING_MIN_M; (4) the half-round is never dug under the river-bed level beside it (v2.16af: 0.23 m under); (5) "Shower Stall" is no market stall (94 wrong objects in v2.16af): only "market stall" / "market stand" parts are taken; (6) wall pieces under 0.10 m left out (one 0.02 m long was built); (7) the FLAG "stepped terraces built flat" only when no rows are built; the stairs line no longer flags the stairs of the other file
+# v2.16af (27 Nov 2026; Aras 06:25-06:58 UTC "Find fixes for all", "And push at once", his symbol layers, "Both places"; lettered: he has not seen the 3D yet). SYMBOL LAYERS (alanlar/*, agaclar-2/tas-2; sym_plan, sym_objects): one drawn symbol = real-size Archicad library objects filling its footprint (benches, tables with benches, loungers, bicycle holders, garden tables; shrubs on beds), decks / planting beds / courts ONE slab each, courts as the Basketball Court part sized to his box, his stones as boulders, people on their own layer shown only in section / elevation views (BGA - sections + elevations, BGA - section *); kinds with no library part (3D umbrella, market stall, kiosk, planter, truck) left out and logged until Aras adds the objects. SEATING (_seat_plan): his river steps (begum_su_merdiven) and his half-round (aras_alan) as rows 0.90 x 0.45 m (slabs) from the river bed up to the bank top, the half-round dug down to the bed level beside it, Stair-tool stairs 30 x 15 cm at both ends and the middle (CreateStairs; 1.50 m wide ASSUMED). FIXES: master hotlinks repointed (ChangeHotlinkNodes), not deleted and placed again (the v2.16ae master held the town twice); reed clumps capped at REED_MAX_M; bare strips between covers (COVER_SLIT_M 0.50); street lamps through the Lamp tool (CreateLamps, Street Lamp 02, pole 6 m); two outlines with the same floors and height read as one house and closed up to HOUSE_SAME_M; house outline parts narrower than HOUSE_MIN_W cut off (the double walls); twin and short loose wall pieces left out; the top story set again when it alone is off; a refused beam sent once more alone (the one glass roof mullion)
+# v2.16ae (own fix, 27 Nov 2026 night; the version of the final build from an empty file): v2.16ad as checked on the Desktop (round 5: no mesh refused, no house side without a wall, the 12 m reed water block gone) plus one thing: a boulder Archicad refuses as drawn (one left, at 114.7,-231.8: a valid outline full of spikes 1 to 4 cm wide) is sent again with spikes and notches under 4 cm, then under 10 cm, taken out of its outline (guarded: a failure there only writes a FLAG line)
+# v2.16ad (own fix, 27 Nov 2026 night, from the Desktop checks of v2.16ac, rounds 4 and 4b): (1) meshes: the two remaining causes of "Failed to create new Mesh" are taken out before a mesh is sent: a fold-back needle in the outline (its tip left out, _ring_needle; 8 of the 9 first-try refusals) and a hole that touches the outline (cut back 1 cm, _holes_off; the park at -371.86,620.90, whose retry without the hole laid a second surface over 10.81 m2); (2) reed beds: a joined bed area took ONE water level from its HIGHEST ground, so the area at -330,445 running from the river up the bank stood under a 12.2 m thick water slab and 4,638 clumps were over 3 m tall (tallest 13.7 m): a bed area whose ground differs by more than REED_DIG_MAX is now cut in halves down to REED_SPLIT_M, each part with its own level, and no part holds water more than REED_DIG_MAX + REED_DIG_D over its lowest ground unless the river stands higher (ASSUMED); (3) house walls: an open part of a shared side is built from 2 cm (was 0.30 m: 57 gaps of up to 29.6 cm in a house's own walls); a shared side left to a neighbour standing higher or ending lower gets this house's own wall under the neighbour's wall foot / above its top from PARTY_GAP_M of open height (the one open side at -696.6,915.4: 2.53 m under the neighbour's foot); a corner within HOUSE_SNAP_M of the side of one of the 28 outlines the snap keeps as they were goes onto that side (the kept outline could not bend to it: wedge slits of 15-30 cm); (4) logs: the first refused node-building piece and boulder as sent, the tallest reed clump, no stale version in the time split line
 # v2.16ac (own fix, 27 Nov 2026 night, from the Desktop check of v2.16ab): (1) speed: Tapir is asked once per command name whether it has the command (was about 10,900 calls per file, 96-168 s); (2) ground covers: square corners where a leftover joins its neighbour piece (round ones put 1 mm arc steps into the outlines: 75 pieces refused on their first try, v2.16aa 13); slits up to 0.8 m between covered areas are closed (the largest gaps left were strips 0.5-0.7 m wide); every mesh refused on its first try is written as sent to cached\\bergama_refused_first_<file>.json; (3) house walls: a side is only shared with a neighbour when it lies ON the neighbour's side or inside its outline (4 of the 6 sides left without a wall had been given up for a wall 0.3-0.4 m away); both open parts of a shared side are built; (4) his slabs on sloping ground (terraces, building frames) are solid down to the cut ground under them (up to 1.3 m of air stood beside them); (5) outline cleaner: 100 of 100 bad boulder outlines of the cached drawing now come out clean (was 80; 16 boulders were still refused); (6) a flat roof facet has its pivot through its middle (a 30 m facet hung 3.2 cm low at its far end)
 # v2.16ab (own fix, 27 Nov 2026 night; Aras 26 Nov "check for road edges meeting properly", "i dont see a reason ... why it wouldnt close the edges", "nothing floats"; Desktop checks of v2.15 / v2.16aa and tests F1-F3): (1) house walls: reference line = the house outline itself (outside face), so the walls of two houses that share a corner end on one point (284 spots 3-18 cm apart: each house had its own inset line); sides from 2 cm up are built (was 30 cm: 147 open spots); a shared side is only left out for a wall that really stands there (32 sides had no wall); a house is whole in one file of the split; (2) ground covers: under a piece the ground follows the surveyed ground 12 cm below it (was one flat platform 0.3-1.3 m down: real ditches along the edges, 8 of 10 tested in Archicad); leftovers under 2 m2 or thinner than 0.5 m and slits up to 25 cm between his pieces go to the piece beside them (205 + 87 bare gaps); ground tile grid points under a piece are left out; (3) refused elements: a mesh outline never has two points on one spot (test F2: the one reason Archicad refuses a mesh; 1 mm rounding made them), slab / roof outlines that cross themselves are cleaned before they are sent (78 boulders, 7 of his slabs), elements of the other file are no longer counted as refused; (4) canopy Y arms end in the frame member that really runs there (6 of 54 stopped 11-14 cm short); (5) trees, furniture, people and cars inside one of his slabs stand on its top (45 of 300 sampled trees were up to 4 m under a terrace); (6) log: time split by command
 # v2.16aa (own fix, 26 Nov 2026 night; Aras 26 Nov 20:01 UTC "i dont see a reason when their height is exactly the same, floor height is exactly the same why it wouldnt close the edges"): the Desktop check of v2.15 found the reason: the BGA layers were made without an intersection group, Tapir gave them group 0 and Archicad joins nothing on a group 0 layer (0 of 20,275 house walls had a connection; 11 of 12 square corners open; with group 1 on the layer 12 of 12 closed). The layers of the houses, their structure and our buildings / canopies (LAYER_JOIN) now get intersection group 1, also in files that already have them; every other BGA layer states group 0 as before (hidden cutters and season waters must not cut anything)
@@ -63,8 +71,8 @@ if AC_PORT.isdigit():                                     # you want in the same
 SHADOWS = False                    # v1.12: vector sun shadows off in the section views (publish took 10.5 min)
 SEC_SIG = "sections-aras-2026-11-15-pdf-strip-ownpens-nodistant"    # v1.12: change with the section view settings (forces one publish)
 BUILD_SIG = "acbuild-geometry-tiles-1"   # v1.32: ground tiles; v1.31: one ground + SEO; v1.30: town ground; v1.29: the whole Selinos; v1.28: collisions; v1.27: SEO terrain cuts + retaining walls; v1.26: minimal folds; v1.25: canopies with Roof/Beam tools; v1.21: bridges + stepped terraces from outlines; v1.19: seating tiers; v1.18: materials; v1.17: building stories; v1.16: masterplan pieces; v1.15: house detail;   # v1.14: node buildings; v1.13 = v1.13: canopies on his outlines; v1.10: change when the element-making code changes (forces a rebuild)
-CLEAR_TYPES = ["Window", "Door", "Wall", "Slab", "Roof", "Mesh", "Column", "Beam", "Object", "Railing", "Morph"]   # v2.11: + Morph (v2.10 cold run: never listed, so all 2,664 survey-wall Morphs were taken as vanished and made twice more)
-OPT_TYPES = ("Morph",)     # v2.11: a type whose listing may fail without stopping the run   # v1.83: + Railing   # v1.9: what AcBuild makes
+CLEAR_TYPES = ["Window", "Door", "Wall", "Slab", "Roof", "Mesh", "Column", "Beam", "Object", "Railing", "Morph", "Stair", "Lamp"]   # v2.16af: + Stair (seating stairs), Lamp (CreateLamps)   # v2.11: + Morph (v2.10 cold run: never listed, so all 2,664 survey-wall Morphs were taken as vanished and made twice more)
+OPT_TYPES = ("Morph", "Stair", "Lamp")     # v2.11: a type whose listing may fail without stopping the run   # v1.83: + Railing   # v1.9: what AcBuild makes
 PUB_SET = "Bergama_Sections"       # publisher set name (made once by hand: DWG, the "Bergama sections" views)
 VIEW_FOLDER = "Bergama sections"
 BACK_M = 200.0                     # m behind the cut: the Sections script's BACK_M (v1.7)
@@ -197,7 +205,7 @@ _LOW_SEEN = set()                          # v2.01: steps already noted as low o
 _STOPPED = []                              # v1.48: the low-RAM stop message, once it happened
 _AC = []                                   # v1.49: the Archicad connection (for the stamp at a stop)
 CACHE_CMDS = ("CreateSlabs", "CreateWalls", "CreateMeshes", "CreateColumns", "CreateBeams", "CreateRoofs",
-              "CreateWindows", "CreateDoors", "CreateObjects", "CreateMorphs")   # v2.10: + Morphs; v1.34: model elements kept between passes by the hash of their data
+              "CreateWindows", "CreateDoors", "CreateObjects", "CreateMorphs", "CreateStairs", "CreateLamps")   # v2.10: + Morphs; v1.34: model elements kept between passes by the hash of their data
 KEEP = {}                          # v1.34: hash -> [guid] of the last pass, still in the model (main fills it)
 ITEMS = []                         # v1.34: this pass [hash, guid, bbox Archicad m]
 PASS_H = {}                        # v2.00: data hash -> guid made or kept in this pass
@@ -295,13 +303,17 @@ class AC(object):
         try:
             keep_ix, items2 = _in_site(name, items, what, self.log)
             self.last_drop = set()
+            self._lock_ix = set()                         # v2.16ah: items not made because a locked element stands there
             if SCOPE[0] in ("proposal", "context", "master"):   # v2.10: which file builds it
                 k2_ = _in_scope(items2, what)
                 self.last_drop = set(keep_ix[i] for i in range(len(keep_ix))) - set(keep_ix[i] for i in k2_)   # v2.11ab
                 keep_ix, items2 = [keep_ix[i] for i in k2_], [items2[i] for i in k2_]
             if len(keep_ix) == len(items):
-                return self._create_kept(name, key, items2, what)
-            res_ = self._create_kept(name, key, items2, what) if items2 else []
+                res_ = self._create_kept(name, key, items2, what)
+                self.last_drop |= self._lock_ix           # v2.16ah (Desktop 27 Nov 2026: the glass roof stud that
+                return res_                               # "Archicad refused" in every build stood in the model: it
+            res_ = self._create_kept(name, key, items2, what) if items2 else []   # was locked, the new one not made, and
+            self.last_drop |= set(keep_ix[i] for i in self._lock_ix)             # that was reported as a refusal)
             out_ = [None] * len(items)                    # refused-like None for the ones left out
             for k_, g_ in zip(keep_ix, res_):
                 out_[k_] = g_
@@ -315,11 +327,17 @@ class AC(object):
         if name not in CACHE_CMDS:
             return self._create(name, key, items, what)
         import hashlib
-        hs = [hashlib.sha1((name + json.dumps(it, sort_keys=True, default=str)).encode("utf-8")).hexdigest()
+        # v2.16ah (v2.16ag model: 41 slab overlaps on the canopies; the decks were kept from before v2.16, when a
+        # composite slab's level was its core top, because _create adds "Basic" / "Top" AFTER the fingerprint was
+        # taken and the data sent looked unchanged): what _create adds is part of the fingerprint
+        dflt_ = (u"|Basic|Top" if name == "CreateSlabs" else u"|Basic") if name in ("CreateWalls", "CreateSlabs",
+                                                                                     "CreateRoofs") else u""
+        hs = [hashlib.sha1((name + json.dumps(it, sort_keys=True, default=str) + dflt_).encode("utf-8")).hexdigest()
               for it in items]
         out, todo, n_out = [], [], 0
         prt = part_of(what)                               # v1.45
         n_same, first_, twin_ = 0, {}, []
+        n_lock = 0
         for i, h in enumerate(hs):
             if h in PASS_H:                               # v2.00: the same data asked for twice in one pass: one element
                 out.append(PASS_H[h])
@@ -344,9 +362,11 @@ class AC(object):
                     if any(t_ == TYPE_OF.get(name) and b_[0] <= cx_ <= b_[2] and b_[1] <= cy_ <= b_[3]
                            for t_, b_ in LOCKED_BB):
                         N_LOCKSKIP[0] += 1
+                        n_lock += 1
+                        self._lock_ix.add(i)
                         continue
                 todo.append(i)
-        kept = len(items) - len(todo) - n_out - n_same    # v1.54: only elements found in the model by Element ID
+        kept = len(items) - len(todo) - n_out - n_same - n_lock   # v1.54: only elements found in the model by Element ID
         N_KEPT[0] += kept
         if todo:
             new = self._create(name, key, [items[i] for i in todo], what)
@@ -462,6 +482,19 @@ class AC(object):
                         n_matfail += int(bool(isinstance(e, dict) and (e.get("elementId") or {}).get("guid")))   # v2.16ab:
                 except Exception:                                                # only those it really made (the line
                     pass                                                         # also counted the ones still refused)
+            bad = [j for j, e in enumerate(lst) if not (isinstance(e, dict) and (e.get("elementId") or {}).get("guid"))]
+            if bad and name == "CreateBeams" and len(bad) <= 5:   # v2.16af (Desktop 27 Nov 2026: the one glass roof
+                n1_ = 0                                          # mullion refused in every build is accepted when it
+                for j in bad:                                    # is sent alone, 7 ways): a refused beam once more, alone
+                    try:
+                        r4 = self.t(name, {key: [part[j]]})
+                        e = (r4.get("elements") or r4.get("elementIds") or [None])[0]
+                    except Exception:
+                        e = None
+                    if isinstance(e, dict) and (e.get("elementId") or {}).get("guid"):
+                        lst[j] = e
+                        n1_ += 1
+                self.log.append(u"%s (v2.16af): %d refused beam(s) sent again one by one: %d made" % (what, len(bad), n1_))
             for j, e in enumerate(lst):
                 g = (e.get("elementId") or {}).get("guid") if isinstance(e, dict) else None
                 out.append(g)
@@ -536,12 +569,13 @@ MAT = {"bridge_stone": ("Bergama bridge stone", "928D8B", "Matte", 0),       # 1
        "bike": ("Bergama cycle path", "B56D61", "Matte", 0),             # v2.11ab: his bisiklet layer's own fill (masterplan_Latest.svg)
        "path": ("Bergama park path", "E6EFDA", "Matte", 0),              # v2.11ab: his yesil_alanlar/path fill (masterplan_Latest.svg)
        "park": ("Bergama park green", "A3B48C", "Matte", 0),             # v1.30: design colour (not in his legend)
+       "court": ("Bergama sport court", "8DA396", "Matte", 0),            # v2.16af: sport court surface (colour ASSUMED)
        "ground": ("Bergama ground", "E4E0CF", "Matte", 0)}               # v1.37: the Sections ground fill (E4E0CF)               # v1.30: design colour (not in his legend)     # v1.19: iskele kenari's own picture        # 18:13 historic buildings (red roof)
 CUT_FILL = {"bridge_stone": "Cut Stone", "terrace_stone": "Cut Stone", "timber": "Wood", "rc": "Structural Concrete",
             "brick": "Common Brick", "aac": "Lightweight Concrete", "bims": "Concrete Block", "plaster": "Plaster",
             "lime": "Plaster", "rubble": "Rubble", "eps": "Rigid Insulation", "xps": "Rigid Insulation",
             "rooftile": "Roof Tile", "gravel": "Gravel", "screed": "Lightweight Concrete", "rooftimber": "Wood",
-            "reed": "Grass", "heritage_red": "Rubble", "quay_grey": "Cut Stone", "road": "Gravel", "park": "Grass", "bike": "Gravel", "path": "Gravel",
+            "reed": "Grass", "court": "Gravel", "heritage_red": "Rubble", "quay_grey": "Cut Stone", "road": "Gravel", "park": "Grass", "bike": "Gravel", "path": "Gravel",
             "ground": "Earth", "riverbed": "Gravel", "pavement": "Concrete Block", "stair": "Structural Concrete"}   # v1.44: material -> Archicad fill of its cut (the rest: solid Foreground)
 REAL_SURF = {"plaster": "Stucco - White Rough", "lime": "Stucco - Beige Rough", "brick": "Brick - Red",
              "aac": "Concrete - 02", "bims": "Concrete - 04", "rc": "Concrete - 10", "rubble": "Stonework - 02",
@@ -552,7 +586,7 @@ REAL_SURF = {"plaster": "Stucco - White Rough", "lime": "Stucco - Beige Rough", 
              "rooftimber": "Wood - Pine Grained Horizontal"}   # v1.44: textured project surfaces (else the colour)
 MAT_PRIO = {"rc": 900, "rubble": 850, "heritage_red": 850, "bridge_stone": 850, "brick": 600, "aac": 600, "bims": 600,
             "stair": 700, "terrace_stone": 700, "our_white": 700, "frame_grey": 900, "shade_white": 700, "timber": 500,
-            "rooftimber": 500, "screed": 400, "pavement": 400, "quay_grey": 400, "road": 350, "bike": 360, "path": 360, "rooftile": 300,
+            "rooftimber": 500, "screed": 400, "pavement": 400, "quay_grey": 400, "road": 350, "court": 360, "bike": 360, "path": 360, "rooftile": 300,
             "gravel": 300, "eps": 200, "xps": 200, "plaster": 100, "lime": 100, "riverbed": 80, "park": 60, "ground": 50,
             "reed": 40, "foliage": 30, "bark": 500, "water": 10}   # v1.44: Archicad connection priority (0-999)
 SOLID_FILL = "Foreground"         # v1.44: Archicad's solid fill (Solid Fills folder)
@@ -1233,9 +1267,9 @@ def _party_skip(bld):
         R = b["ring"]
         for ei, (a, c) in enumerate(zip(R, R[1:] + R[:1])):
             L_ = math.hypot(c[0] - a[0], c[1] - a[1])
-            if L_ < 0.3:
-                continue
-            k = len(E)
+            if L_ < 0.02:                                 # v2.16ah: was 0.3, but a side gets its wall from 2 cm
+                continue                                  # (v2.16ab): a shared side of 2 to 30 cm was built by both
+            k = len(E)                                    # houses (the "exact twin" walls _wall_drop left out)
             E.append((bi, ei, a, c, L_, ((c[0] - a[0]) / L_, (c[1] - a[1]) / L_)))
             m = ((a[0] + c[0]) / 2.0, (a[1] + c[1]) / 2.0)
             ix.setdefault((int(m[0] // 10.0), int(m[1] // 10.0)), []).append(k)
@@ -2005,50 +2039,87 @@ def _hotlinks(ac, log):
             srcs = [x for x in srcs if x not in miss_]
         if not srcs:
             return
-        try:                                              # v2.11ad (v2.11ac run: the master, copied from the v2.11ab
-            hl_ = ac.t("GetElementsByType", {"elementType": "Hotlink"}).get("elements") or []   # master, kept its
-            if hl_:                                       # hotlinks to the v2.11ab parts and got the v2.11ac ones on
-                ac.t("DeleteElements", {"elements": hl_}, 3600.0)   # top: every element twice): the old hotlink
-            log.append(u"hotlinks (v2.11ad): %d old hotlink instance(s) removed before placing this version's "
-                       u"files" % len(hl_))               # instances go first
-        except Exception as ex:
-            if _ac_gone(ex):
-                raise
-            log.append(u"FLAG hotlinks (v2.11ad): old hotlink instances not removed (%s): check File > External Content "
-                       u"> Hotlink Manager for the previous version's files" % ex)
-        res = ac.t("CreateHotlinkNodes", {"hotlinkNodes": [dict(sourceLocation=x, storyRangeType="AllStories")
-                                                           for x in srcs]}, 3600.0).get("hotlinkNodes") or []
-        placed = set()
+        def nodes_():                                     # [(node guid, file path, file name, instances)]
+            out_ = []
 
-        def walk(o):                                      # node guids that already have an instance
-            if isinstance(o, dict):
-                if o.get("instances") and (o.get("hotlinkNodeId") or {}).get("guid"):
-                    placed.add(o["hotlinkNodeId"]["guid"])
-                for v in o.values():
-                    walk(v)
-            elif isinstance(o, list):
-                for v in o:
-                    walk(v)
-        walk(ac.t("GetHotlinks"))
-        new_, old_ = [], []
-        for x, e in zip(srcs, res):
-            g = ((e or {}).get("hotlinkNodeId") or {}).get("guid") if isinstance(e, dict) else None
-            if not g:
-                log.append(u"FLAG hotlink node for %s not made (%s)" % (os.path.basename(x), json.dumps(e)[:200]))
-            elif e.get("existing") and g in placed:
-                old_.append(g)
+            def walk(o):
+                if isinstance(o, dict):
+                    g_ = (o.get("hotlinkNodeId") or {}).get("guid") if isinstance(o.get("hotlinkNodeId"), dict) else None
+                    if g_:
+                        out_.append((g_, o.get("location") or u"", o.get("name") or os.path.basename(o.get("location") or u""),
+                                     len(o.get("instances") or [])))
+                    for v in o.values():
+                        walk(v)
+                elif isinstance(o, list):
+                    for v in o:
+                        walk(v)
+            walk(ac.t("GetHotlinks"))
+            return out_
+        same_ = lambda a, b: os.path.normcase(os.path.normpath(a)) == os.path.normcase(os.path.normpath(b))
+        # v2.16af (Desktop check of the v2.16ae master, 27 Nov 2026: it was a copy of the v2.14ag master and held the
+        # v2.14ag AND the v2.16ae files, 119,153 elements, the town twice. v2.11ad deleted the old hotlink instances
+        # with DeleteElements and logged them as removed without reading the answer: Tapir 2.0.0 answers "Failed to
+        # delete the element" for a hotlink instance, also unlocked and with groups suspended; no Tapir command removes
+        # one): the old instance is KEPT and its node pointed at this version's file (ChangeHotlinkNodes = the Hotlink
+        # Manager's Relink), then re-read; a node + instance is made only where the master has none for that part
+        new_, upd_, rep_ = [], [], []
+        N0 = nodes_()
+        used_ = set()
+        for x in srcs:
+            sfx = x[-len(u"_proposal.pln"):].lower() if x.lower().endswith(u"_proposal.pln") else u"_context.pln"
+            cur_ = [n_ for n_ in N0 if n_[3] and same_(n_[1], x)]
+            old_ = [n_ for n_ in N0 if n_[3] and n_[0] not in used_ and not same_(n_[1], x) and n_[2].lower().endswith(sfx)]
+            if cur_:
+                used_.add(cur_[0][0])
+                upd_.append(x)
+            elif old_ and ac.has("ChangeHotlinkNodes"):
+                r_ = ac.t("ChangeHotlinkNodes", {"hotlinkNodes": [{"hotlinkNodeId": {"guid": old_[0][0]},
+                                                                   "sourceLocation": x}]}, 3600.0)
+                e_ = ((r_ or {}).get("executionResults") or [{}])[0] if isinstance(r_, dict) else {}
+                if isinstance(e_, dict) and e_.get("success"):
+                    used_.add(old_[0][0])
+                    rep_.append((old_[0][2], x))
+                    upd_.append(x)
+                else:
+                    log.append(u"FLAG hotlinks (v2.16af): %s not pointed at %s (%s): the old file stays placed" % (
+                        old_[0][2], os.path.basename(x), json.dumps(r_)[:200]))
             else:
-                new_.append((x, g))
-        if old_:
-            ac.t("UpdateHotlinks", {"hotlinkNodes": [{"hotlinkNodeId": {"guid": g}} for g in old_]}, 3600.0)
+                new_.append(x)
         if new_:
-            ri = ac.t("CreateHotlinkInstances", {"hotlinkInstances": [dict(hotlinkNodeId={"guid": g}, origin=dict(
-                x=0.0, y=0.0, z=0.0), floorIndex=0, floorDifference=0) for x, g in new_]}, 3600.0)
-            bad = [json.dumps(e)[:200] for e in (ri.get("elements") or []) if not (isinstance(e, dict) and e.get("elementId"))]
-            if bad:
-                log.append(u"FLAG hotlink instance(s) not placed: %s" % u"; ".join(bad))
-        log.append(u"hotlinks (v2.10): %s placed at 0,0 (all stories), %d updated from their files" % (
-            u", ".join(os.path.basename(x) for x, g in new_) or u"none newly", len(old_)))
+            res = ac.t("CreateHotlinkNodes", {"hotlinkNodes": [dict(sourceLocation=x, storyRangeType="AllStories")
+                                                               for x in new_]}, 3600.0).get("hotlinkNodes") or []
+            ng_ = []
+            for x, e in zip(new_, res):
+                g = ((e or {}).get("hotlinkNodeId") or {}).get("guid") if isinstance(e, dict) else None
+                if not g:
+                    log.append(u"FLAG hotlink node for %s not made (%s)" % (os.path.basename(x), json.dumps(e)[:200]))
+                else:
+                    ng_.append(g)
+            if ng_:
+                ri = ac.t("CreateHotlinkInstances", {"hotlinkInstances": [dict(hotlinkNodeId={"guid": g}, origin=dict(
+                    x=0.0, y=0.0, z=0.0), floorIndex=0, floorDifference=0) for g in ng_]}, 3600.0)
+                bad = [json.dumps(e)[:200] for e in (ri.get("elements") or [])
+                       if not (isinstance(e, dict) and e.get("elementId"))]
+                if bad:
+                    log.append(u"FLAG hotlink instance(s) not placed: %s" % u"; ".join(bad))
+        N1 = nodes_()
+        ug_ = [n_[0] for n_ in N1 if n_[3] and any(same_(n_[1], x) for x in upd_)]
+        if ug_:
+            ac.t("UpdateHotlinks", {"hotlinkNodes": [{"hotlinkNodeId": {"guid": g}} for g in ug_]}, 3600.0)
+        log.append(u"hotlinks (v2.10 / v2.16af): %s newly placed at 0,0 (all stories); %s; %d re-read from their files" % (
+            u", ".join(os.path.basename(x) for x in new_) or u"none",
+            (u"kept instance(s) pointed at this version's file: " + u", ".join(
+                u"%s -> %s" % (a_, os.path.basename(b_)) for a_, b_ in rep_)) if rep_ else u"no old instance to re-point",
+            len(ug_)))
+        bad_ = [u"%s x%d" % (n_[2], n_[3]) for n_ in N1 if n_[3] and (
+            not any(same_(n_[1], x) for x in srcs) or n_[3] > 1)]
+        miss2_ = [os.path.basename(x) for x in srcs if not any(n_[3] and same_(n_[1], x) for n_ in N1)]
+        if bad_ or miss2_:
+            log.append(u"FLAG hotlinks (v2.16af): the master does not hold exactly one instance of each of this version's "
+                       u"two files: extra or double: %s; missing: %s. Tapir cannot delete a hotlink instance: remove the "
+                       u"extra ones in File > External Content > Hotlink Manager, or build the master from a master "
+                       u"without them (build_next: build --only master --from <that file>)" % (
+                           u", ".join(bad_) or u"none", u", ".join(miss2_) or u"none"))
     except Exception as ex:
         if _ac_gone(ex):
             raise
@@ -2067,7 +2138,7 @@ def _item_c(it):
     bc, ec = it.get("begCoordinate"), it.get("endCoordinate")
     if isinstance(bc, dict) and isinstance(ec, dict) and "x" in bc and "x" in ec:
         return ((bc["x"] + ec["x"]) / 2.0, (bc["y"] + ec["y"]) / 2.0)
-    for k_ in ("coordinates", "basePoint", "startCoordinate"):
+    for k_ in ("coordinates", "basePoint", "startCoordinate", "baseLinePoints"):   # v2.16af: + a stair's baseline
         cd = it.get(k_)
         pts = [cd] if isinstance(cd, dict) else (cd if isinstance(cd, list) else [])
         pts = [v for v in pts if isinstance(v, dict) and "x" in v and "y" in v]
@@ -2401,12 +2472,13 @@ class _Spread(object):
     def __init__(self):
         self.g = {}
 
-    def free(self, c, r):
+    def free(self, c, r, skip=None):
+        """skip (v2.16aj): the centre of one placed object that does not count (a bench beside its own parasol)"""
         i, j = int(c[0] // 5), int(c[1] // 5)
         for a in range(i - 1, i + 2):
             for b in range(j - 1, j + 2):
                 for q, rq in self.g.get((a, b), []):
-                    if math.hypot(c[0] - q[0], c[1] - q[1]) < r + rq:
+                    if q is not skip and math.hypot(c[0] - q[0], c[1] - q[1]) < r + rq:
                         return False
         self.g.setdefault((i, j), []).append((c, r))
         return True
@@ -2454,6 +2526,9 @@ SEASONS_W = ("winter", "spring", "summer", "autumn")   # v2.10: one water body p
 WATER_SHOW = "winter"     # v2.10: the season whose water layer is on in new files and in the BGA layer combinations
 LAYER_NAME.update(("water_" + s_, u"BGA Water - %d %s" % (i_ + 1, s_)) for i_, s_ in enumerate(SEASONS_W))
 PART_RULES = tuple((u"season water " + s_, u"water_" + s_) for s_ in SEASONS_W) + PART_RULES
+LAYER_NAME["people_sec"] = u"BGA People (sections + elevations only)"   # v2.16af (Aras 27 Nov 2026 "people we need just in sections and elevations in plan they are not needed"): the people of his symbol layers; hidden in every combination but the section ones
+PART_RULES = ((u"symbol people", "people_sec"),) + PART_RULES
+SEC_ALL = u"BGA - sections + elevations"            # v2.16af: "BGA - all" + the people layer, for section / elevation views without an own ground
 LAYER_NAME["seo_ops"] = u"BGA SEO operators (hidden)"   # v1.56: hidden slabs that only cut (section slots)
 LAYER_NAME["houses"] = u"BGA Buildings - envelope"   # v1.54: the survey houses' walls, roofs, windows, doors, balconies
 LAYER_NAME.update((u"unsure_" + k_, u"BGA ? unsure - %s (guess: %s)" % (k_, v_)) for k_, v_ in MP_UNSURE.items())   # v1.46
@@ -2484,7 +2559,7 @@ N_TINONLY = [0]                                   # v1.44: ground tiles filled f
 LINK_T = set()                                    # v1.44: targets of the solid element operations made this pass
 TYPE_OF = {"CreateObjects": "Object", "CreateSlabs": "Slab", "CreateWalls": "Wall", "CreateMeshes": "Mesh", "CreateColumns": "Column",
            "CreateBeams": "Beam", "CreateRoofs": "Roof", "CreateWindows": "Window", "CreateDoors": "Door",
-           "CreateMorphs": "Morph"}
+           "CreateMorphs": "Morph", "CreateStairs": "Stair", "CreateLamps": "Lamp"}
 ONE_GROUND = True                                 # v1.31: one terrain mesh (no per-cut / river meshes)
 
 
@@ -2559,6 +2634,9 @@ def _inpoly(p, P):
     return c
 
 
+CAN_WELD_M = 0.15       # v2.16ah: m, corners of two of his canopy outlines drawn this close are one corner (as NR_OUT_TOL)
+
+
 def canopy_groups(log):
     """v1.13 (Aras 15 Nov 16:31 UTC "Make canopies top view match with masterplan"): one canopy per FILLED ring of his
     kanopi layer (MasterplanBase cache), the ring itself as the outline (no hull, no merging); his fold lines and
@@ -2596,8 +2674,20 @@ def canopy_groups(log):
                 if d <= 0.6:
                     folds.append(v)
         out.append((H, folds))
-    log.append(u"canopies: %d outlines = his filled kanopi rings as drawn (%d inner fold / facet lines)" % (
-        len(out), len(inner)))
+    n_w = 0
+    for k_ in range(1, len(out)):                         # v2.16ah (masterplan cache, 27 Nov 2026: two of his canopy
+        H = out[k_][0]                                    # triangles share an edge whose ends he drew 9 cm apart, so
+        for i_, v in enumerate(H):                        # the two lay 0.09 m in each other along 11.8 m and their
+            for H0, _f in out[:k_]:                       # decks overlapped): a corner within CAN_WELD_M of a corner
+                q = min(H0, key=lambda p_: math.hypot(p_[0] - v[0], p_[1] - v[1]))   # of a bigger outline IS that corner
+                d_ = math.hypot(q[0] - v[0], q[1] - v[1])
+                if 1e-9 < d_ <= CAN_WELD_M:
+                    H[i_] = tuple(q[:2]) + tuple(v[2:])
+                    n_w += 1
+                    break
+    log.append(u"canopies: %d outlines = his filled kanopi rings as drawn (%d inner fold / facet lines); v2.16ah: %d "
+               u"corner(s) drawn within %.2f m of a neighbouring canopy's corner put on it (one shared edge)" % (
+                   len(out), len(inner), n_w, CAN_WELD_M))
     return out
 
 
@@ -2757,6 +2847,7 @@ CAN_MIN_FACET = 0.05                              # v2.16: m2, a smaller facet i
 CAN_FR_W, CAN_FR_H = 0.16, 0.30                   # v2.16: steel frame member on every facet edge (ASSUMED size)
 CAN_TRUNK_W, CAN_ARM_W = 0.35, 0.22               # v2.16: round Y trunk, square arm (ASSUMED sizes)
 CAN_PLATE_W, CAN_PLATE_T = 0.6, 0.03              # v2.16: steel base plate under every trunk (ASSUMED size)
+CAN_PLATE_CLR = CAN_PLATE_W * 0.7072 + 0.05       # v2.16ai: m, a deck cut stays this far from a column (half the plate's diagonal + 5 cm)
 CAN_PIER_W, CAN_PIER_D = 0.6, 0.8                 # v2.16: concrete pier under a trunk with no deck (ASSUMED size)
 CAN_ROOM_GAP, CAN_ROOM_T = 0.05, 0.20             # v2.16: gap under the frame, roof slab of a glazed room (ASSUMED)
 
@@ -2931,6 +3022,7 @@ def build_canopies(ac, miss, log, rects, inside, tin, ox, oy, z0, xy, q500_at, w
             return best_[1] if best_ else None
         # the column places: under the low vertices, pulled inside; then under high vertices left too far from any
         cols = []
+        dir_ = {}                                               # corner -> the direction its column is pulled in (v2.16ai)
 
         def pull_in(k):
             a, b, c = H[k - 1], H[k], H[(k + 1) % len(H)]
@@ -2940,6 +3032,7 @@ def build_canopies(ac, miss, log, rects, inside, tin, ox, oy, z0, xy, q500_at, w
             ld = math.hypot(*d)
             if ld < 1e-6:
                 return None
+            dir_[k] = (d[0] / ld, d[1] / ld)
             p = (b[0] + d[0] / ld * CAN_COL_IN, b[1] + d[1] / ld * CAN_COL_IN)
             return p if _inpoly(p, H) else None
         for want_hi in (False, True):
@@ -2952,8 +3045,8 @@ def build_canopies(ac, miss, log, rects, inside, tin, ox, oy, z0, xy, q500_at, w
                 dmin = min([math.hypot(p[0] - c[1][0], p[1] - c[1][1]) for c in cols] or [1e9])
                 if (not want_hi and dmin >= CAN_COL_MIN) or (want_hi and dmin > CAN_COL_MAX):
                     cols.append((k, p))
-        # bays between the column lines along the long axis: plinth + deck = the outline cut there (first, so every
-        # column stands on the deck of its own bay)
+        # bays between the column lines along the long axis: plinth + deck = the outline cut there (the columns step
+        # off these lines afterwards, v2.16ai below)
         ts = sorted(T(p) for _k, p in cols)
         cuts = []
         for t in ts:
@@ -3011,6 +3104,40 @@ def build_canopies(ac, miss, log, rects, inside, tin, ox, oy, z0, xy, q500_at, w
                 if all(_inpoly(c, H) for c in C4):
                     planters.append(dict(level=round(fl + 0.6 - z0, 3), thickness=0.6, polygonCoordinates=[xy(p) for p in C4],
                                          _zz=(round(fl - z0, 3), round(fl + 0.6 - z0, 3))))
+        # v2.16ai (Desktop 27 Nov 2026: 20 of 28 base plates lay over two decks, 16 of them 3 cm and more into the
+        # higher one, because the column lines ARE the deck cut lines; 19 reached past the deck edge because the
+        # column stood 1.20 m from a corner of 24 to 32 degrees, 0.06 to 0.33 m from the outline). The decks, rooms
+        # and planters stay as they are; each COLUMN takes the nearest place where its whole plate stands on one
+        # deck inside the outline: CAN_PLATE_CLR beside the cut line it stood on (the lower deck of the two first),
+        # or the nearest place clear of the outline at a sharp corner. No such place within 3.6 m: no column
+        cl_ = edges[1:-1]
+
+        def _deck(p):
+            return next((fl_ for R_, fl_ in bays if _inpoly(p, R_)), None)
+
+        def _fits(p):
+            return (_inpoly(p, H) and all(abs(T(p) - c_) >= CAN_PLATE_CLR - 1e-6 for c_ in cl_)
+                    and min(_seg_d(p, H[i_ - 1], H[i_]) for i_ in range(len(H))) >= CAN_PLATE_CLR)
+        cols0, cols = cols, []
+        ang_ = [math.radians(10.0 * i_) for i_ in range(36)]
+        for k, p0 in cols0:                                     # the nearest place: rings of 0.1 m round the old one,
+            best = None                                         # every 10 degrees from the long axis and along its
+            for r_ in [0.0, CAN_PLATE_CLR + 0.001] + [0.1 * i_ for i_ in range(5, 37)]:   # own corner line
+                cand = [(p0[0] + r_ * (u[0] * math.cos(a_) + v[0] * math.sin(a_)),
+                         p0[1] + r_ * (u[1] * math.cos(a_) + v[1] * math.sin(a_))) for a_ in (ang_ if r_ else ang_[:1])]
+                cand.append((p0[0] + dir_[k][0] * r_, p0[1] + dir_[k][1] * r_))
+                cand = [c_ for c_ in cand if _fits(c_)]
+                if cand:
+                    best = min(cand, key=lambda c_: (_deck(c_) is None, _deck(c_) or 0.0))
+                    break
+            if best is None:
+                n_x["nofit"] = n_x.get("nofit", 0) + 1
+                continue
+            mv_ = math.hypot(best[0] - p0[0], best[1] - p0[1])
+            if mv_ > 1e-6:
+                n_x["moved"] = n_x.get("moved", 0) + 1
+                n_x["far"] = max(n_x.get("far", 0.0), mv_)
+            cols.append((k, best))
         # Y columns: base plate on the deck of its bay (or a concrete pier in the ground), trunk to the fork, two arms
         # ending inside the frame members of the two outline edges at its corner
         for k, base in cols:
@@ -3040,12 +3167,18 @@ def build_canopies(ac, miss, log, rects, inside, tin, ox, oy, z0, xy, q500_at, w
             fork = zb_ + CAN_Y_FORK * (fb_ - zb_)
             trunks.append(dict(coordinates=dict(xy(base), z=round(zb_ - z0, 3)), height=round(fork - zb_, 3),
                                circleBased=True, width=CAN_TRUNK_W, _zz=(round(zb_ - z0, 3), round(fork - z0, 3))))
+            na_ = len(arms)
             for j_ in ((k - 1) % len(H), (k + 1) % len(H)):    # each arm ends ON the outline edge at its corner
                 dx, dy = H[j_][0] - H[k][0], H[j_][1] - H[k][1]
                 L = math.hypot(dx, dy)
                 if L < 0.5:
                     continue
-                r_ = min(CAN_Y_ARM_M, 0.45 * L)
+                # v2.16ai (dry check 27 Nov 2026: 4 columns moved 0.8 to 1.3 m in along a 23 to 25 degree corner
+                # stood level with their own arm ends, 0.49 to 0.55 m away: a trunk with no arm): the arm keeps its
+                # reach past the COLUMN: its end lies CAN_Y_ARM_M - CAN_COL_IN beyond the column's foot on the edge,
+                # never nearer to the corner than CAN_Y_ARM_M (a column that did not move: as before)
+                s0_ = ((base[0] - H[k][0]) * dx + (base[1] - H[k][1]) * dy) / L
+                r_ = min(max(CAN_Y_ARM_M, s0_ + CAN_Y_ARM_M - CAN_COL_IN), 0.45 * L)
                 end = (H[k][0] + dx / L * r_, H[k][1] + dy / L * r_)
                 # v2.16ab (Desktop check of v2.16aa, 27 Nov 2026: 6 of 54 arm ends stopped 11 to 14 cm under the
                 # frame): the arm ends in the frame member that really runs there: the member nearest to the arm end
@@ -3071,6 +3204,8 @@ def build_canopies(ac, miss, log, rects, inside, tin, ox, oy, z0, xy, q500_at, w
                 if math.hypot(end[0] - base[0], end[1] - base[1]) < 0.6:
                     continue                                   # no stub arm under 0.6 m
                 arms.append(_beam(xy, z0, base, end, fork + CAN_ARM_W / 2.0, ze_, CAN_ARM_W, CAN_ARM_W))
+            if len(arms) == na_:
+                n_x["armless"] = n_x.get("armless", 0) + 1
     if n_dev:
         log.append(u"canopy top view = his kanopi outlines: %d canopies, the built outline is at most %.2f m off his "
                    u"drawn line (simplified to %.2f m)" % (len(n_dev), max(n_dev), CAN_OUT_TOL))
@@ -3139,6 +3274,13 @@ def build_canopies(ac, miss, log, rects, inside, tin, ox, oy, z0, xy, q500_at, w
                % (n_c, len(roofs), len(frame), len(slats), len(trunks), len(plates), len(piers), len(arms), len(plinths),
                   len(room_roofs), len(planters), n_x["tiny"], CAN_MIN_FACET, n_x["low"], CAN_CLEAR_M, CAN_Q500_M,
                   CAN_RISE_M, CAN_T, CAN_SLAT_H, CAN_FR_W, CAN_FR_H, CAN_PLINTH_M, CAN_DECK_M))
+    log.append(u"canopy columns (v2.16ai): every base plate stands whole inside its canopy outline and on one deck bay: "
+               u"%d column(s) moved %.2f m off a deck cut line or further in from a sharp corner (at most %.2f m from "
+               u"the old place), %d column(s) with no place for a whole plate left out; decks, rooms and planters unchanged"
+               % (n_x.get("moved", 0), CAN_PLATE_CLR, n_x.get("far", 0.0), n_x.get("nofit", 0)))
+    if n_x.get("armless"):
+        log.append(u"FLAG canopies (v2.16ai): %d Y column(s) stand with a trunk and no arm (both arm ends under 0.6 m "
+                   u"from the column, or no frame member there)" % n_x["armless"])
     if n_x.get("noarm"):
         log.append(u"canopies (v2.16ab): %d Y arm(s) left out: no frame member within 0.5 m of where they would end"
                    % n_x["noarm"])
@@ -3254,6 +3396,19 @@ def _nb_off_streets(NB, SP, tin, ox, oy, bld, log):
         return
     riv = [g for g in (mk(R) for R in SEL.get("river") or [] if len(R) >= 3) if g is not None]
     hs = [g for g in (mk(b["ring"]) for b in bld if b.get("ring") and len(b["ring"]) >= 3) if g is not None]
+    # v2.16ah (v2.16ag model: the N2 box stood with 13 x 10 m of its 37 x 10 m under one of his canopies; 5 canopy
+    # deck pieces lay in its plinth and 4 canopy columns stood inside it): his canopies and the buildings he drew
+    # are taken ground like a street: a box (a node without a drawing of his) is placed clear of them. A node that
+    # is itself a canopy (canopy = true) is judged against the streets only, as before
+    Gc = G
+    try:
+        tk_ = [g for g in (mk(list(H)) for H, _f in canopy_groups([])) if g is not None] + [
+            g for g in (mk([tuple(q[:2]) for q in b_.get("foot") or []]) for b_ in NB if b_.get("mesh")) if g is not None]
+        if tk_:
+            Gc = G.union(S_[2].unary_union(tk_))
+    except Exception as ex:
+        log.append(u"FLAG node buildings (v2.16ah): his canopies / buildings not read (%s): boxes checked against the "
+                   u"streets only" % ex)
     msg = []
     for b in NB:
         F = [tuple(q[:2]) for q in b.get("foot") or []]
@@ -3261,7 +3416,7 @@ def _nb_off_streets(NB, SP, tin, ox, oy, bld, log):
         if f0 is None or b.get("mesh"):                   # v2.16: a building he drew stays where he drew it
             continue
         zone = f0.buffer(max(NB_SHIFT_MAX_M, NB_SHIFT_MAX2_M) + 15.0)   # v2.11aa: room for the turned trials
-        st_ = G.intersection(zone)
+        st_ = (G if b.get("canopy") else Gc).intersection(zone)
         rv_ = [g.intersection(zone) for g in riv if g.intersects(zone)]
         hs_ = [g for g in hs if g.intersects(zone)]
         pst, prv = prep_(st_), [prep_(g) for g in rv_]
@@ -3310,7 +3465,8 @@ def _nb_off_streets(NB, SP, tin, ox, oy, bld, log):
         if hit is None and best is not None and best[0][0] < s0 * 0.5:
             hit, part_ = best[1], True                    # v2.11aa: at least the spot with the least street under it
         if hit is None:
-            msg.append(u"%s FLAG stays (%.0f m2 on a street, no clear spot within %.0f m, turned up to %.0f deg)" % (
+            msg.append(u"%s FLAG stays (%.0f m2 on a street, a canopy or a building of his, no clear spot within "
+                       u"%.0f m, turned up to %.0f deg)" % (
                 b["node"], s0, NB_SHIFT_MAX2_M, max(abs(a_) for a_ in NB_TURNS)))
             continue
         dx, dy, ang = hit
@@ -3328,10 +3484,11 @@ def _nb_off_streets(NB, SP, tin, ox, oy, bld, log):
         b["foot"] = [[q[0] + dx, q[1] + dy] + list(q[2:]) for q in b["foot"]]
         if za is not None and zb is not None:
             b["ground"] = b["ground"] + (zb - za)
-        msg.append(u"%s moved %.1f m%s (stood %.0f m2 on a street%s)" % (
+        msg.append(u"%s moved %.1f m%s (stood %.0f m2 on a street, a canopy or a building of his%s)" % (
             b["node"], math.hypot(dx, dy), u", turned %+.0f deg" % ang if ang else u"", s0,
             u"; FLAG still %.0f m2 on one: the least found" % best[0][0] if part_ else u""))
-    log.append(u"node buildings off the streets (v2.10): " + (u"; ".join(msg) if msg else u"none stood on a street"))
+    log.append(u"node buildings off the streets, his canopies and his buildings (v2.10, v2.16ah): " + (
+        u"; ".join(msg) if msg else u"none stood on one"))
 
 
 def node_secs(NB):
@@ -3369,33 +3526,61 @@ def node_stories(NB, z0):
 
 
 def set_stories(ac, log, z0, ST):
-    """v1.17: the project's stories = story 0 (kept) + the node building floors (merged when closer than
-    NB_STORY_MIN); returns the plan views whose floor has its own story [(view, story name, level, node, j)]"""
+    """v2.16ah (Desktop 27 Nov 2026; before: story 0 + one story per node building floor + spacers): a plan draws a
+    wall, slab, roof, beam, column or stair on the story whose height range holds it, and an object, lamp or mesh
+    only on its home story, so no story of the 18 showed the town: "Site" (story 0, 0 to +3 m) held the ground alone,
+    a node story walls and slabs of its own height band without ground, trees or furniture. With ONE story
+    (_one_story) everything is drawn in the one plan; the node plans are views of that plan. Returns the plan views
+    [(view, story name, floor level, node, j)]"""
     if not ST:
-        return []
-    if not ac.has("SetStories"):
-        log.append(u"FLAG building floor plans: Tapir has no SetStories: plans drawn by the node scripts")
         return []
     st = (ac.t("GetStories").get("stories") or [])
     s0 = next((s_ for s_ in st if s_.get("index") == 0), None)
-    keep = [dict(name=(s0 or {}).get("name") or u"Ground Floor", level=z0, dispOnSections=False)]
-    views, last = [], z0
-    for nm, lv, nd, j, vn in ST:
-        if lv <= z0 + NB_STORY_MIN:
-            log.append(u"FLAG %s at %+.2f m is not above story 0 (%+.2f m): no Archicad plan for it" % (nm, lv, z0))
-            continue
-        if lv - last >= NB_STORY_MIN:
-            keep.append(dict(name=nm, level=lv, dispOnSections=False))
-            last = lv
-        views.append((vn, keep[-1]["name"], keep[-1]["level"], nd, j))
-    STORY_KEEP[:] = keep
-    if SCOPE[0] in ("proposal", "context"):              # v2.11: the plans live in the master; every element is on
-        log.append(u"stories (v2.11): left as they are in this file (every element sits on story 0; the node plans "
-                   u"and their stories are set in the master)")
-        return views
-    if SCOPE[0] == "master":                             # v2.11: set after the old elements are deleted (_apply_stories)
-        return views
-    return views if _apply_stories(ac, log) else []
+    nm0 = (s0 or {}).get("name") or u"Ground Floor"
+    STORY_KEEP[:] = []
+    views = [(vn, nm0, lv, nd, j) for _nm, lv, nd, j, vn in ST]
+    log.append(u"plans (v2.16ah): %d node plan view(s) are views of the one story \"%s\" (no story per node floor "
+               u"any more)" % (len(views), nm0))
+    return views
+
+
+def _one_story(ac, log):
+    """v2.16ah (see set_stories; Desktop 27 Nov 2026: SetStories with story 0 alone answers success, 3.3 s in the
+    proposal file, 137.7 s in the master, and Archicad deletes the elements of the removed stories with them; new
+    elements then land on story 0 at their true height): the file is brought to one story BEFORE the model is listed,
+    so everything that stood on another story is simply made again in this pass"""
+    if not ac.has("SetStories"):
+        log.append(u"FLAG stories (v2.16ah): Tapir has no SetStories: the stories stay, the plans show only part of the "
+                   u"model")
+        return
+    rd_ = lambda w_=None: sorted((ac.t("GetStories", None, w_).get("stories") or [])
+                                 if w_ else (ac.t("GetStories").get("stories") or []), key=lambda s_: s_.get("index", 0))
+    st = rd_()
+    if len(st) <= 1:
+        log.append(u"stories (v2.16ah): the file has one story: nothing to change")
+        return
+    s0 = next((s_ for s_ in st if s_.get("index") == 0), st[0])
+    t0_ = time.time()
+    try:
+        ac.t("ChangeWindow", {"windowType": "FloorPlan", "storyIndex": 0})
+    except Exception:
+        pass
+    try:
+        ac.t("SetStories", {"stories": [dict(name=s0.get("name") or u"Ground Floor",
+                                              level=round(float(s0.get("level", 0.0)), 3), dispOnSections=False)]},
+             STORY_TIMEOUT_S)
+    except Exception as ex:
+        if _ac_gone(ex):
+            raise
+        log.append(u"stories (v2.16ah): SetStories gave no answer in time (%s): reading the stories back" % ex)
+    st2 = rd_(STORY_WAIT_S)
+    if len(st2) == 1:
+        log.append(u"stories (v2.16ah): %d stories made ONE (\"%s\" at %+.2f m) in %.0f s; Archicad removed the "
+                   u"elements of the other stories with them, they are made again in this pass, on the one story" % (
+                       len(st), st2[0].get("name"), float(st2[0].get("level", 0.0)), time.time() - t0_))
+    else:
+        log.append(u"FLAG stories (v2.16ah): still %d stories after SetStories (%.0f s): the plans show only part of "
+                   u"the model" % (len(st2), time.time() - t0_))
 
 
 N_SURVPTS = [0, 0]       # v2.11ah: survey heights added as control points, tiles
@@ -3591,7 +3776,82 @@ def _ring_bad(pc):
         return True
 
 
-def _clean_ring_dicts(pc):
+ROCK_SPIKES = [0, 0, 0]    # v2.16ah / v2.16ai: boulder outlines cleaned before they were sent; outlines no cleaning made clear; extra pieces
+ROCK_PIECE_M2 = 0.1        # v2.16ai: m2, a piece of a cleaned boulder outline from this size is built (smaller: a crumb of a spike)
+ROCK_TOUCH_M = 0.001       # v2.16ai (Desktop 27 Nov 2026): m, a corner this close to a side it does not belong to = the
+#                            outline touches itself (all 803 boulder outlines with 1 mm or more were accepted as drawn)
+ROCK_PT_M = 0.01           # v2.16ai: m, points of a cleaned boulder outline closer than this are one point
+
+
+def _ring_touch(pc):
+    """v2.16ai: the smallest distance (m) from a corner of the outline [{x, y}] to a side it is not an end of; None
+    when it cannot be measured (no numpy, under 4 corners)"""
+    n = len(pc)
+    if n < 4:
+        return None
+    try:
+        import numpy as np
+        P = np.array([(q["x"], q["y"]) for q in pc], dtype=float)
+        A, B = P, np.roll(P, -1, axis=0)                   # side k = corner k -> corner k + 1
+        D = B - A
+        L2 = np.maximum((D * D).sum(axis=1), 1e-18)
+        V = P[:, None, :] - A[None, :, :]                  # corner i against side k
+        t = np.clip((V * D[None, :, :]).sum(axis=2) / L2[None, :], 0.0, 1.0)
+        d = np.hypot(V[:, :, 0] - t * D[None, :, 0], V[:, :, 1] - t * D[None, :, 1])
+        i = np.arange(n)
+        d[i, i] = 1e9                                      # its own two sides
+        d[i, (i - 1) % n] = 1e9
+        return float(d.min())
+    except Exception:
+        return None
+
+
+def _spikes_out(pc):
+    """v2.16ai (Desktop 27 Nov 2026: of two pairs of the same stone drawing, each with a corner lying ON another
+    side, Archicad accepted one and refused the other, so an outline that touches or crosses itself is made or not
+    by chance; v2.16ah tested by the area lost and its 4 cm simplify folded a part of one outline flat): returns the
+    outline(s) to send. One that neither crosses nor touches itself goes out as drawn; any other without its parts
+    and notches narrower than 1 cm (shrunk, grown and shrunk back with sharp corners, no simplify, points within
+    ROCK_PT_M made one), then 2, 4, 10 cm: the finest that leaves it clear. Every piece of ROCK_PIECE_M2 and more is
+    kept (two lobes joined at a point are two stones)"""
+    m_ = _shp()
+    if m_ is None or len(pc) < 4:
+        return [pc]
+    t0_ = _ring_touch(pc)
+    if not _ring_bad(pc) and t0_ is not None and t0_ >= ROCK_TOUCH_M:
+        return [pc]
+    try:
+        P = m_[0].make_valid(m_[1].Polygon([(q["x"], q["y"]) for q in pc]))
+        for w_ in (0.005, 0.01, 0.02, 0.05):
+            g = P.buffer(-w_, join_style=2).buffer(2.0 * w_, join_style=2).buffer(-w_, join_style=2)
+            res = []
+            for x_ in getattr(g, "geoms", [g]):
+                if x_.geom_type != "Polygon" or x_.area < ROCK_PIECE_M2:
+                    continue
+                out = []
+                for x, y in list(x_.exterior.coords)[:-1]:
+                    q = dict(x=round(x, 3), y=round(y, 3))
+                    if out and math.hypot(out[-1]["x"] - q["x"], out[-1]["y"] - q["y"]) < ROCK_PT_M:
+                        continue
+                    out.append(q)
+                while len(out) > 3 and math.hypot(out[0]["x"] - out[-1]["x"], out[0]["y"] - out[-1]["y"]) < ROCK_PT_M:
+                    out.pop()
+                t1_ = _ring_touch(out)
+                if _ring_bad(out) or t1_ is None or t1_ < ROCK_TOUCH_M:
+                    res = []
+                    break
+                res.append(out)
+            if res:
+                ROCK_SPIKES[0] += 1
+                ROCK_SPIKES[2] += len(res) - 1
+                return res
+    except Exception:
+        pass
+    ROCK_SPIKES[1] += 1
+    return [pc]
+
+
+def _clean_ring_dicts(pc, ws=(0.005, 0.02, 0.05)):
     """v2.11ah: a slab / roof outline Archicad refused, made valid (shapely make_valid, the largest piece, points closer
     than 1 cm merged, slivers under 1 cm taken out); None when nothing usable is left. v2.16ac: when the result still has
     a doubled point or touches itself after the 1 mm rounding, the same again with necks up to 4 cm, then 10 cm, taken out"""
@@ -3603,7 +3863,7 @@ def _clean_ring_dicts(pc):
         g0 = sh_.make_valid(sg_.Polygon([(q["x"], q["y"]) for q in pc]))
     except Exception:
         return None
-    for w_ in (0.005, 0.02, 0.05):
+    for w_ in ws:
         try:
             g = g0.buffer(-w_, join_style=2).buffer(w_, join_style=2)
             ps = [x for x in getattr(g, "geoms", [g]) if x.geom_type == "Polygon" and not x.is_empty]
@@ -3658,6 +3918,7 @@ def _story_steps(cur_lv, keep):
 
 
 STORY_KEEP = []          # v2.11: the stories set_stories asks for
+PLAN_SITE = u"Site"      # v2.16ah: the template's plan view of story 0 in the View Map
 STORY_WAIT_S = 1800.0    # v2.11aa: s, the read-back after a SetStories timeout may wait this long
 STORY_TIMEOUT_S = 300.0  # v2.11: SetStories took the whole 600 s Tapir timeout in each file of the v2.10 cold run
 
@@ -3722,6 +3983,28 @@ def _stories_spaced(ac, log, keep, t0_):
                    u"%.0f s" % (len(keep) - 1, u", ".join(u"%s %+.2f" % (k["name"], k["level"]) for k in keep[1:]), n_sp,
                                  STORY_GAP_MAX, time.time() - t0_))
         return True
+    off_ = [i for i, (c, f) in enumerate(zip(cur, full)) if abs(c[1] - f["level"]) > 0.005]
+    if len(cur) >= len(full) and off_ and min(off_) >= len(full) - 2:   # v2.16af (v2.16ae master: only story 16, the
+        top_ = full + [dict(name=STORY_SPACER % (n_sp + 1), level=round(full[-1]["level"] + 3.0, 3),   # top one, stayed
+                            dispOnSections=False)]                      # at +78.595 instead of +80.71): only the top
+        for how_, pay_ in ((u"the same call again", full), (u"one spacer story added above the top one", top_)):
+            try:                                          # story / stories off: two more tries, each read back
+                ac.t("SetStories", {"stories": pay_}, STORY_TIMEOUT_S)
+            except Exception as ex:
+                if _ac_gone(ex):
+                    raise
+                err_ = (u"%s" % ex)[:200]
+            try:
+                cur, _act = _story_list(ac)
+            except Exception as ex:
+                if _ac_gone(ex):
+                    raise
+                cur = []
+            ok_ = len(cur) >= len(full) and all(abs(c[1] - f["level"]) <= 0.005 for c, f in zip(cur, full))
+            log.append(u"stories (v2.16af): top story off after the first call (story %s); %s: %s" % (
+                u", ".join(u"%d" % i for i in off_), how_, u"all levels as wanted now" if ok_ else u"still off"))
+            if ok_:
+                return True
     log.append(u"FLAG stories (v2.13) not as wanted after %.0f s: levels read %s (wanted %s)%s" % (
         time.time() - t0_, u", ".join(u"%+.2f" % c[1] for c in cur), u", ".join(u"%+.2f" % f["level"] for f in full),
         (u"; error: " + err_) if err_ else u""))
@@ -4112,14 +4395,34 @@ def design_roofs(log, S_):
     for a, g, f in rings:
         if a >= NR_MIN_OUT and f and not _bluish(f) and not any(o.contains(g.representative_point()) for o in outl):
             outl.append(g)
+    n_cut_, a_cut_ = 0, 0.0
+    org_ = list(outl)                                     # the rings as he drew them (not pieces of themselves below)
+    for k_, g in enumerate(outl):                         # each outline as it is built (curves as chords), so the cut
+        g2_ = g.simplify(NR_OUT_TOL)                      # below is made on the very lines the walls stand on
+        if g2_.geom_type == "Polygon" and not g2_.is_empty:
+            outl[k_] = g2_
+    for k_ in range(1, len(outl)):                        # v2.16ah (v2.16ag model: the N1 / N1b outlines lie 0.19 m
+        for o_ in outl[:k_]:                              # in each other along 13 m, so their plinths overlapped
+            a_ = outl[k_].intersection(o_).area           # 1.63 m2): a smaller outline lying partly in a bigger one
+            if a_ <= HOUSE_OVER_M2:                       # is cut back to its outline; they share that line
+                continue
+            g_ = outl[k_].difference(o_)
+            gs_ = [x_ for x_ in getattr(g_, "geoms", [g_]) if x_.geom_type == "Polygon" and x_.area >= NR_MIN_OUT]
+            if gs_:
+                outl[k_] = max(gs_, key=lambda x_: x_.area)
+                n_cut_ += 1
+                a_cut_ += a_
+    if n_cut_:
+        log.append(u"his buildings (v2.16ah): %d outline(s) lying partly in a bigger one cut back to its outline "
+                   u"(%.2f m2 no longer built twice)" % (n_cut_, a_cut_))
     out = []
-    for O in outl:
+    for O, O0_ in zip(outl, org_):
         Ob = O.buffer(1.0)
-        ins = [(a, g, f) for a, g, f in rings if g is not O and a >= NR_MIN_GLASS and Ob.contains(g)]
+        ins = [(a, g, f) for a, g, f in rings if g is not O0_ and a >= NR_MIN_GLASS and Ob.contains(g)]
         glass = [g for a, g, f in ins if f and _bluish(f)]
         ln = [l for l in lines if Ob.contains(l)]
         mull = [l for l in ln if any(g.buffer(0.5).contains(l) for g in glass)]
-        out.append(dict(poly=O, glass=glass, facet=[g for a, g, f in ins if not (f and _bluish(f))], mull=mull,
+        out.append(dict(poly=O, simple=True, glass=glass, facet=[g for a, g, f in ins if not (f and _bluish(f))], mull=mull,
                         folds=[l for l in ln if l.length >= NR_MIN_FOLD and not any(l is m for m in mull)]))
     log.append(u"his buildings (v2.16, masterplan layer %s): %d piece(s) read, %d building outline(s): %s" % (
         NR_KEY, len(P), len(out), u"; ".join(u"%.0f m2 with %d fold line(s), %d facet outline(s), %d glass area(s) of %.0f "
@@ -4160,7 +4463,7 @@ def _fold_mesh(S_, d):
     T [(i, j, k, glass?)] CCW, rise [m over the eave per point: 0 on the outline, rising NR_SLOPE_DEG inwards, at
     most NR_RISE_MAX], cells); None when it cannot be made"""
     shapely, sg_, so_ = S_[0], S_[1], S_[2]
-    O = d["poly"].simplify(NR_OUT_TOL)
+    O = d["poly"] if d.get("simple") else d["poly"].simplify(NR_OUT_TOL)   # v2.16ah: design_roofs has done it
     if O.geom_type != "Polygon" or O.is_empty or not hasattr(shapely, "constrained_delaunay_triangles"):
         return None
     O = sg_.polygon.orient(sg_.Polygon(O.exterior), 1.0)
@@ -4488,7 +4791,8 @@ MP_SLABS = {"teras": (0.40, 0.0), "begum_su_merdiven": (0.40, 0.0), "iskele_kena
             "begum_yesil": (0.05, 0.0), "Layer_49": (0.05, 0.0), "master": (0.05, 0.0), "bina_cerceve": (0.15, 0.0),
             "circulation": (0.15, 0.0), "rock": (0.30, 0.0),   # v1.29: his other painted layers; rock = boulders (build_selinos)
             "araba_yolu": (0.15, 0.0), "doldrurma": (0.05, 0.0), "bisiklet": (0.10, 0.0), "sazlik": (0.05, 0.0),
-            "Doldurma_renk": (0.05, 0.0), "Layer_50": (0.05, 0.0)}   # v2.08: drawing-fix fills, built as green   # v1.47: in his 15 Nov masterplan.svg, built as unsure
+            "Doldurma_renk": (0.05, 0.0), "Layer_50": (0.05, 0.0),
+            "sym_deck": (0.15, 0.15), "sym_bed": (0.40, 0.40), "sym_court": (0.10, 0.05), "sym_amphi": (0.40, 0.0)}   # v2.16af: his symbol layers (sizes ASSUMED: SYM_DECK_T, SYM_BED_H, SYM_COURT_T)   # v2.08: drawing-fix fills, built as green   # v1.47: in his 15 Nov masterplan.svg, built as unsure
 MP_SKIP = ("kanopi", "teras_-_canopy", "desings", "existing_buildings", "builts2", "existing_roads", "heritage",
            "kizil_avlu", "PLANTING_v13_1", "su_texture")   # v2.11ab: su_texture (his water picture areas: ana_su,
 # duzenlenmis) not built as flat slabs any more: the season water bodies are the water (Aras 25 Nov 09:09 UTC "this is
@@ -4504,10 +4808,14 @@ SITE_TOP = []                                      # v2.16ab: (x0, y0, x1, y1, r
 # "bridges and etc.")
 WATER_CELL_M = 5.0          # m: the water surface is built in cells this size, each at the level interpolated along the river
 REED_H_M = 1.5              # m: reed height above the water (or the ground where dry): ASSUMED, no source
+REED_MAX_M = 3.66           # v2.16af: m, a reed is at most this tall from its bed (12 ft: USDA NRCS Plant Fact Sheet "Common
+#                             reed, Phragmites australis", Description: "The height ranges from 6 to 12 feet."); where the
+#                             winter water is deeper, the clump ends under it and shows in the other seasons' water
 REED_GRID_M = 2.0           # v2.11ab: m, reed clump spacing inside his su_bitkii rings (ASSUMED)
 REED_DRY = []            # v2.12: a few beds with no wet spot (location, ground, water level)
 REED_N = [0, 0, 0, 0]       # v2.11ab: beds, clumps, dry spots left out, beds with no wet spot
 REED_TALL = [0, 0.0, None]  # v2.16ad: clumps taller than 3 m, the tallest (m), where
+REED_CAP = [0, 0]           # v2.16af: clumps kept to REED_MAX_M, those of them ending under the shown water
 ROCK_MIN_M2 = 1.0           # m2: his stone / rock pieces from this size are boulders; smaller ones are drawn texture
 ROCK_H_MAX = 0.8            # m: boulder height = half the square root of its area, at most this: ASSUMED
 TREE_SP = {"trees_plane": (30.0, 0.30, 0.50), "trees_ash": (15.0, 0.35, 0.40),        # (height m, crown bottom as a share
@@ -4557,7 +4865,10 @@ def _pip_fast(H, cell=5.0):
 
 def _audit_status(key):
     parts = key.split("/")
-    for w, s in ((u"assets", u"not built: people, cars and pictures for the plan"),
+    for w, s in ((u"tas-2", u"built: stones of 0.3 m2 and more as boulders (v2.16af)"),
+                 (u"alanlar", u"built: his symbols as real-size library objects, decks / beds / courts as slabs, the "
+                              u"half-round as seating rows (v2.16af)"),
+                 (u"assets", u"not built: people, cars and pictures for the plan"),
                  (u"PLANTING_v13_1", u"built: trees (trunk + crown)"),
                  (u"agaclar-2", u"not built: drawn tree texture (the trees come from PLANTING_v13_1)"),
                  (u"Doldurma_renk", u"built: green (v2.08, drawing-fix fills)"),
@@ -4578,7 +4889,7 @@ def _audit_status(key):
                  (u"istinaat", u"built: bank walls along his lines"),
                  (u"png-2", u"not built: texture picture (its outline is built)"),
                  (u"png", u"not built: texture picture (its outline is built)"),
-                 (u"begum_su_merdiven", u"built: seating tiers"),
+                 (u"begum_su_merdiven", u"built: seating rows (slabs) + Stair-tool stairs (v2.16af)"),
                  (u"kopruler", u"built: bridge decks (+ arches or piers)")):
         if w in parts:
             return s
@@ -4790,6 +5101,38 @@ RAIL_GAP_M = 0.12                                   # v1.96: m between railing b
 TWIN_TOL_M = 0.05                                   # v1.99: m, a leftover copy matches an element of this pass this closely
 RAIL_MATCH_M = 0.60                                 # v1.98: m, an old railing centred this close to a balcony is that balcony's
 RAIL_PART = [None]                                  # v1.96: the railing library part name once made
+LIB_DN = set()                                      # v2.16ah: the library part names the project holds (_setup_library)
+
+
+def _part_same(nm, s3, s2):
+    """v2.16ah (Desktop 27 Nov 2026: the balcony railing and the two bridge parts were sent again in every context
+    build, 52 s in 3 calls; only the tree / furniture set was compared with what the project holds): (True, hash)
+    when the project holds a part of this name and this file's cache says it was sent with these very scripts"""
+    import hashlib
+    h_ = hashlib.sha1(json.dumps([nm, s3, s2], sort_keys=True).encode("utf-8")).hexdigest()
+    try:
+        with open(os.path.join(CACHE_DIR, "gdl_parts.json"), encoding="utf-8") as f_:
+            old_ = json.load(f_).get(nm)
+    except Exception:
+        old_ = None
+    return (old_ == h_ and nm in LIB_DN), h_
+
+
+def _part_sent(nm, h_):
+    """v2.16ah: note that the part went into the project with these scripts"""
+    pf_ = os.path.join(CACHE_DIR, "gdl_parts.json")
+    try:
+        try:
+            with open(pf_, encoding="utf-8") as f_:
+                d_ = json.load(f_)
+        except Exception:
+            d_ = {}
+        d_[nm] = h_
+        with open(pf_, "w", encoding="utf-8") as f_:
+            json.dump(d_, f_)
+        LIB_DN.add(nm)
+    except Exception:
+        pass
 
 
 def _rail_part(ac, miss, log):
@@ -4844,6 +5187,10 @@ DEL 2
 NEXT ii
 """ % (MAT["frame_grey"][0], RAIL_GAP_M)
     nm = u"BGA Balcony Railing"
+    same_, h_ = _part_same(nm, s3, GDL2D_OBJ)
+    if same_:
+        RAIL_PART[0] = nm
+        return nm
     try:
         r_ = ac.t("CreateLibraryParts", {"libraryParts": [dict(name=nm, parentName=LIB_PAR[0], path=u"BGA/%s.gsm" % nm,
                                                                script3D=s3, script2D=GDL2D_OBJ)],
@@ -4852,6 +5199,7 @@ NEXT ii
         if not isinstance(e, dict) or e.get("error"):
             log.append(u"FLAG balcony railing object not made (%s): Railing tool instead" % json.dumps(e)[:200])
             return None
+        _part_sent(nm, h_)
     except Exception as ex:
         if _ac_gone(ex):
             raise
@@ -4881,14 +5229,19 @@ def _bridge_obj(ac, miss, log, made, nm_b, at, u, L, W, k, s, rise, spring, R_, 
     s3 = u'MATERIAL "%s"\nADDY %.3f\nROTX 90\nPRISM_ %d, %.3f,\n%s\nDEL 2\n' % (
         MAT["bridge_stone"][0], W, len(cl), W, u",\n".join(u"%.3f, %.3f, 15" % q for q in cl))
     nm = u"BGA Bridge %s" % nm_b.split(u" ")[0]
+    same_, h_ = _part_same(nm, s3, GDL2D_OBJ)
     try:
-        r_ = ac.t("CreateLibraryParts", {"libraryParts": [dict(name=nm, parentName=LIB_PAR[0], path=u"BGA/%s.gsm" % nm,
-                                                               script3D=s3, script2D=GDL2D_OBJ)],
-                                          "overwriteExisting": True}, 900.0)
-        e = (r_.get("libraryParts") or [None])[0]
-        if not isinstance(e, dict) or e.get("error"):
-            log.append(u"FLAG %s: bridge object not made (%s): built from slabs + pier walls" % (nm_b, json.dumps(e)[:200]))
-            return False
+        if not same_:                                     # v2.16ah: sent only when new or changed
+            r_ = ac.t("CreateLibraryParts", {"libraryParts": [dict(name=nm, parentName=LIB_PAR[0],
+                                                                   path=u"BGA/%s.gsm" % nm, script3D=s3,
+                                                                   script2D=GDL2D_OBJ)],
+                                              "overwriteExisting": True}, 900.0)
+            e = (r_.get("libraryParts") or [None])[0]
+            if not isinstance(e, dict) or e.get("error"):
+                log.append(u"FLAG %s: bridge object not made (%s): built from slabs + pier walls" % (
+                    nm_b, json.dumps(e)[:200]))
+                return False
+            _part_sent(nm, h_)
         o_ = at(-L / 2, -W / 2)
         g = ac.create("CreateObjects", "objectsData", [dict(libraryPartName=nm, coordinates=dict(xy(o_), z=round(zb - z0, 3)),
                       dimensions=dict(x=round(L, 3), y=round(W, 3), z=round(top - zb, 3)),
@@ -5152,6 +5505,10 @@ def build_selinos(ac, miss, log, xy, z0, tin, ox, oy, rects, inside, contours, p
             for q_, D_, gq_, lv_ in (wet_ or dry_):
                 base_ = gq_ - 0.05
                 top_ = max(gq_, lv_ if lv_ is not None else gq_) + REED_H_M
+                if top_ - gq_ > REED_MAX_M:               # v2.16af: no reed taller than a real one (v2.16ae: 1,356
+                    top_ = gq_ + REED_MAX_M               # clumps over 3 m, the tallest 5.95 m in 4.40 m of water)
+                    REED_CAP[0] += 1
+                    REED_CAP[1] += 1 if lv_ is not None and lv_ > top_ else 0
                 TREE_OBJ.append(("reed", q_, base_, round(top_ - base_, 2), D_))
                 REED_N[1] += 1
                 if top_ - base_ > REED_TALL[1]:           # v2.16ad: the tallest clump, for the log
@@ -5159,8 +5516,9 @@ def build_selinos(ac, miss, log, xy, z0, tin, ox, oy, rects, inside, contours, p
                 REED_TALL[0] += 1 if top_ - base_ > 3.0 else 0
         elif nm == "rock":
             h = min(ROCK_H_MAX, 0.5 * math.sqrt(abs(area(H))))
-            rocks.append(dict(level=round(g + h - z0, 3), thickness=round(h + 0.2, 3),
-                              polygonCoordinates=[xy(q) for q in H], _mat="bridge_stone"))
+            for pc_ in _spikes_out([xy(q) for q in H]):
+                rocks.append(dict(level=round(g + h - z0, 3), thickness=round(h + 0.2, 3),
+                                  polygonCoordinates=pc_, _mat="bridge_stone"))
     if "CreateSlabs" not in miss:
         RP_ = [(tg_, _pip_fast(H_)) for tg_, H_ in RIVER_MESH]
         log.append(u"reed beds (v2.11ab): %d of his beds as %d reed clumps (GDL, on the bed, %.1f m above the water: "
@@ -5168,10 +5526,13 @@ def build_selinos(ac, miss, log, xy, z0, tin, ox, oy, rects, inside, contours, p
                        REED_N[0], REED_N[1], REED_H_M, REED_N[2],
                        (u"; FLAG %d bed(s) with no spot under the water: clumps on the ground there" % REED_N[3])
                        if REED_N[3] else u""))
-        if REED_TALL[2] is not None:                      # v2.16ad (a clump = the water over the bed + REED_H_M)
-            log.append(u"reed clumps (v2.16ad): %d taller than 3 m, the tallest %.2f m at %.1f,%.1f (survey x,y): it stands in "
-                       u"%.2f m of water" % (REED_TALL[0], REED_TALL[1], REED_TALL[2][0], REED_TALL[2][1],
-                                             max(0.0, REED_TALL[1] - REED_H_M - 0.05)))
+        if REED_CAP[0]:                                   # v2.16af
+            log.append(u"reed clumps (v2.16af): %d clump(s) in water deeper than %.2f m kept to %.2f m from the bed (a reed "
+                       u"is 6 to 12 feet tall: USDA NRCS Plant Fact Sheet, Common reed); %d of them end under the %s "
+                       u"water" % (REED_CAP[0], REED_MAX_M - REED_H_M, REED_MAX_M, REED_CAP[1], WATER_SHOW))
+        if REED_TALL[2] is not None:                      # v2.16ad / v2.16af (the water depth is no longer in the height)
+            log.append(u"reed clumps (v2.16ad): %d taller than 3 m, the tallest %.2f m at %.1f,%.1f (survey x,y)" % (
+                REED_TALL[0], REED_TALL[1], REED_TALL[2][0], REED_TALL[2][1]))
         if REED_DRY:                                      # v2.12
             log.append(u"reed beds (v2.12): examples of beds with no spot under the water (survey x,y): " +
                        u"; ".join(REED_DRY))
@@ -5180,10 +5541,36 @@ def build_selinos(ac, miss, log, xy, z0, tin, ox, oy, rects, inside, contours, p
                 continue
             g_ = ac.create("CreateSlabs", "slabsData", dat_, lab_)
             made += [g for g in g_ if g]
-            rf_ = _refused(ac, dat_, g_)
-            if rf_:                                       # v2.16ad: the first refused outline as given (to find its cause)
-                log.append(u"FLAG %s: %d refused by Archicad; the first outline (model x,y): %s" % (lab_, len(rf_), u" ".join(
-                    u"%.3f,%.3f" % (q["x"], q["y"]) for q in rf_[0]["polygonCoordinates"])[:900]))
+            drop_ = getattr(ac, "last_drop", None) or set()
+            g_ = list(g_) + [None] * (len(dat_) - len(g_))
+            n_rf = n_re = 0
+            for k_, d in enumerate(dat_):                 # v2.16ae (v2.16ad build: the one boulder still refused, at
+                if g_[k_] or k_ in drop_:                 # 114.7,-231.8, is a valid outline full of spikes 1 to 4 cm
+                    continue                              # wide): a refused boulder again with spikes and notches under
+                n_rf += 1                                 # 4 cm, then under 10 cm, taken out of its outline
+                for w_ in (0.02, 0.05):
+                    try:
+                        c_ = _clean_ring_dicts(d["polygonCoordinates"], (w_,))
+                        r_ = ac.create("CreateSlabs", "slabsData", [dict(d, polygonCoordinates=c_)],
+                                       u"%s, outline smoothed %.0f cm" % (lab_, 200.0 * w_)) if c_ else []
+                    except Exception as ex:
+                        log.append(u"FLAG %s: smoothed outline not tried (%s)" % (lab_, ex))
+                        break
+                    if r_ and r_[0]:
+                        g_[k_] = r_[0]
+                        d["polygonCoordinates"] = c_
+                        made.append(r_[0])
+                        n_re += 1
+                        break
+            if ROCK_SPIKES[0] or ROCK_SPIKES[1]:
+                log.append(u"%s (v2.16ai): %d outline(s) that cross or touch themselves (a corner within %.0f mm of another "
+                           u"side) sent without their parts and notches under 1 to 10 cm, the finest that leaves them "
+                           u"clear; %d more piece(s) where an outline was two lobes joined at a point%s" % (
+                               lab_, ROCK_SPIKES[0], 1000.0 * ROCK_TOUCH_M, ROCK_SPIKES[2],
+                               (u"; FLAG %d outline(s) still not clear, sent as drawn" % ROCK_SPIKES[1]) if ROCK_SPIKES[1] else u""))
+            if n_rf:
+                log.append(u"%s (v2.16ae): %d refused as drawn, %d of them made with spikes under 4 or 10 cm taken out of the "
+                           u"outline%s" % (lab_, n_rf, n_re, u"" if n_re == n_rf else u"; FLAG %d still refused" % (n_rf - n_re)))
             for g, d in zip(g_, dat_):                    # v1.44: they cut the ground and the river bed
                 if not g:
                     continue
@@ -5783,7 +6170,7 @@ GDL2D_OBJ = u"HOTSPOT2 0, 0\nPROJECT2 3, 270, 2\n"
 def setup_layers(ac, log):
     """v1.45: one BGA layer per part + layer combinations"""
     LAYER_ID.clear()
-    lay_ = [dict({"name": n_}, **({"isHidden": True} if p_ == "seo_ops" or p_.startswith("view_") or (
+    lay_ = [dict({"name": n_}, **({"isHidden": True} if p_ in ("seo_ops", "people_sec") or p_.startswith("view_") or (
                 p_.startswith("water_") and p_ != "water_" + WATER_SHOW) else {})) for p_, n_ in LAYER_NAME.items()]
     join_ = [LAYER_NAME[p_] for p_ in LAYER_JOIN if p_ in LAYER_NAME]
     try:                                              # v2.16aa: every layer states its intersection group
@@ -5808,7 +6195,7 @@ def setup_layers(ac, log):
             if n_ in at:
                 LAYER_ID[p] = int(at[n_]["index"])
         uns_ = set(p for p in LAYER_NAME if p.startswith(u"unsure_"))   # v1.46: the unsure masterplan layers
-        combos = {u"BGA - all": set(),
+        combos = {u"BGA - all": set(), SEC_ALL: set(),
                   u"BGA - existing only": {"proposal"} | uns_,
                   u"BGA ? unsure only (check)": set(p for p in LAYER_NAME if p not in uns_ and p != "terrain"),
                   u"BGA - proposal on terrain": {"buildings", "houses", "structure", "greenery", "furniture", "people", "stairs"},
@@ -5823,6 +6210,7 @@ def setup_layers(ac, log):
         ac.t("CreateLayerCombinations", {"overwriteExisting": True, "layerCombinationDataArray": [
             dict(name=cn, layers=[dict(attributeId=at[LAYER_NAME[p]]["attributeId"], isHidden=p in hid or p == "seo_ops" or (
                                            p.startswith("view_") and not cn.startswith(u"BGA - section ")) or (
+                                           p == "people_sec" and cn != SEC_ALL and not cn.startswith(u"BGA - section ")) or (
                                            p.startswith("water_") and p[6:] != (cn[13:] if cn.startswith(u"BGA - season ")
                                                                                else WATER_SHOW)),
                                        isLocked=False)
@@ -5887,7 +6275,7 @@ def _lib_trees(names, log):
         u", ".join(k for k in sorted(TREE_LIB_KEYS) if k not in pick) or u"none"))
 
 
-LAMP_LIB = ("Street Lamp 01", "Street Lamp 02", "Street Lamp 03")   # v1.88 (Aras 20 Nov 09:50 "these lamps are wrong")
+LAMP_LIB = ("Street Lamp 02", "Street Lamp 03", "Street Lamp 04", "Street Lamp 01")   # v2.16af: 02 first (Desktop 27 Nov 2026, Lamp tool, pole 6 m: head 0.68 m each side; 01 keeps a 4.98 m arm on any pole);   # v1.88 (Aras 20 Nov 09:50 "these lamps are wrong")
 LAMP_OWN = [None]          # v1.88: AcBuild's own lamp part, the fallback
 LAMP_POLE_R = 0.15         # v1.89: m, lamp pole radius for the collision check (ASSUMED)
 LAMP_MERGE_M = 3.2         # v1.88: survey lamp points closer than this are one lamp (the survey symbol gives 2-3 points
@@ -5970,12 +6358,16 @@ def setup_library(ac, log):
     """v1.79: AcBuild's GDL objects, then Archicad's own detailed trees per species in EVERY case (v1.78 picked them only
     when the embedded library call succeeded; it timed out on 19 Nov and all 803 trees were left out)"""
     _setup_library(ac, log)
+    _setup_objects(ac, log)                               # v2.16ai: Aras's own objects (proposal file only)
     if GDL_OBJECTS:
         try:
             av = ac.t("GetAvailableLibraryParts", {}, 900.0).get("libraryParts") or []
             nms_ = set(p.get("documentName") or (p.get("fileName") or u"").rsplit(u".", 1)[0] for p in av)
+            pic_ = set(p.get("documentName") or (p.get("fileName") or u"").rsplit(u".", 1)[0] for p in av   # v2.16al
+                       if (p.get("fileName") or u"").lower().endswith((u".png", u".jpg", u".jpeg", u".tif", u".tiff", u".bmp", u".gif")))
             _lib_trees(nms_, log)
             _lib_furn(nms_, log)                           # v2.10: park furniture from the Archicad library
+            _lib_sym(nms_ - pic_, log)                     # v2.16af: the parts for his symbol layers (no picture files)
             lp_ = next((n_ for n_ in LAMP_LIB if n_ in nms_), None)
             if lp_ and "lamp" in LIBN:                     # v1.88: Archicad's own street lamp (was AcBuild's box lamp)
                 LAMP_OWN[0] = LIBN["lamp"]
@@ -5997,6 +6389,8 @@ def _setup_library(ac, log):
         try:
             av = ac.t("GetAvailableLibraryParts", {}, 900.0).get("libraryParts") or []
             dn_ = set(p.get("documentName") for p in av)
+            LIB_DN.clear()
+            LIB_DN.update(n_ for n_ in dn_ if n_)
             par = next((n_ for n_ in (u"Model Element", u"General Object") if n_ in dn_), u"Model Element")
             LIB_PAR[0] = par                              # v1.75: for the bridge objects
             kinds_, data_ = [], []
@@ -6198,7 +6592,7 @@ def _park_items(log, gz):
                            u"parks (shrubs, benches, lamps; no grid trees: his planting layer has them)" % (n_mg_, PARK_MIN_M2))
         except Exception as ex:
             log.append(u"FLAG his green areas not furnished (%s)" % ex)
-    n_sh = [0]
+    n_sh = [0, 0]
     for R, own_ in rings_:
         if len(R) < 3 or abs(area(R)) < PARK_MIN_M2 or (SITE_POLY and not _inpoly(R[0], SITE_POLY)):
             continue
@@ -6207,7 +6601,7 @@ def _park_items(log, gz):
         else:
             in_ = lambda q, R=R: _inpoly(q, R)
         n_p += 1
-        nt0_, nb0_ = len(trees), len(benches)              # v2.11aa
+        nt0_, nb0_, nl0_ = len(trees), len(benches), len(lamps)   # v2.11aa
         E = list(zip(R, R[1:] + R[:1]))
         dedge = lambda q: min(_seg_d(q, a, b) for a, b in E)
         x0, y0 = min(q[0] for q in R), min(q[1] for q in R)
@@ -6338,9 +6732,25 @@ def _park_items(log, gz):
                 if gz(c) is not None and in_(c) and not on_hard(c):
                     benches.append((c, math.atan2(nin[0], -nin[1])))
                     n_small[1] += 1
+        # v2.16ah (v2.16ag: 2 of 46 benches placed; the shrub line of v2.11ad stands 0.8 m inside every edge, a shrub
+        # every 4 m, and the shrub groups fill the inside, so a bench 1.5 m inside the edge, which needs 1.5 m to the
+        # next shrub, found no room and was left out as a collision): no shrub is planted where a bench, its litter
+        # bin or a lamp of this park stands; the furniture stands in a gap of the planting
+        clr_ = [(c_, 0.3 + TREE_GAP_M / 2.0) for c_, _a in lamps[nl0_:]]
+        for c_, a_ in benches[nb0_:]:
+            clr_.append((c_, 1.0 + TREE_GAP_M / 2.0))
+            clr_.append(((c_[0] + math.cos(a_) * (BENCH_SIZE[0] / 2.0 + 0.7),
+                          c_[1] + math.sin(a_) * (BENCH_SIZE[0] / 2.0 + 0.7)), 0.3 + TREE_GAP_M / 2.0))
+        if clr_:
+            nt1_ = len(trees)
+            trees[nt0_:] = [t_ for t_ in trees[nt0_:] if t_[0] != "shrub" or all(
+                math.hypot(t_[1][0] - c_[0], t_[1][1] - c_[1]) >= r_ + 0.01 for c_, r_ in clr_)]
+            n_sh[0] -= nt1_ - len(trees)
+            n_sh[1] += nt1_ - len(trees)
     log.append(u"green furnishing (v2.11ab): %d shrubs (%.1f m high, %.1f m wide +-20 %%, groups of 2-3 every %.0f m, "
-               u"%.1f m inside the edge; sizes and spacing ASSUMED)" % (n_sh[0], SHRUB_H_M, SHRUB_D_M, SHRUB_GRID_M,
-                                                                        SHRUB_EDGE_M))
+               u"%.1f m inside the edge; sizes and spacing ASSUMED); v2.16ah: %d shrub place(s) not planted, a bench, "
+               u"a litter bin or a lamp stands there" % (n_sh[0], SHRUB_H_M, SHRUB_D_M, SHRUB_GRID_M, SHRUB_EDGE_M,
+                                                        n_sh[1]))
     log.append(u"park furnishing (v2.11aa): small parks: %d got one tree at their most inner point (%.1f m or more from "
                u"the edge), %d got one bench mid their longest side" % (n_small[0], PARK_EDGE_SMALL_M, n_small[1]))
     log.append(u"park furnishing (v2.10): %d survey park(s) of %.0f m2 or more: %d tree(s) on a %.0f m grid (%.0f m inside "
@@ -6376,7 +6786,9 @@ def build_objects(ac, miss, log, xy, z0, tin, ox, oy, survey):
                 continue
             if (cut_ and COVER_ON[0]) or top_ > g:
                 best = top_ if best is None else max(best, top_)
-        if best is None or abs(best - g) < 0.005:
+        if best is None:
+            return g + _cover_up(p)                       # v2.16aj: on a hard ground cover: its top, not the ground
+        if abs(best - g) < 0.005:
             return g
         n_on.add((round(p[0], 2), round(p[1], 2)))
         return best
@@ -6438,6 +6850,8 @@ def build_objects(ac, miss, log, xy, z0, tin, ox, oy, survey):
                u"symbol: the symbols mark groves)" % (u", ".join(u"%s %d" % kv for kv in sorted(n_k.items())), OLIVE_H, OLIVE_D))
     fo, n_f, fo_kind = [], {}, []
     n_lm = [0, 0, 0, 0]                                 # v1.89: points, lamps, out of site_alan, clash
+    fl, fl_own = [], []                                   # v2.16af: library lamps for the Lamp tool + their fallback
+    use_cl = bool(LAMP_OWN[0]) and ac.has("CreateLamps")  # (Tapir CreateLamps; CreateObjects refuses every lamp part)
     for lay, (kind, w, d, h, lab) in FURN.items():
         if kind not in LIBN:
             continue
@@ -6463,6 +6877,11 @@ def build_objects(ac, miss, log, xy, z0, tin, ox, oy, survey):
             ra_ = _road_angle(x, y) if kind == "lamp" else None
             o_ = dict(libraryPartName=LIBN[kind], coordinates=dict(xy((x, y)), z=round(gz((x, y)) - z0, 3)),
                       dimensions=dict(x=w, y=d, z=h), angle=round(ra_ if ra_ is not None else a, 4))
+            if kind == "lamp" and use_cl:                  # v2.16af: its height (z) sets the pole height
+                fl.append(o_)
+                fl_own.append(dict(o_, libraryPartName=LAMP_OWN[0]))
+                n_f[lab] = n_f.get(lab, 0) + 1
+                continue
             if kind == "lamp" and LAMP_OWN[0]:
                 o_.pop("dimensions")                       # v1.88: the library lamp keeps its own size
             fo.append(o_)
@@ -6475,26 +6894,50 @@ def build_objects(ac, miss, log, xy, z0, tin, ox, oy, survey):
         if i_ % 2 == 0:                                   # a litter bin beside every other bench
             pf_.append(("bin", (c[0] + u_[0] * (BENCH_SIZE[0] / 2.0 + 0.7), c[1] + u_[1] * (BENCH_SIZE[0] / 2.0 + 0.7)), ang))
     pf_ += [("lamp", c, ang) for c, ang in p_lamps] + [("picnic", c, ang) for c, ang in p_picnics]
-    n_pf, pf_obj, pf_own = {}, [], []
+    n_pf, pf_obj, pf_own, n_pfx = {}, [], [], {}
     for kind, c, ang in pf_:
         lib_ = LIBF.get(kind) or (LIBN.get("lamp") if kind == "lamp" else None)
         own_ = LIBN.get("bench") if kind == "bench" else (LAMP_OWN[0] or LIBN.get("lamp")) if kind == "lamp" else None
         if not (lib_ or own_):
             continue
         r_ = 0.3 if kind in ("lamp", "bin") else 1.0
-        if _in_bld(c, r_) or not SP_.free(c, r_):
+        if _in_bld(c, r_):                                # v2.16ah: counted per kind and reason
             n_clash[0] += 1
+            n_pfx.setdefault(kind, [0, 0, 0])[0] += 1
             continue
-        o_ = dict(coordinates=dict(xy(c), z=round(gz(c) - z0, 3)), angle=round(ang, 4))
+        hs_ = (BENCH_SIZE[0] / 2.0, BENCH_SIZE[1] / 2.0) if kind == "bench" else (1.4, 1.05) if kind == "picnic" else (0.15, 0.15)
+        zc_, fall_ = _stand(gz, c, ang, hs_[0], hs_[1])   # v2.16aj: the lowest surface under it (picnic size: SYM_BOX)
+        if zc_ is None:
+            continue
+        if not SP_.free(c, r_):
+            n_clash[0] += 1
+            n_pfx.setdefault(kind, [0, 0, 0])[1] += 1
+            continue
+        if fall_ > SYM_FALL_M:                            # v2.16ak: kept (Aras 27 Nov 2026), counted for the log
+            n_pfx.setdefault(kind, [0, 0, 0])[2] += 1
+        o_ = dict(coordinates=dict(xy(c), z=round(zc_ - z0, 3)), angle=round(ang, 4))
         own_d = dict(x=BENCH_SIZE[0], y=BENCH_SIZE[1], z=BENCH_SIZE[2]) if kind == "bench" else \
             dict(x=FURN_LAMP[0], y=FURN_LAMP[1], z=FURN_LAMP[2])
+        if kind == "lamp" and use_cl and lib_:             # v2.16af: park lamps through the Lamp tool too
+            fl.append(dict(o_, libraryPartName=lib_, dimensions=own_d))
+            fl_own.append(dict(o_, libraryPartName=LAMP_OWN[0], dimensions=own_d))
+            n_pf[kind] = n_pf.get(kind, 0) + 1
+            continue
         pf_obj.append(dict(o_, libraryPartName=lib_) if lib_ else dict(o_, libraryPartName=own_, dimensions=own_d))
         pf_own.append(dict(o_, libraryPartName=own_, dimensions=own_d) if (lib_ and own_) else None)
         n_pf[kind] = n_pf.get(kind, 0) + 1
+    if pf_:
+        log.append(u"%spark furniture (v2.16ah): %d place(s) planned (%s); left out: %s" % (
+            u"FLAG " if sum(v_[1] for v_ in n_pfx.values()) > len(pf_) // 4 else u"", len(pf_),
+            u", ".join(u"%s %d" % (k_, sum(1 for t_ in pf_ if t_[0] == k_)) for k_ in sorted(set(t_[0] for t_ in pf_))),
+            u"; ".join(u"%s %d at a house, %d on another object; %d kept with the uphill side over %.2f m in the ground" % (
+                k_, v_[0], v_[1], v_[2], SYM_FALL_M)
+                       for k_, v_ in sorted(n_pfx.items())) or u"none"))
     if pf_obj:
         g_ = ac.create("CreateObjects", "objectsData", pf_obj, u"street furniture: park furniture (v2.10)")
         made += [g for g in g_ if g]
-        bad_ = [o_ for o_, g in zip(pf_own, g_) if not g and o_]
+        drop_ = set(getattr(ac, "last_drop", None) or ())   # v2.16ai: built in the other file is not "refused"
+        bad_ = [o_ for i_, (o_, g) in enumerate(zip(pf_own, g_)) if not g and o_ and i_ not in drop_]
         if bad_:                                          # a refused library part: AcBuild's own bench / lamp
             made += [g for g in ac.create("CreateObjects", "objectsData", bad_,
                                           u"street furniture: park furniture, own parts (v2.10)") if g]
@@ -6504,6 +6947,16 @@ def build_objects(ac, miss, log, xy, z0, tin, ox, oy, survey):
         log.append(u"masterplan rule (v2.13): in the working area %d survey tree(s) and %d olive symbol(s) left out (no "
                    u"tree of his there), %d survey street furniture symbol(s) left out (his drawing furnishes it)" % tuple(
                        MPW["n"][2:5]))
+    if fl:                                                # v2.16af
+        g_ = ac.create("CreateLamps", "lampsData", fl, u"street furniture: street lamps (library lamp, Lamp tool)")
+        made += [g for g in g_ if g]
+        bad_ = [o_ for o_, g in zip(fl_own, g_) if not g]
+        if bad_:
+            made += [g for g in ac.create("CreateObjects", "objectsData", bad_,
+                                          u"street furniture: street lamps, own part (v2.16af)") if g]
+        log.append(u"street lamps (v2.16af): %d of %d made with Archicad's Lamp tool as %s, pole %.1f m (ASSUMED); %d "
+                   u"refused or left to the other file, sent as AcBuild's own lamp" % (
+                       len(fl) - len(bad_), len(fl), LIBN.get("lamp"), FURN_LAMP[2], len(bad_)))
     if fo:
         g_ = ac.create("CreateObjects", "objectsData", fo, u"street furniture (GDL, survey symbols)")
         made += [g for g in g_ if g]
@@ -6590,6 +7043,20 @@ def build_objects(ac, miss, log, xy, z0, tin, ox, oy, survey):
             n_p += 1
     if po:
         made += [g for g in ac.create("CreateObjects", "objectsData", po, u"people + cars (his assets layer)") if g]
+    try:                                                  # v2.16af: his symbol layers as real-size library objects
+        fur_, ppl_ = sym_objects(xy, z0, gz, ins, SP_.free, log)
+        g_f = ac.create("CreateObjects", "objectsData", fur_, u"street furniture: his symbol layers (v2.16af)") if fur_ else []
+        g_p = ac.create("CreateObjects", "objectsData", ppl_, u"symbol people (sections + elevations only, v2.16af)") \
+            if ppl_ else []
+        made += [g for g in g_f + g_p if g]
+        if fur_ or ppl_:
+            log.append(u"symbol layers (v2.16af): %d of %d object(s) and %d of %d people made in this file (the rest "
+                       u"belongs to the other file or was refused)" % (
+                           sum(1 for g in g_f if g), len(fur_), sum(1 for g in g_p if g), len(ppl_)))
+    except Exception as ex:
+        if _ac_gone(ex):
+            raise
+        log.append(u"FLAG symbol layers (v2.16af): objects not placed (%s)" % ex)
     log.append(u"objects on his slabs (v2.16ab): %d tree / furniture / person / car place(s) inside one of his slabs "
                u"(terraces, seating tiers, water stairs, paving slabs) stand on its top, not on the surveyed ground "
                u"under or over it" % len(n_on))
@@ -6704,7 +7171,7 @@ COVER_LAYERS = {"kesin_yesil": "park", "belki_yesil": "park", "begum_yesil": "pa
                 "Doldurma_renk": "park", "Layer_50": "park"}   # v2.08: Aras 24 Nov, all green
 # his surface layer -> material: by the layer's name (yesil = green, yol = road, path / circulation = paving, iskele kenari
 # = his quay paving, doldurma = fill); ASSUMED where the name does not say it (master, Layer_49 = green, yeni = paving)
-COVER_SOLID = ("teras", "bina_cerceve", "begum_su_merdiven")   # his slabs on the ground: the ground goes under their bottom
+COVER_SOLID = ("teras", "bina_cerceve", "begum_su_merdiven", "sym_deck", "sym_bed", "sym_court", "sym_amphi")   # his slabs on the ground: the ground goes under their bottom
 COVER_T = {"road": 0.30, "pavement": 0.25, "quay_grey": 0.25, "park": 0.30, "ground": 0.20, "bike": 0.25,
            "path": 0.20}   # m build-up: ASSUMED
 STRIP_M = 1.5              # v2.11ab: m, his green pieces thinner than this on average give way to the streets
@@ -7045,169 +7512,627 @@ def _smooth_ground(tin, log):
 
 
 HOUSE_SNAP_M = 0.30      # v2.13aa: m, a house corner this close to a neighbour's corner / wall line goes onto it
+HOUSE_SAME_M = 0.46      # v2.16af (Aras 27 Nov 2026 "Close the house gaps as long as it is a single house"; v2.16ae check:
+#                          21 facing pairs 0.30 m and 72 pairs 0.30 to 0.45 m apart stayed open): m, the same for two
+#                          outlines with the same number of floors and the same height (read as one house)
 
 
 def _snap_houses(bld, log):
-    """v2.15 (Aras 26 Nov 20:01 UTC: same heights, same floors, why do the edges not close): Archicad joins two walls only
-    where their reference lines meet, so neighbouring outlines must share their points exactly. All house outlines are
-    snapped together as ONE plan (v2.13aa snapped each house onto its neighbours' old corners, so two near corners swapped
-    places and never met): (1) the corners of all houses are clustered (a seed corner and every other corner within
-    HOUSE_SNAP_M of it, nearest seeds first) and every corner of a cluster goes onto its middle; (2) every corner lying
-    within HOUSE_SNAP_M of another house's side (and farther than that from its ends) is added to that side; an outline
-    that would cross itself, turn invalid or change its area by more than 5 % keeps its shape, its corners are then fixed
-    points the others snap to"""
+    """v2.16ah, written anew (Aras 27 Nov 2026 "solve the problems on the root cause dont implement band aid fixes";
+    Desktop dump of the v2.16ag outlines): Archicad joins two walls only where their reference lines meet, so
+    neighbouring outlines must share their points exactly. v2.15-v2.16ag moved corners in one step and added
+    neighbours' corners to sides in another, each from its own copy of the coordinates, with one rule up to
+    HOUSE_SNAP_M and another above it: a corner was moved AND its old place put into the neighbour's side (rings 192 /
+    1646: a 0.25 m piece 3 cm from the neighbour), a side got one corner on its line and the next one 0.30 m off it
+    (ring 1313: a 0.28 m piece at 35 degrees), and small outlines stayed open because a side moved by the snap
+    distance changed their area by more than 5 % (rings 308 / 309 against 1616). Now every corner is ONE point with
+    ONE place, shared by every outline it belongs to: (1) corners of different outlines within the snap distance
+    become one corner, nearest pairs first, at the middle of where the survey has them; (2) a corner within the snap
+    distance of another outline's side goes onto that side (the side stays straight and gets the corner as its own
+    point); a corner that cannot move (it belongs to an outline kept as it was) stays and the side passes through it;
+    a corner whose foot lies within RING_MIN_M of the side's end becomes one corner with that end. (1) and (2) repeat
+    on the moved plan until nothing moves. The snap distance is HOUSE_SAME_M between two outlines with the same floors
+    and height (one house, Aras 27 Nov) and HOUSE_SNAP_M otherwise; no corner ends farther than 1.5 x that from where
+    the survey has it. An outline that would cross itself or lose half its area keeps its shape; its corners are then
+    fixed points the others come to"""
     m_ = _shp()
     if m_ is None or len(bld) < 2:
         return
     sg_, st_ = m_[1], m_[3]
     T = HOUSE_SNAP_M
-    orig = [list(b["ring"]) for b in bld]
+    TM = max(T, HOUSE_SAME_M)
+
+    def Tp(i, j):
+        return TM if i != j and bld[i].get("fl") == bld[j].get("fl") and \
+            abs(float(bld[i].get("h") or 0.0) - float(bld[j].get("h") or 0.0)) <= 0.01 else T
+    orig = [[(float(q[0]), float(q[1])) for q in b["ring"]] for b in bld]
     act = [i for i, b in enumerate(bld) if b.get("fl", 1) >= 0 and len(orig[i]) >= 3]
-    fixed = set()
+    A0 = dict((i, abs(area(orig[i]))) for i in act)
+    L0 = dict((i, sum(math.hypot(c[0] - a[0], c[1] - a[1]) for a, c in zip(orig[i], orig[i][1:] + orig[i][:1])))
+              for i in act)
+    hyp = lambda p, q: math.hypot(p[0] - q[0], p[1] - q[1])
 
     def ok_(i, R):
         if len(R) < 3 or _selfx(R):
             return False
         try:
-            P_, P0_ = sg_.Polygon(R), sg_.Polygon(orig[i])
-            return P_.is_valid and abs(P_.area - P0_.area) <= 0.05 * P0_.area
+            P_ = sg_.Polygon(R)
+            return P_.is_valid and 0.5 * A0[i] <= P_.area <= A0[i] + L0[i] * TM
         except Exception:
             return False
 
-    def dedup_(R):
-        out_ = []
-        for q in R:
-            if not out_ or math.hypot(q[0] - out_[-1][0], q[1] - out_[-1][1]) > 0.005:
-                out_.append(q)
-        while len(out_) > 3 and math.hypot(out_[0][0] - out_[-1][0], out_[0][1] - out_[-1][1]) <= 0.005:
-            out_.pop()
-        return out_
+    def solve(anch):
+        O, own, RV = [], [], {}
+        for i in act:
+            RV[i] = list(range(len(O), len(O) + len(orig[i])))
+            O.extend(orig[i])
+            own.extend([i] * len(orig[i]))
+        par = list(range(len(O)))
+        pos = list(O)
+        mem = dict((v, [v]) for v in range(len(O)))       # corner -> the survey corners it stands for
+        rgs = dict((v, set([own[v]])) for v in range(len(O)))   # corner -> the outlines it belongs to
+        fix = set(v for v in range(len(O)) if own[v] in anch)   # corners that may not move
+        st = dict(merge=0, foot=0, bend=0, miss=0, spur=0)
 
-    for _pass in (0, 1):                                  # pass 1 again with the refused outlines as fixed points
-        C0 = [(i, k, orig[i][k]) for i in act for k in range(len(orig[i]))]
-        C = list(C0)
-        pos = {}
-        for _round in range(4):                           # v2.16ab: again from the moved corners until nothing moves:
-            # one round left a third corner beside a pair that had just met (it was within T of one of the two, not
-            # of the seed), and step (2) skips corners near a side's end, so it stayed 1 to 30 cm away (Desktop check
-            # of v2.15, 27 Nov 2026: 596 wall pairs of two houses under 0.30 m apart that did not touch)
-            tree = st_.STRtree([sg_.Point(c[2]) for c in C])
-            cl = [-1] * len(C)
-            for s_ in range(len(C)):                      # (1) clusters: a seed and the free corners within T of it
-                if cl[s_] >= 0:
-                    continue
-                cl[s_] = s_
-                for j in tree.query(sg_.Point(C[s_][2]).buffer(T)):
-                    j = int(j)
-                    if cl[j] < 0 and math.hypot(C[j][2][0] - C[s_][2][0], C[j][2][1] - C[s_][2][1]) <= T:
-                        cl[j] = s_
-            mem = {}
-            for j, s_ in enumerate(cl):
-                mem.setdefault(s_, []).append(j)
-            moved_ = 0.0
-            for s_, js in mem.items():
-                hs_ = set(C[j][0] for j in js)
-                if len(hs_) < 2:                          # one house alone: unchanged
-                    for j in js:
-                        pos[j] = C[j][2]
-                    continue
-                fx_ = [C0[j][2] for j in js if C[j][0] in fixed]
-                src_ = fx_ or [C[j][2] for j in js]
-                mx_ = (sum(q[0] for q in src_) / len(src_), sum(q[1] for q in src_) / len(src_))
-                for j in js:
-                    pos[j] = C0[j][2] if C[j][0] in fixed else mx_
-                    if math.hypot(pos[j][0] - C0[j][2][0], pos[j][1] - C0[j][2][1]) > T:
-                        pos[j] = C[j][2]                  # never more than T from where the survey has it
-                    moved_ = max(moved_, math.hypot(pos[j][0] - C[j][2][0], pos[j][1] - C[j][2][1]))
-            C = [(c[0], c[1], pos[j]) for j, c in enumerate(C)]
-            if moved_ <= 1e-6:
-                break
-        n_snap = sum(1 for j, c in enumerate(C0) if math.hypot(pos[j][0] - c[2][0], pos[j][1] - c[2][1]) > 1e-6)
-        R1 = {i: list(orig[i]) for i in act}
-        for j, c in enumerate(C):
-            R1[c[0]][c[1]] = pos[j]
-        R1 = {i: (dedup_(R) if i not in fixed else list(orig[i])) for i, R in R1.items()}
-        polys = {i: sg_.Polygon(R).buffer(0) if len(R) >= 3 else sg_.Point(orig[i][0]).buffer(0.01) for i, R in R1.items()}
-        ids_ = list(polys)
-        ptree = st_.STRtree([polys[i] for i in ids_])
-        n_ins = 0
-        R2 = {}
-        FS_ = [(j, e_, orig[j][e_], orig[j][(e_ + 1) % len(orig[j])]) for j in sorted(fixed) for e_ in range(len(orig[j]))]
-        ftree = st_.STRtree([sg_.LineString([f_[2], f_[3]]) for f_ in FS_]) if FS_ else None
-        on_fx = {}                                        # v2.16ad: (kept outline, side) -> points put on that side
-        for i in act:                                     # (2) other houses' corners onto this house's sides
-            R = R1[i]
-            if i in fixed or len(R) < 3:
-                R2[i] = R
-                continue
-            if ftree is not None:                         # v2.16ad: a corner within T of a side of an outline that is
-                R = list(R)                               # kept as it was goes onto that side (the kept outline cannot
-                for k_, q in enumerate(R):                # bend to the corner, so the two stayed up to T apart: a wedge
-                    b_ = None                             # slit between two houses); the kept side gets the point too
-                    for x_ in ftree.query(sg_.Point(q).buffer(T)):
-                        j, e_, a, b = FS_[int(x_)]
-                        dx, dy = b[0] - a[0], b[1] - a[1]
-                        L2 = dx * dx + dy * dy
-                        if L2 < 1e-6:
-                            continue
-                        t = ((q[0] - a[0]) * dx + (q[1] - a[1]) * dy) / L2
-                        d = math.hypot(q[0] - a[0] - dx * t, q[1] - a[1] - dy * t)
-                        if 0.0 < t < 1.0 and d <= T and math.hypot(q[0] - a[0], q[1] - a[1]) > T and \
-                                math.hypot(q[0] - b[0], q[1] - b[1]) > T and (b_ is None or d < b_[0]):
-                            b_ = (d, j, e_, t, (a[0] + dx * t, a[1] + dy * t))
-                    if b_:
-                        R[k_] = b_[4]
-                        on_fx.setdefault((b_[1], b_[2]), []).append((b_[3], b_[4]))
-                R = dedup_(R)
-                if len(R) < 3:
-                    R = R1[i]
-            V = [q for j in (ids_[int(x)] for x in ptree.query(polys[i].buffer(T))) if j != i for q in R1[j]]
+        def root(v):
+            while par[v] != v:
+                par[v] = par[par[v]]
+                v = par[v]
+            return v
+
+        def seq(i):                                       # the outline's corners in order, each once in a row
             out_ = []
-            for a, b in zip(R, R[1:] + R[:1]):
-                out_.append(a)
-                dx, dy = b[0] - a[0], b[1] - a[1]
-                L2 = dx * dx + dy * dy
-                if L2 < 1e-6:
+            for v in RV[i]:
+                r = root(v)
+                if not out_ or out_[-1] != r:
+                    out_.append(r)
+            while len(out_) > 1 and out_[0] == out_[-1]:
+                out_.pop()
+            return out_
+
+        def lim(rs):
+            rl = sorted(rs)
+            return 1.5 * (TM if any(Tp(a, b) > T for a in rl for b in rl if a < b) else T)
+
+        def merge(u, v):
+            ru, rv = root(u), root(v)
+            if ru == rv:
+                return False
+            for i in rgs[ru] & rgs[rv]:                   # in one outline only neighbours along it may become one
+                S = seq(i)
+                if len(set(S)) <= 3 or S.count(ru) != 1 or S.count(rv) != 1:
+                    return False
+                k = S.index(ru)
+                if rv not in (S[k - 1], S[(k + 1) % len(S)]):
+                    return False
+            if ru in fix and rv in fix:
+                if hyp(pos[ru], pos[rv]) > 1e-6:
+                    return False
+                p = pos[ru]
+            elif ru in fix or rv in fix:
+                p = pos[ru] if ru in fix else pos[rv]
+            else:
+                nu, nv = len(mem[ru]), len(mem[rv])
+                p = ((pos[ru][0] * nu + pos[rv][0] * nv) / (nu + nv), (pos[ru][1] * nu + pos[rv][1] * nv) / (nu + nv))
+            lm = lim(rgs[ru] | rgs[rv]) + 1e-9
+            if any(hyp(p, O[m]) > lm for m in mem[ru] + mem[rv]):
+                return False
+            par[rv] = ru
+            mem[ru] = mem[ru] + mem.pop(rv)
+            rgs[ru] = rgs[ru] | rgs.pop(rv)
+            if rv in fix:
+                fix.discard(rv)
+                fix.add(ru)
+            pos[ru] = p
+            st["merge"] += 1
+            return True
+
+        def vv_round():
+            roots = sorted(rgs)
+            pts = [sg_.Point(pos[r]) for r in roots]
+            tree = st_.STRtree(pts)
+            cand = []
+            for k, r in enumerate(roots):
+                for x in tree.query(pts[k].buffer(TM)):
+                    x = int(x)
+                    if x <= k:
+                        continue
+                    r2 = roots[x]
+                    tp = [Tp(i, j) for i in rgs[r] for j in rgs[r2] if i != j]
+                    d = hyp(pos[r], pos[r2])
+                    if tp and d <= max(tp):
+                        cand.append((d, r, r2))
+            return sum(1 for _d, r, r2 in sorted(cand) if merge(r, r2))
+
+        def on_side(r, i, a, b):
+            r, a, b = root(r), root(a), root(b)
+            if r in (a, b) or i in rgs[r]:
+                return 0
+            S = seq(i)
+            if a not in S or S[(S.index(a) + 1) % len(S)] != b or S.count(a) != 1:
+                return 0
+            A_, B_, p = pos[a], pos[b], pos[r]
+            dx, dy = B_[0] - A_[0], B_[1] - A_[1]
+            L2 = dx * dx + dy * dy
+            if L2 < 1e-9:
+                return 0
+            t = ((p[0] - A_[0]) * dx + (p[1] - A_[1]) * dy) / L2
+            if not 0.0 < t < 1.0:
+                return 0
+            f = (A_[0] + dx * t, A_[1] + dy * t)
+            d = hyp(p, f)
+            if d > max(Tp(i, k) for k in rgs[r]):
+                return 0
+            da, db = hyp(f, A_), hyp(f, B_)
+            if min(da, db) < RING_MIN_M:                  # beside the side's end: one corner with that end
+                if merge(r, a if da <= db else b):
+                    return 1
+                st["miss"] += 1
+                return 0
+            if d > 1e-9:
+                if r not in fix and all(hyp(f, O[m]) <= lim(rgs[r] | set([i])) + 1e-9 for m in mem[r]):
+                    pos[r] = f
+                    st["foot"] += 1
+                elif i in anch:
+                    st["miss"] += 1
+                    return 0
+                else:
+                    st["bend"] += 1
+            k = max(n for n, v in enumerate(RV[i]) if root(v) == a)
+            RV[i].insert(k + 1, r)
+            rgs[r].add(i)
+            if i in anch:
+                fix.add(r)
+            return 1
+
+        def ve_round():
+            E = []
+            for i in act:
+                S = seq(i)
+                if len(S) >= 3:
+                    E.extend((i, a, b) for a, b in zip(S, S[1:] + S[:1]))
+            if not E:
+                return 0
+            tree = st_.STRtree([sg_.LineString([pos[a], pos[b]]) for _i, a, b in E])
+            cand = []
+            for r in sorted(rgs):
+                p = pos[r]
+                for x in tree.query(sg_.Point(p).buffer(TM)):
+                    i, a, b = E[int(x)]
+                    if i in rgs[r] or r == a or r == b:
+                        continue
+                    A_, B_ = pos[a], pos[b]
+                    dx, dy = B_[0] - A_[0], B_[1] - A_[1]
+                    L2 = dx * dx + dy * dy
+                    if L2 < 1e-9:
+                        continue
+                    t = ((p[0] - A_[0]) * dx + (p[1] - A_[1]) * dy) / L2
+                    if 0.0 < t < 1.0:
+                        d = math.hypot(p[0] - A_[0] - dx * t, p[1] - A_[1] - dy * t)
+                        if d <= max(Tp(i, k) for k in rgs[r]):
+                            cand.append((d, r, i, a, b))
+            return sum(on_side(r, i, a, b) for _d, r, i, a, b in sorted(cand))
+
+        def unspike():                                    # an outline that goes out to a corner and comes back on
+            n = 0                                         # its own line (a corner moved after a neighbour's corner
+            for i in act:                                 # was put into its side) does not go there: the corner
+                if i in anch:                             # leaves THIS outline and stays in the others
                     continue
-                ins = []
-                for v in V:
-                    t = ((v[0] - a[0]) * dx + (v[1] - a[1]) * dy) / L2
-                    if 0.0 < t < 1.0 and math.hypot(v[0] - a[0] - dx * t, v[1] - a[1] - dy * t) <= T and \
-                            math.hypot(v[0] - a[0], v[1] - a[1]) > T and math.hypot(v[0] - b[0], v[1] - b[1]) > T:
-                        ins.append((t, (v[0], v[1])))
-                for t, v in sorted(set(ins)):
-                    out_.append(v)
-                    n_ins += 1
-            R2[i] = dedup_(out_)
-        bad_ = [i for i in act if i not in fixed and not ok_(i, R2[i])]
-        if not bad_ or _pass == 1:
+                ch = True
+                while ch:
+                    ch = False
+                    S = seq(i)
+                    if len(S) <= 3:
+                        break
+                    for k in range(len(S)):
+                        ra, r, rc = S[k - 1], S[k], S[(k + 1) % len(S)]
+                        a, q, c = pos[ra], pos[r], pos[rc]
+                        l1, l2 = hyp(a, q), hyp(c, q)
+                        back = ra == rc or min(l1, l2) < 1e-9 or (
+                            (a[0] - q[0]) * (c[0] - q[0]) + (a[1] - q[1]) * (c[1] - q[1]) > 0 and
+                            abs((a[0] - q[0]) * (c[1] - q[1]) - (a[1] - q[1]) * (c[0] - q[0])) < 0.01 * max(l1, l2))
+                        if back:
+                            RV[i] = [v for v in RV[i] if root(v) != r]
+                            rgs[r].discard(i)
+                            if not rgs[r]:
+                                del rgs[r]
+                            st["spur"] += 1
+                            n += 1
+                            ch = True
+                            break
+            return n
+
+        for _it in range(8):
+            n = 0
+            for _k in range(6):
+                m = vv_round()
+                n += m
+                if not m:
+                    break
+            st["miss"] = 0
+            n += ve_round()
+            n += unspike()
+            if not n:
+                break
+        out = {}
+        for i in act:
+            S = seq(i)
+            R = []
+            for r in S:
+                if not R or hyp(pos[r], R[-1]) > 0.005:
+                    R.append(pos[r])
+            while len(R) > 3 and hyp(R[0], R[-1]) <= 0.005:
+                R.pop()
+            out[i] = R
+        return out, st
+
+    anch, res, st = set(), {}, {}
+    for _pass in range(4):                                # again with the refused outlines as fixed points
+        res, st = solve(anch)
+        bad_ = [i for i in act if i not in anch and not ok_(i, res[i])]
+        if not bad_:
             break
-        fixed.update(bad_)
-    n_keep = n_onfx = 0
+        anch.update(bad_)
+    n_keep = 0
     for i in act:
-        R = R2[i]
-        if i in fixed or not ok_(i, R):
+        R = res.get(i) or []
+        if len(R) < 3 or _selfx(R) or (i not in anch and not ok_(i, R)):
             n_keep += 1
-            if i in fixed and any(k_[0] == i for k_ in on_fx):   # v2.16ad: the points neighbours were put on: on the
-                Rf = []                                           # kept outline's own sides (its shape unchanged)
-                for e_, q in enumerate(orig[i]):
-                    Rf.append(q)
-                    for _t, v in sorted(set(on_fx.get((i, e_), []))):
-                        Rf.append(v)
-                        n_onfx += 1
-                Rf = dedup_(Rf)
-                if len(Rf) >= 3:
-                    bld[i]["ring"] = Rf if area(Rf) > 0 else Rf[::-1]
             continue
         bld[i]["ring"] = R if area(R) > 0 else R[::-1]
-    if n_onfx:
-        log.append(u"house outlines (v2.16ad): %d neighbour corner(s) put onto the side of an outline that is kept as it "
-                   u"was (within %.2f m; that side gets the point too, its shape unchanged): no wedge slit between the "
-                   u"two houses" % (n_onfx, T))
-    log.append(u"house outlines (v2.15): all houses snapped together as one plan: %d corner(s) moved onto a corner shared "
-               u"with a neighbour (within %.2f m), %d neighbour corner(s) added on a side; %d outline(s) kept as they were "
-               u"(the snap would have crossed or shrunk them; their corners were the fixed points)" % (n_snap, T, n_ins,
-                                                                                                    n_keep))
+    log.append(u"house outlines (v2.16ah): all houses joined as one plan, every corner one point shared by the outlines "
+               u"it belongs to: %d corner(s) made one with a neighbour's corner, %d moved onto a neighbour's side "
+               u"(the side stays straight), %d side(s) passing through a neighbour's corner that could not move; snap "
+               u"distance %.2f m, %.2f m between two outlines with the same floors and height (one house); %d "
+               u"outline(s) kept as surveyed and used as fixed points (%d not changed at all); %d corner(s) left "
+               u"within the snap distance of a neighbour that could not be brought together" % (
+                   st.get("merge", 0), st.get("foot", 0), st.get("bend", 0), T, TM, len(anch), n_keep,
+                   st.get("miss", 0)))
+
+
+HOUSE_MIN_W = 0.90       # v2.16af: m (ASSUMED), a part of a house outline narrower than this holds no room: its two
+#                          walls (0.29 m each) leave under half a metre, or lie in each other (v2.16ad / ae check: 47
+#                          double wall pairs: sliver outlines 0.4 to 0.8 m wide, tails and strips 0.15 to 0.8 m wide
+#                          running back along a side)
+HOUSE_THIN_M2 = 0.05     # m2: narrow parts from this size (in all, per outline) are cut off (v2.16ag: was 0.30; the
+#                          dry check of v2.16af on the survey left 8 spikes 0.00 to 0.31 m wide in an outline)
+HOUSE_OVER_M2 = 0.02     # v2.16ag: m2, two house outlines lying in each other by more than this are cut apart
+HOUSE_MITRE = 60.0       # v2.16ai: mitre limit of the test that grows a shrunk outline back with its sharp corners whole
+HOUSE_PT_M = 0.10        # v2.16ah: m, a corner a cut computes closer than this to a kept corner is not a corner
+HOUSE_MIN_M2 = 4.0       # m2: what is left of an outline under this size is no house (as the survey filter)
+WALL_LOOSE_M = 0.60      # v2.16af: m, a house wall piece shorter than this whose two ends both meet no wall is left out
+
+
+def _ring_keep(E, pts, sg_):
+    """v2.16ag: the outline of the ring E as a point list that keeps the given points exactly where E passes through
+    them (the survey's corners, the points neighbours share), plus E's own new corners; None when no ring is left.
+    v2.16ah (Desktop dump of v2.16ag: the cut of a narrow part left a computed point 4 to 6 cm from a survey corner in
+    two pieces of the 157-point block, so each got a wall piece under 10 cm whose ends met nothing): a computed corner
+    closer than HOUSE_PT_M to a kept point, or to the computed corner before it, is not a corner: the cut runs from
+    the kept point (tried first; the old rule when that outline would cross itself)"""
+    keep = [(E.project(sg_.Point(q)), (q[0], q[1])) for q in pts if E.distance(sg_.Point(q)) <= 1e-4]
+    for tol in (HOUSE_PT_M, 1e-3):
+        cand = list(keep)
+        for q in list(E.coords)[:-1]:
+            if all(math.hypot(q[0] - r_[0], q[1] - r_[1]) > tol for _t, r_ in cand):
+                cand.append((E.project(sg_.Point(q)), (q[0], q[1])))
+        R2 = []
+        for _t, q in sorted(cand, key=lambda x_: x_[0]):
+            if not R2 or math.hypot(q[0] - R2[-1][0], q[1] - R2[-1][1]) > 0.005:
+                R2.append(q)
+        while len(R2) > 3 and math.hypot(R2[0][0] - R2[-1][0], R2[0][1] - R2[-1][1]) <= 0.005:
+            R2.pop()
+        if len(R2) >= 3 and not _selfx(R2) and abs(area(R2)) >= HOUSE_MIN_M2:
+            return R2 if area(R2) > 0 else R2[::-1]
+    return None
+
+
+def _house_overlaps(bld, log):
+    """v2.16ag (dry check of v2.16af on the survey, 27 Nov 2026: 30 of the 32 double wall pairs of two houses are two
+    outlines that lie partly IN each other, 0.02 to 43.7 m2, the snap having put their sides on one line): (1) an
+    outline that crosses or touches itself is made valid (two parts joined at one corner become two houses); (2) of
+    two outlines that overlap, the lower one (same height: the smaller one) is cut back to the other's outline, so
+    the two share that line and no space is built twice. Returns the number of outlines changed"""
+    m_ = _shp()
+    if m_ is None:
+        return 0
+    sh_, sg_, so_, st_ = m_
+    n_val = n_cut = n_gone = n_split = 0
+    a_cut, where_, add_, gone_ = 0.0, [], [], set()
+
+    def polys_(G):
+        out_ = []
+        for g_ in getattr(G, "geoms", [G]):
+            out_ += polys_(g_) if hasattr(g_, "geoms") else ([g_] if g_.geom_type == "Polygon" else [])
+        return sorted([g_ for g_ in out_ if g_.area >= HOUSE_MIN_M2], key=lambda x_: -x_.area)
+    P = {}
+    for i, b in enumerate(bld):
+        R = list(b.get("ring") or [])
+        if b.get("fl", 1) < 0 or len(R) < 3:
+            continue
+        try:
+            p_ = sg_.Polygon(R)
+            if not p_.is_valid:                           # (1)
+                rings = [r_ for r_ in (_ring_keep(g_.exterior, R, sg_) for g_ in polys_(sh_.make_valid(p_))) if r_]
+                if not rings:
+                    continue
+                b["ring"] = rings[0]
+                add_ += [dict(b, ring=r_) for r_ in rings[1:]]
+                n_val += 1
+                p_ = sg_.Polygon(rings[0])
+            if p_.is_valid and p_.area > 0:
+                P[i] = p_
+        except Exception:
+            continue
+    n0 = len(bld)
+    for k_, b in enumerate(add_):
+        try:
+            P[n0 + k_] = sg_.Polygon(b["ring"])
+        except Exception:
+            pass
+    bld.extend(add_)
+    add_ = []
+    ids = sorted(P, key=lambda i: (-float(bld[i].get("h") or 0.0), -P[i].area))   # (2) the stronger ones first
+    rank = dict((i, k_) for k_, i in enumerate(ids))
+    tree = st_.STRtree([P[i] for i in ids])
+    for i in ids:
+        try:
+            over = [P[j] for j in (ids[int(x_)] for x_ in tree.query(P[i]))
+                    if j != i and j not in gone_ and rank[j] < rank[i] and P[j].intersection(P[i]).area > HOUSE_OVER_M2]
+            if not over:
+                continue
+            a0_ = P[i].area
+            parts = polys_(P[i].difference(so_.unary_union(over)))
+            pts_ = list(bld[i]["ring"]) + [q for g_ in over for q in list(g_.exterior.coords)[:-1]]
+            rings = [r_ for r_ in (_ring_keep(g_.exterior, pts_, sg_) for g_ in parts) if r_]
+            if len(where_) < 8:
+                where_.append(u"%.1f,%.1f (%.1f m2)" % (P[i].centroid.x, P[i].centroid.y,
+                                                        a0_ - sum(abs(area(r_)) for r_ in rings)))
+            a_cut += a0_ - sum(abs(area(r_)) for r_ in rings)
+            if not rings:
+                gone_.add(i)
+                n_gone += 1
+                continue
+            bld[i]["ring"] = rings[0]
+            P[i] = sg_.Polygon(rings[0])
+            add_ += [dict(bld[i], ring=r_) for r_ in rings[1:]]
+            n_split += len(rings) - 1
+            n_cut += 1
+        except Exception:
+            continue
+    if gone_ or add_:
+        bld[:] = [b for i, b in enumerate(bld) if i not in gone_] + add_
+    log.append(u"house outlines (v2.16ag): %d outline(s) that crossed or touched themselves made valid; %d outline(s) "
+               u"lying partly in a higher (same height: bigger) one cut back to its outline, %d left out (nothing "
+               u"over %.0f m2 left of them), %d more house(s) from outlines the cut left in two parts; %.1f m2 no "
+               u"longer built twice%s" % (n_val, n_cut, n_gone, HOUSE_MIN_M2, n_split, a_cut,
+                                          (u": " + u"; ".join(where_)) if where_ else u""))
+    return n_val + n_cut + n_gone
+
+
+def _house_thin(bld, log):
+    """v2.16af (Aras 27 Nov 2026 "Find fixes for all"; cause of the double walls measured on the Desktop): the parts of
+    a house outline narrower than HOUSE_MIN_W (a tail, a strip, a spike, a neck) are cut off: the outline is shrunk by
+    half that width and grown back with sharp corners, so wide parts come back exactly and narrow ones do not. The
+    survey's own corners keep their exact place (also the points neighbours share on a side); an outline that is narrow
+    everywhere is no house and is left out; an outline a neck held together becomes two houses. Returns the number
+    of outlines changed"""
+    m_ = _shp()
+    if m_ is None or HOUSE_MIN_W <= 0:
+        return 0
+    sg_ = m_[1]
+    d = HOUSE_MIN_W / 2.0
+    n_cut = n_gone = n_split = 0
+    a_cut, where_, gone_, add_ = 0.0, [], set(), []
+    for i, b in enumerate(bld):
+        R = list(b.get("ring") or [])
+        if b.get("fl", 1) < 0 or len(R) < 3:
+            continue
+        try:
+            P = sg_.Polygon(R)
+            if not P.is_valid or P.area <= 0:
+                continue
+            O = P.buffer(-d, join_style=2, mitre_limit=5.0).buffer(d, join_style=2, mitre_limit=5.0).intersection(P)
+            if P.area - O.area < HOUSE_THIN_M2:
+                continue
+            # v2.16ai (v2.16ah dry run: a 6.7 m2 wedge between two neighbours lost 0.06 m2 off its 0.62 m end in
+            # every round and the join put it back, "still changing after 4 rounds"): growing back cuts corners
+            # sharper than about 23 degrees flat. A cut shallower than the snap distance everywhere (the join takes
+            # it back) is not made when growing back with those corners left whole (HOUSE_MITRE) gives the whole
+            # outline back; deeper cuts are made as before (v2.16ai dry run: without the depth test three narrow
+            # parts v2.16ah cut stayed)
+            if P.difference(O).buffer(-HOUSE_SNAP_M / 2.0).is_empty and P.area - P.buffer(
+                    -d, join_style=2, mitre_limit=5.0).buffer(
+                    d, join_style=2, mitre_limit=HOUSE_MITRE).intersection(P).area < 0.001:
+                continue
+            parts = [g_ for g_ in getattr(O, "geoms", [O]) if g_.geom_type == "Polygon" and g_.area >= HOUSE_MIN_M2]
+            c_ = P.difference(O.buffer(0.01)).representative_point() if not O.is_empty else P.centroid
+            if not parts:
+                gone_.add(i)
+                n_gone += 1
+                a_cut += P.area
+                if len(where_) < 8:
+                    where_.append(u"%.1f,%.1f (%.1f m2, left out)" % (P.centroid.x, P.centroid.y, P.area))
+                continue
+            rings = []
+            for g_ in sorted(parts, key=lambda x_: -x_.area):
+                R2 = _ring_keep(g_.exterior, R, sg_)      # v2.16ah: one rule for every cut (no point beside a corner)
+                if R2:
+                    rings.append(R2)
+            if not rings:
+                continue
+            b["ring"] = rings[0]
+            for R2 in rings[1:]:
+                add_.append(dict(b, ring=R2))
+                n_split += 1
+            n_cut += 1
+            a_cut += P.area - sum(abs(area(R2)) for R2 in rings)
+            if len(where_) < 8:
+                where_.append(u"%.1f,%.1f (%.1f m2)" % (c_.x, c_.y, P.area - sum(abs(area(R2)) for R2 in rings)))
+        except Exception:
+            continue
+    if gone_ or add_:
+        bld[:] = [b for i, b in enumerate(bld) if i not in gone_] + add_
+    log.append(u"house outlines (v2.16af): parts narrower than %.2f m (ASSUMED; two walls leave no room there and lay in "
+               u"each other): cut off %d outline(s) (tails, strips, spikes), %d outline(s) narrow everywhere left out "
+               u"(no house), %d outline(s) a neck held together now two houses; %.1f m2 in all%s" % (
+                   HOUSE_MIN_W, n_cut, n_gone, n_split, a_cut, (u": " + u"; ".join(where_)) if where_ else u""))
+    return n_cut + n_gone
+
+
+def _sharp_n(bld):
+    """v2.16ah: the number of house outline corners sharper than 45 degrees"""
+    n_ = 0
+    for b in bld:
+        R = list(b.get("ring") or [])
+        if b.get("fl", 1) < 0 or len(R) < 3:
+            continue
+        for k_ in range(len(R)):
+            a, q, c = R[k_ - 1], R[k_], R[(k_ + 1) % len(R)]
+            l1, l2 = math.hypot(q[0] - a[0], q[1] - a[1]), math.hypot(c[0] - q[0], c[1] - q[1])
+            if l1 > 1e-6 and l2 > 1e-6 and \
+                    ((a[0] - q[0]) * (c[0] - q[0]) + (a[1] - q[1]) * (c[1] - q[1])) / (l1 * l2) > 0.7071:
+                n_ += 1
+    return n_
+
+
+def _house_check(bld, log, sharp0=None):
+    """v2.16ah (Aras 27 Nov 2026 "solve the problems on the root cause"): the house outlines as they go to the walls,
+    measured once and logged, so a fault is seen where it is made and not in the built model: outlines that cross
+    themselves, sides shorter than HOUSE_PT_M, pairs lying in each other, corners that stand closer than HOUSE_SNAP_M
+    to a neighbour without lying on it (that is where two walls stand side by side), corners under 5 degrees (the
+    outline goes out and comes back), and, for information, the corners sharper than 45 degrees with their number in
+    the survey outlines before they were joined (sharp0). Changes nothing"""
+    m_ = _shp()
+    if m_ is None:
+        return
+    sg_, st_ = m_[1], m_[3]
+    P, n_bad, n_short, n_sharp, n_spike, sh_w, sp_w = {}, 0, 0, 0, 0, [], []
+    for i, b in enumerate(bld):
+        R = list(b.get("ring") or [])
+        if b.get("fl", 1) < 0 or len(R) < 3:
+            continue
+        try:
+            p_ = sg_.Polygon(R)
+        except Exception:
+            p_ = None
+        if p_ is None or not p_.is_valid or p_.area <= 0:
+            n_bad += 1
+            continue
+        P[i] = p_
+        n = len(R)
+        for k_ in range(n):
+            a, q, c = R[k_ - 1], R[k_], R[(k_ + 1) % n]
+            l1, l2 = math.hypot(q[0] - a[0], q[1] - a[1]), math.hypot(c[0] - q[0], c[1] - q[1])
+            if l2 < HOUSE_PT_M:
+                n_short += 1
+                if len(sh_w) < 6:
+                    sh_w.append(u"%.1f,%.1f (%.2f m)" % (q[0], q[1], l2))
+            if l1 > 1e-6 and l2 > 1e-6:
+                cs_ = ((a[0] - q[0]) * (c[0] - q[0]) + (a[1] - q[1]) * (c[1] - q[1])) / (l1 * l2)
+                if cs_ > 0.7071:
+                    n_sharp += 1
+                    n_spike += 1 if cs_ > 0.9962 else 0
+                    if len(sp_w) < 6:
+                        sp_w.append(u"%.1f,%.1f (%.0f deg)" % (q[0], q[1], math.degrees(math.acos(min(1.0, cs_)))))
+    ids = sorted(P)
+    n_over, n_near, ov_w, nr_w = 0, 0, [], []
+    if ids:
+        tree = st_.STRtree([P[i] for i in ids])
+        for i in ids:
+            near_ = [ids[int(x_)] for x_ in tree.query(P[i].buffer(HOUSE_SNAP_M))]
+            for j in near_:
+                if j == i:
+                    continue
+                try:
+                    if j > i:
+                        a_ = P[i].intersection(P[j]).area
+                        if a_ > HOUSE_OVER_M2:
+                            n_over += 1
+                            if len(ov_w) < 6:
+                                c_ = P[i].intersection(P[j]).representative_point()
+                                ov_w.append(u"%.1f,%.1f (%.2f m2)" % (c_.x, c_.y, a_))
+                    E = P[j].exterior
+                    for q in bld[i]["ring"]:
+                        d_ = E.distance(sg_.Point(q))
+                        if 0.005 < d_ < HOUSE_SNAP_M and not P[j].contains(sg_.Point(q)):
+                            n_near += 1
+                            if len(nr_w) < 6:
+                                nr_w.append(u"%.1f,%.1f (%.2f m)" % (q[0], q[1], d_))
+                except Exception:
+                    continue
+    bad_ = n_bad + n_short + n_over + n_near + n_spike
+    log.append(u"%shouse outlines, final check (v2.16ah) of %d outline(s) as they go to the walls: %d crossing itself, "
+               u"%d side(s) under %.2f m%s, %d pair(s) lying in each other by more than %.2f m2%s, %d corner(s) "
+               u"closer than %.2f m to a neighbour without lying on it%s, %d corner(s) under 5 degrees (the outline "
+               u"goes out and comes back); for information %d corner(s) sharper than 45 degrees (two walls of ONE "
+               u"house meet there at a point)%s%s" % (
+                   u"FLAG " if bad_ else u"", len(P) + n_bad, n_bad, n_short, HOUSE_PT_M,
+                   (u": " + u"; ".join(sh_w)) if sh_w else u"", n_over, HOUSE_OVER_M2,
+                   (u": " + u"; ".join(ov_w)) if ov_w else u"", n_near, HOUSE_SNAP_M,
+                   (u": " + u"; ".join(nr_w)) if nr_w else u"", n_spike, n_sharp,
+                   u"" if sharp0 is None else u", %d in the survey outlines before they were joined" % sharp0,
+                   (u": " + u"; ".join(sp_w)) if sp_w else u""))
+
+
+def _wall_drop(walls, wmeta, log):
+    """v2.16af: house wall pieces that are never right are left out before they are sent: the exact twin of another
+    piece (same ends, foot and height) and a piece under WALL_LOOSE_M long whose two ends both meet no other house wall
+    (v2.16ae check: stubs 0.49 m and 0.15 m long standing alone)"""
+    n = min(len(walls), len(wmeta))
+    seen, drop = set(), set()
+    for k_ in range(n):
+        w_ = walls[k_]
+        a_ = (round(w_["begCoordinate"]["x"], 3), round(w_["begCoordinate"]["y"], 3))
+        c_ = (round(w_["endCoordinate"]["x"], 3), round(w_["endCoordinate"]["y"], 3))
+        key_ = (min(a_, c_), max(a_, c_), w_.get("zCoordinate"), w_.get("height"))
+        if key_ in seen:
+            drop.add(k_)
+        seen.add(key_)
+    n_tw, n_lo, ex_ = len(drop), 0, []
+    n_sh = 0                                              # v2.16ag (v2.16af check: a wall 0.02 m long, 5.26 m high, left
+    for k_ in range(n):                                   # by the end snap): a piece under 0.10 m long is no wall
+        w_ = walls[k_]
+        if k_ not in drop and math.hypot(w_["endCoordinate"]["x"] - w_["begCoordinate"]["x"],
+                                         w_["endCoordinate"]["y"] - w_["begCoordinate"]["y"]) < 0.10:
+            drop.add(k_)
+            n_sh += 1
+    m_ = _shp()
+    if m_ is not None and n:
+        sg_, st_ = m_[1], m_[3]
+        L_, Z_ = [], []
+        for w_ in walls[:n]:
+            a_ = (w_["begCoordinate"]["x"], w_["begCoordinate"]["y"])
+            c_ = (w_["endCoordinate"]["x"], w_["endCoordinate"]["y"])
+            L_.append(sg_.LineString([a_, c_]) if math.hypot(c_[0] - a_[0], c_[1] - a_[1]) > 1e-6 else sg_.Point(a_))
+            z_ = float(w_.get("zCoordinate") or 0.0)
+            Z_.append((z_, z_ + float(w_.get("height") or 0.0)))
+        tree_ = st_.STRtree(L_)
+        for k_ in range(n):
+            if k_ in drop or L_[k_].length >= WALL_LOOSE_M:
+                continue
+            loose_ = 0
+            for key_ in ("begCoordinate", "endCoordinate"):
+                E_ = sg_.Point(walls[k_][key_]["x"], walls[k_][key_]["y"])
+                if not any(int(j_) != k_ and int(j_) not in drop and
+                           min(Z_[k_][1], Z_[int(j_)][1]) - max(Z_[k_][0], Z_[int(j_)][0]) > 0.0 and
+                           L_[int(j_)].distance(E_) <= 0.001 for j_ in tree_.query(E_.buffer(0.001))):
+                    loose_ += 1
+            if loose_ == 2:
+                drop.add(k_)
+                n_lo += 1
+                if len(ex_) < 8:
+                    ex_.append(u"%.2f,%.2f (%.2f m)" % (walls[k_]["begCoordinate"]["x"], walls[k_]["begCoordinate"]["y"],
+                                                         L_[k_].length))
+    if drop:
+        walls[:n] = [w_ for k_, w_ in enumerate(walls[:n]) if k_ not in drop]
+        wmeta[:] = [m2_ for k_, m2_ in enumerate(wmeta) if k_ not in drop]
+    log.append(u"%shouse walls (v2.16af): %d exact twin piece(s) (same ends, foot and height), %d piece(s) under 0.10 m "
+               u"long (v2.16ag) and %d piece(s) under %.2f m long with both ends meeting no wall left out%s%s" % (
+                   u"FLAG " if n_sh + n_lo else u"", n_tw, n_sh, n_lo, WALL_LOOSE_M,
+                   (u": " + u"; ".join(ex_)) if ex_ else u"",
+                   u" (v2.16ah: the outlines should leave none of these; each is a fault of the outline there)"
+                   if n_sh + n_lo else u""))
 
 
 def _wall_open_ends(walls, wmeta, log):
@@ -7301,7 +8226,7 @@ def _cover_items(SP, survey, tin, ox, oy):
 
 COVER_GIVE_M = 0.012       # v2.16ab: m, a leftover is grown by this before it joins its neighbour (closes the 1 cm
 #                            slits the pieces' own outline clean-up leaves); never into another piece
-COVER_SLIT_M = 0.40        # v2.16ab: m (v2.16ac: was 0.25; the largest gaps left were strips 0.5 to 0.7 m wide), a bare slit up to twice this wide between two covered areas (his area beside a
+COVER_SLIT_M = 0.50        # v2.16af: was 0.40 (v2.16ad check: 271 bare strips, 91.6 m2; 81.4 m2 of them lie between two drawn areas 0.65 to 0.96 m apart, wider than twice 0.40; 0.50 takes in 76.8 m2 of them: geometric test on the v2.16ad plan); v2.16ab: m (v2.16ac: was 0.25; the largest gaps left were strips 0.5 to 0.7 m wide), a bare slit up to twice this wide between two covered areas (his area beside a
 #                            survey road, two bank zones) is covered too, by the piece beside it. ASSUMED width
 
 
@@ -7447,8 +8372,12 @@ def cover_plan(log, tin, ox, oy, SP, bld, survey):
             gc = gz(c)
             if not gs:
                 continue
-            if solid == "begum_su_merdiven":
-                bot = min(gs) - 0.40
+            if solid in TIER_KEYS or solid == "sym_amphi":   # v2.16af: the bottom of its seating rows
+                try:
+                    sp_ = _seat_plan(R, gz)
+                except Exception:
+                    sp_ = None
+                bot = sp_["bot"] if sp_ else min(gs) - 0.40
             else:
                 th, up = MP_SLABS[solid]
                 bot = min((gc if gc is not None else min(gs)) + up - th, min(gs))
@@ -7765,6 +8694,37 @@ def _cover_stations(a, b):
             if not out_ or math.hypot(q_[0] - out_[-1][0], q_[1] - out_[-1][1]) > 0.005:
                 out_.append(q_)
     return out_
+
+
+def _cover_up(p):
+    """v2.16aj: how far the built surface at p stands over the surveyed ground: COVER_UP of the hard ground cover
+    lying there (0 on green covers, on bare ground and where his slab is the surface). Desktop check of v2.16ai,
+    27 Nov 2026: a planter's bottom 4.8 cm under the top of the cover it stands on"""
+    if not COVER_ON[0] or not COVER_PIECES or COVER_IDX[0] is None:
+        return 0.0
+    try:
+        js_ = list(COVER_IDX[0].query(_shp()[1].Point(p[0], p[1]), predicate="intersects"))
+    except Exception:
+        return 0.0
+    return max([COVER_UP.get(COVER_PIECES[int(j)]["mat"], 0.0) for j in js_ if not COVER_PIECES[int(j)]["solid"]] or [0.0])
+
+
+def _stand(gz, c, ang, hx, hy):
+    """v2.16aj: (height, fall) for a level object whose support is the rectangle 2 hx x 2 hy round c, turned ang: the
+    lowest surface under it (9 points: nothing of it floats) and how far the surface falls under it; (None, 0) where
+    its middle has no ground. Points off the ground do not count"""
+    z0_ = gz(c)
+    if z0_ is None:
+        return None, 0.0
+    ca, sn = math.cos(ang), math.sin(ang)
+    zs = [z0_]
+    for a_ in (-hx, 0.0, hx):
+        for b_ in (-hy, 0.0, hy):
+            if a_ or b_:
+                z_ = gz((c[0] + a_ * ca - b_ * sn, c[1] + a_ * sn + b_ * ca))
+                if z_ is not None:
+                    zs.append(z_)
+    return min(zs), max(zs) - min(zs)
 
 
 def cover_z_many(qs, zs, hit=None):
@@ -9401,6 +10361,13 @@ def site_pieces(log):
     if N_CLIPWA[0]:
         log.append(u"masterplan (v2.11ad): %d surface piece part(s) inside the working area kept from pieces whose middle "
                    u"lies outside it (e.g. his cycle path)" % N_CLIPWA[0])
+    try:                                                  # v2.16af: his symbol layers (decks, beds, courts, the
+        for nm_, H_, mat_ in sym_plan(J, in_wa, log):     # half-round, stones); drawn over his areas, so they are
+            H_ = list(H_)                                 # added last: his slabs under them are cut (_mp_visible)
+            out.append((nm_, H_ + [H_[0]], H_))
+            PIECE_KEY[id(H_)] = mat_
+    except Exception as ex:
+        log.append(u"FLAG symbol layers (v2.16af) not read (%s): none of them built" % ex)
     out = _mp_visible(out, log)                            # v2.11ab
     log.append(u"masterplan layer audit (master.svg via MasterplanBase; masterplan2.svg in the next pass): " + u"; ".join(
         u"%s %d piece(s), %d taken: %s" % (k, v[0], v[1], v[2] or (u"built: slabs" if v[1] else
@@ -9468,14 +10435,840 @@ def _mp_visible(out, log):
     return new
 
 
+# ================================================================ v2.16af: seating rows + Stair-tool stairs
+# Aras 27 Nov 2026 06:45-06:58 UTC: "draw seating 90x45 seating spaces, on middle and in most right and most left ...
+# give 30x15cm stairs and on the case of width of the stair draw it properly"; his sketch: one long strip, rows between
+# stairs at both ends and in the middle; "It should go from inside the water (like bottom of the river bed to the top
+# of the river bed)"; "Seating row should be slabs no worries"; decision card "Both places": his river steps
+# (begum_su_merdiven) AND his half-round (alanlar/aras_alan), the half-round dug down to the river-bed level beside it.
+# Rows are slabs SEAT_D deep and SEAT_H high, following the piece's low edge (the river side; the stage edge in the
+# half-round), rising until the top level (the bank top; the ground round the half-round); what is left of the piece
+# behind the top row is a terrace at the top level. Stairs are Archicad Stair-tool stairs, 3 steps per row.
+# Replaces the v1.19 tiers (1.20 x 0.48 m, straight bands, no stairs).
+SEAT_D, SEAT_H = 0.90, 0.45
+SEAT_STEP_D, SEAT_STEP_H = 0.30, 0.15
+SEAT_STAIR_W = 1.50        # m: the width of each stair: ASSUMED (his drawing gives none)
+SEAT_UNDER_M = 0.40        # m: every row is solid down to this far under the lowest level (as the v1.19 tiers were)
+SEAT_SEG_MIN_M = 6.0       # m: along a sloping bank the rows step down one row height at a time, in stretches of at least this
+SEAT_RIVER = [None]        # his river outline as one shapely geometry (the low side of a river step piece faces it)
+SEAT_GZ = [None]           # the built ground: the river bed inside his river outline, the surveyed ground elsewhere
+SEAT_LOW = {}              # (x, y of a piece's middle, 0.1 m) -> its stage ring (the half-round): the rows rise from it
+SEAT_PLANS = {}            # piece key -> its plan (rows, terrace, stairs), made once and used by the ground and the slabs
+SEAT_N = [0, 0, 0, 0, 0]   # pieces, row slabs, stairs, pieces built flat, pieces built the v1.19 way
+
+
+def _seat_ground(tin, ox, oy, rects):
+    """v2.16af: SEAT_GZ = the ground the rows meet: the river bed (_bed_fn: thalweg at the centreline, up to the surveyed
+    ground at his outline) inside his river outline, the surveyed ground elsewhere"""
+    gz = lambda p: tin.z(p[0] - ox, p[1] - oy)
+    SEAT_GZ[0] = gz
+    SEAT_PLANS.clear()
+    rings = SEL.get("river") or []
+    SEAT_RIVER[0] = None
+    S_ = _shp()
+    if S_ and rings:
+        try:
+            SEAT_RIVER[0] = S_[2].unary_union([S_[1].Polygon(R).buffer(0) for R in rings if len(R) >= 3])
+        except Exception:
+            SEAT_RIVER[0] = None
+    if SITE_POLY:
+        rings = [R for R in (clean(_clip_convex([tuple(q) for q in R], SITE_POLY)) for R in rings) if len(R) >= 3]
+    try:
+        with open(os.path.join(BERGAMA_ROOT, "cached", "bergama_sections", "cuts.json"), encoding="utf-8") as f:
+            CJ_ = json.load(f).get("cuts", {})
+    except Exception:
+        CJ_ = {}
+    bed = _bed_fn(rects, CJ_, rings, gz, []) if rings else None
+    if bed is None:
+        return
+    pips = [_pip_fast(R) for R in rings]
+    SEAT_GZ[0] = lambda p: bed(p) if any(f_(p) for f_ in pips) else gz(p)
+
+
+def _seat_key(H):
+    return (round(sum(q[0] for q in H) / len(H), 1), round(sum(q[1] for q in H) / len(H), 1), len(H))
+
+
+def _seat_bed_near(c, gz):
+    """v2.16af: the river-bed level beside c: the lowest ground on the straight line from his river outline's nearest
+    point 40 m on into the river"""
+    if not RIVER_PTS:
+        return None
+    r = min(RIVER_PTS, key=lambda q: (q[0] - c[0]) ** 2 + (q[1] - c[1]) ** 2)
+    d = math.hypot(r[0] - c[0], r[1] - c[1])
+    if d < 0.01:
+        return gz(r)
+    u = ((r[0] - c[0]) / d, (r[1] - c[1]) / d)
+    zs = [gz((r[0] + u[0] * t, r[1] + u[1] * t)) for t in range(0, 41)]
+    zs = [z for z in zs if z is not None]
+    return min(zs) if zs else None
+
+
+def _seat_rings(g, sg_, ang=0.0):
+    """v2.16af: the polygons of a shapely geometry as plain rings (survey m): a polygon with a hole is cut through
+    the hole, so every ring is one outline (a slab piece has no hole here)"""
+    parts = [p for p in getattr(g, "geoms", [g]) if p.geom_type == "Polygon" and p.area > 0.05]
+    ca, sa = math.cos(ang + math.pi / 2.0), math.sin(ang + math.pi / 2.0)
+    for _try in range(12):
+        hs_ = [h for p in parts for h in p.interiors]
+        if not hs_:
+            break
+        hp_ = sg_.Polygon(hs_[0]).representative_point()
+        half = sg_.Polygon([(hp_.x - 900 * ca - 900 * sa, hp_.y - 900 * sa + 900 * ca),
+                            (hp_.x + 900 * ca - 900 * sa, hp_.y + 900 * sa + 900 * ca),
+                            (hp_.x + 900 * ca, hp_.y + 900 * sa), (hp_.x - 900 * ca, hp_.y - 900 * sa)])
+        nx_ = []
+        for p in parts:
+            for q in (p.intersection(half), p.difference(half)):
+                nx_ += [x for x in getattr(q, "geoms", [q]) if x.geom_type == "Polygon" and x.area > 0.05]
+        parts = nx_
+    out = []
+    for p in parts:
+        if p.interiors:
+            continue
+        H = clean([tuple(q[:2]) for q in list(p.simplify(0.02).exterior.coords)[:-1]])
+        if len(H) >= 3 and abs(area(H)) > 0.05:
+            out.append(H)
+    return out
+
+
+def _seat_low_line(G, smp, zs, sg_):
+    """v2.16af: the low edge of a river step piece as a line: the longest run of outline points on its river side
+    (the points deepest inside / nearest to his river outline; by their ground height where the piece does not reach
+    his river), or None"""
+    n_s = len(smp)
+    RV = SEAT_RIVER[0]
+    val = None
+    if RV is not None and not RV.is_empty and RV.distance(G) < 1.0:
+        bd = RV.boundary
+        val = [(-bd.distance(p) if RV.contains(p) else bd.distance(p)) for p in smp]
+    if val is None or max(val) - min(val) < 1.5:
+        zv = [z for z in zs if z is not None]
+        val = [z if z is not None else max(zv) for z in zs]
+    lim = min(val) + 0.35 * (max(val) - min(val))
+    low = [v <= lim for v in val]
+    if all(low) or not any(low):
+        return None
+    best, i = (0, 0), 0
+    while i < 2 * n_s:                                    # the outline is a ring: runs may pass its first point
+        if low[i % n_s] and not low[(i - 1) % n_s]:
+            j = i
+            while low[(j + 1) % n_s] and j - i < n_s - 1:
+                j += 1
+            if j - i + 1 > best[0]:
+                best = (j - i + 1, i)
+            i = j + 1
+        else:
+            i += 1
+    if best[0] < 3:
+        return None
+    return sg_.LineString([(smp[(best[1] + t) % n_s].x, smp[(best[1] + t) % n_s].y) for t in range(best[0])])
+
+
+def _seat_cut(G, Lc, s, sg_):
+    """v2.16af: (the part of G before station s of the line Lc, the part after it), cut square to the line there"""
+    p0, pa, pb = Lc.interpolate(s), Lc.interpolate(max(0.0, s - 0.5)), Lc.interpolate(min(Lc.length, s + 0.5))
+    tl = math.hypot(pb.x - pa.x, pb.y - pa.y) or 1e-9
+    t = ((pb.x - pa.x) / tl, (pb.y - pa.y) / tl)
+    nr = (-t[1], t[0])
+    half = sg_.Polygon([(p0.x - nr[0] * 900, p0.y - nr[1] * 900), (p0.x + nr[0] * 900, p0.y + nr[1] * 900),
+                        (p0.x + nr[0] * 900 - t[0] * 1800, p0.y + nr[1] * 900 - t[1] * 1800),
+                        (p0.x - nr[0] * 900 - t[0] * 1800, p0.y - nr[1] * 900 - t[1] * 1800)])
+    return G.intersection(half), G.difference(half)
+
+
+def _seat_plan(H, gz0):
+    """v2.16af: the seating of one piece (ring H, survey m), or None when it cannot be planned (no shapely, no ground):
+    dict(bot, pieces=[(ring, top level)], stairs=[(foot, head, base level, rises)] centre lines, rows, flat, why).
+    A stretch of the piece has n rises of SEAT_H between its lowest level (base) and its top level (hi = base + n *
+    SEAT_H): n - 1 rows and the terrace behind them; all levels lie on one grid of SEAT_H, so the rows of two stretches
+    along a sloping bank meet one row height apart"""
+    k = _seat_key(H)
+    if k in SEAT_PLANS:
+        return SEAT_PLANS[k]
+    SEAT_PLANS[k] = None
+    S_ = _shp()
+    if not S_ or len(H) < 3:
+        return None
+    sg_, so_ = S_[1], S_[2]
+    gz = SEAT_GZ[0] or gz0
+    G = sg_.Polygon(H).buffer(0)
+    if G.geom_type != "Polygon":
+        G = max(getattr(G, "geoms", [G]), key=lambda x: x.area)
+    if G.is_empty or G.area < 1.0:
+        return None
+    B = G.exterior
+    n_s = max(12, int(B.length / 1.0))
+    smp = [B.interpolate(i * B.length / n_s) for i in range(n_s)]
+    zs = [gz((p.x, p.y)) for p in smp]
+    zv = [z for z in zs if z is not None]
+    if len(zv) < 8:
+        return None
+    med = lambda v: sorted(v)[len(v) // 2]
+    q_ = lambda z: int(round(z / SEAT_H))                 # a level on the grid of row heights
+    w = SEAT_STAIR_W
+    stage = SEAT_LOW.get(k[:2])
+    plat = extra = ann = None
+    segs = []                                             # (polygon, hi index, n rises)
+    if stage:                                             # the half-round: rows round the stage, dug into the ground
+        st_ = sg_.Polygon(stage).buffer(0).convex_hull    # his stage picture has a ragged edge: read as a half disc
+        mr = [tuple(q[:2]) for q in st_.minimum_rotated_rectangle.exterior.coords][:4]
+        sl = [math.hypot(mr[(i + 1) % 4][0] - mr[i][0], mr[(i + 1) % 4][1] - mr[i][1]) for i in range(4)]
+        sd = sorted(range(4), key=lambda i: -sl[i])[:2]   # its two long box sides: the straight side lies on one of them
+        on_ = lambda i: st_.exterior.intersection(sg_.LineString([mr[i], mr[(i + 1) % 4]]).buffer(0.5)).length
+        e = max(sd, key=on_)
+        a_, b_ = mr[e], mr[(e + 1) % 4]
+        t = ((b_[0] - a_[0]) / (sl[e] or 1e-9), (b_[1] - a_[1]) / (sl[e] or 1e-9))
+        nr = (-t[1], t[0])
+        if (st_.centroid.x - a_[0]) * nr[0] + (st_.centroid.y - a_[1]) * nr[1] < 0:
+            nr = (t[1], -t[0])
+        m0 = ((a_[0] + b_[0]) / 2.0, (a_[1] + b_[1]) / 2.0)   # the middle of the straight side
+        r0 = min(sl[e] / 2.0, min(sl))                    # the stage's radius: its depth, at most half its straight side
+        arc = lambda r: [(m0[0] + r * (math.cos(math.pi * i / 60.0) * t[0] + math.sin(math.pi * i / 60.0) * nr[0]),
+                          m0[1] + r * (math.cos(math.pi * i / 60.0) * t[1] + math.sin(math.pi * i / 60.0) * nr[1]))
+                         for i in range(61)]
+        ann = lambda ra, rb: sg_.Polygon(arc(rb) + arc(ra)[::-1])
+        Lg = sg_.Polygon(arc(r0))
+        Lc = sg_.LineString(arc(r0))
+        half = sg_.Polygon([(m0[0] - t[0] * 900, m0[1] - t[1] * 900), (m0[0] + t[0] * 900, m0[1] + t[1] * 900),
+                            (m0[0] + t[0] * 900 + nr[0] * 900, m0[1] + t[1] * 900 + nr[1] * 900),
+                            (m0[0] - t[0] * 900 + nr[0] * 900, m0[1] - t[1] * 900 + nr[1] * 900)])
+        plat = Lg.intersection(G)
+        extra = G.difference(half)                        # behind the stage's straight side: ground level
+        rest = G.difference(Lg).intersection(half)
+        hi = med(zv)
+        bed = _seat_bed_near((G.centroid.x, G.centroid.y), gz)
+        lo = bed if bed is not None else hi
+        dfan = None                                       # the fan's depth at the middle of the stage edge
+        hit = sg_.LineString([(m0[0] + nr[0] * r0, m0[1] + nr[1] * r0),
+                              (m0[0] + nr[0] * 300.0, m0[1] + nr[1] * 300.0)]).intersection(B)
+        if not hit.is_empty:
+            dfan = min(math.hypot(q[0] - m0[0], q[1] - m0[1]) - r0 for g_ in getattr(hit, "geoms", [hit]) for q in g_.coords)
+        n = int((q_(hi) * SEAT_H - lo) / SEAT_H + 1e-6)   # v2.16ag: never under the bed level beside it (v2.16af
+        if dfan is not None:                              # rounded: its lowest level lay 0.23 m under the bed)
+            n = min(n, int(dfan / SEAT_D + 1e-6))
+        segs = [(rest, q_(hi), max(0, n))]
+        low_all = lo
+        why = u"dug down from the ground at %.2f m to the river-bed level beside it, %.2f m: %d rise(s) of %.2f m" % (
+            hi, lo, max(0, n), SEAT_H)
+    else:                                                 # a river step piece: rows from its low (river) edge up
+        Lc = _seat_low_line(G, smp, zs, sg_)
+        Lg = Lc
+        rest = G
+        low_all = min(zv)
+        if Lc is None or Lc.length < 2.0:
+            P = dict(bot=low_all - SEAT_UNDER_M, pieces=[(R_, med(zv)) for R_ in _seat_rings(G, sg_)], stairs=[], rows=0,
+                     flat=True, why=u"no river side found on its outline: built flat at %.2f m" % med(zv))
+            SEAT_PLANS[k] = P
+            return P
+        st_n = max(2, int(Lc.length / 2.0))
+        sta = []                                          # per station: (s, low level, top level, depth of the piece)
+        for i in range(st_n + 1):
+            s = Lc.length * i / st_n
+            p0, pa, pb = Lc.interpolate(s), Lc.interpolate(max(0.0, s - 0.5)), Lc.interpolate(min(Lc.length, s + 0.5))
+            tl = math.hypot(pb.x - pa.x, pb.y - pa.y) or 1e-9
+            nr = (-(pb.y - pa.y) / tl, (pb.x - pa.x) / tl)
+            if not G.buffer(0.05).contains(sg_.Point(p0.x + nr[0] * 0.6, p0.y + nr[1] * 0.6)):
+                nr = (-nr[0], -nr[1])
+            hit = sg_.LineString([(p0.x + nr[0] * 0.3, p0.y + nr[1] * 0.3), (p0.x + nr[0] * 300, p0.y + nr[1] * 300)]).intersection(B)
+            if hit.is_empty:
+                continue
+            far = min((q for g_ in getattr(hit, "geoms", [hit]) for q in g_.coords),
+                      key=lambda q: math.hypot(q[0] - p0.x, q[1] - p0.y))
+            zl, zh = gz((p0.x, p0.y)), gz((far[0], far[1]))
+            if zl is None or zh is None:
+                continue
+            sta.append((s, zl, zh, math.hypot(far[0] - p0.x, far[1] - p0.y)))
+        if len(sta) < 2:
+            return None
+        ih = [q_(z[2]) for z in sta]
+        ih = [sorted(ih[max(0, i - 2):i + 3])[len(ih[max(0, i - 2):i + 3]) // 2] for i in range(len(ih))]   # no single jumps
+        runs = []                                         # [first station index, last, hi index]
+        for i, v in enumerate(ih):
+            if runs and runs[-1][2] == v:
+                runs[-1][1] = i
+            else:
+                runs.append([i, i, v])
+        j = 0
+        while len(runs) > 1 and j < len(runs):            # a stretch shorter than SEAT_SEG_MIN_M joins a neighbour
+            a, b, v = runs[j]
+            if sta[b][0] - sta[a][0] + Lc.length / st_n < SEAT_SEG_MIN_M:
+                if j > 0:
+                    runs[j - 1][1] = b
+                else:
+                    runs[1][0] = a
+                runs.pop(j)
+                j = 0
+            else:
+                j += 1
+        st_s = [w / 2.0 + 0.3, Lc.length / 2.0, Lc.length - w / 2.0 - 0.3] if Lc.length >= 3.0 * (w + 1.0) else \
+            ([Lc.length / 2.0] if Lc.length >= w + 0.6 else [])
+        left = G
+        for j, (a, b, v) in enumerate(runs):
+            lo_ = min(z[1] for z in sta[a:b + 1])
+            dep = med([z[3] for z in sta[a:b + 1]])
+            n = max(0, min(v - q_(lo_), int(dep / SEAT_D + 1e-6)))
+            if j == len(runs) - 1:
+                gi = left
+            else:
+                sc = (sta[b][0] + sta[runs[j + 1][0]][0]) / 2.0
+                for ss in st_s:                           # a cut keeps clear of a stair
+                    if abs(sc - ss) < w / 2.0 + 0.5:
+                        sc = ss + (w / 2.0 + 0.5) * (1.0 if sc >= ss else -1.0)
+                gi, left = _seat_cut(left, Lc, sc, sg_)
+            if not gi.is_empty:
+                segs.append((gi, v, n))
+        why = u"from the river bed up to the bank top (%.2f to %.2f m along it), in %d stretch(es) of %s rise(s) of %.2f m" % (
+            min(z[2] for z in sta), max(z[2] for z in sta), len(segs),
+            u"/".join(u"%d" % n_ for _g, _v, n_ in segs), SEAT_H)
+    # the stairs: both ends and the middle of the low edge, each running up across the rows of its stretch
+    st_s = [w / 2.0 + 0.3, Lc.length / 2.0, Lc.length - w / 2.0 - 0.3] if Lc.length >= 3.0 * (w + 1.0) else \
+        ([Lc.length / 2.0] if Lc.length >= w + 0.6 else [])
+    zones, stairs = [], []
+    for s in st_s:
+        p0, pa, pb = Lc.interpolate(s), Lc.interpolate(max(0.0, s - 0.5)), Lc.interpolate(min(Lc.length, s + 0.5))
+        tl = math.hypot(pb.x - pa.x, pb.y - pa.y) or 1e-9
+        t = ((pb.x - pa.x) / tl, (pb.y - pa.y) / tl)
+        nr = (-t[1], t[0])
+        pin = sg_.Point(p0.x + nr[0] * 0.6, p0.y + nr[1] * 0.6)
+        if not rest.buffer(0.05).contains(pin):
+            nr = (t[1], -t[0])
+            pin = sg_.Point(p0.x + nr[0] * 0.6, p0.y + nr[1] * 0.6)
+        sg_i = next((i for i, (gi, _v, _n) in enumerate(segs) if gi.buffer(0.05).contains(pin)), None)
+        if sg_i is None or segs[sg_i][2] < 1:
+            continue
+        Ls = segs[sg_i][2] * 3 * SEAT_STEP_D
+        zones.append((sg_i, sg_.Polygon([(p0.x - t[0] * w / 2, p0.y - t[1] * w / 2), (p0.x + t[0] * w / 2, p0.y + t[1] * w / 2),
+                                         (p0.x + t[0] * w / 2 + nr[0] * Ls, p0.y + t[1] * w / 2 + nr[1] * Ls),
+                                         (p0.x - t[0] * w / 2 + nr[0] * Ls, p0.y - t[1] * w / 2 + nr[1] * Ls)]).buffer(0)))
+        stairs.append(((p0.x, p0.y), (p0.x + nr[0] * Ls, p0.y + nr[1] * Ls),
+                       (segs[sg_i][1] - segs[sg_i][2]) * SEAT_H, segs[sg_i][2]))
+    Z = so_.unary_union([z for _i, z in zones]) if zones else None
+    pieces, n_row = [], 0
+    ang = math.atan2(Lc.coords[-1][1] - Lc.coords[0][1], Lc.coords[-1][0] - Lc.coords[0][0])
+    n_max = max(n_ for _g, _v, n_ in segs) if segs else 0
+    bands, b0 = [], (Lg.buffer(0.001, quad_segs=6) if ann is None else None)
+    for kk in range(max(0, n_max - 1)):                   # row kk: SEAT_D deep, its top (kk + 1) rises over its base
+        if ann is not None:
+            bands.append(ann(r0 + SEAT_D * kk, r0 + SEAT_D * (kk + 1)))
+        else:
+            b1 = Lg.buffer(SEAT_D * (kk + 1), quad_segs=6)
+            bands.append(b1.difference(b0))
+            b0 = b1
+    base_min = None
+    for gi, v, n in segs:
+        hi_, base = v * SEAT_H, (v - n) * SEAT_H
+        base_min = base if base_min is None else min(base_min, base)
+        used = None
+        for kk in range(n - 1):
+            band = gi.intersection(bands[kk])
+            used = band if used is None else used.union(band)
+            if Z is not None:
+                band = band.difference(Z)
+            rr = _seat_rings(band, sg_, ang)
+            n_row += len(rr)
+            pieces += [(R_, base + (kk + 1) * SEAT_H) for R_ in rr]
+        ter = gi if used is None else gi.difference(used.buffer(0.001))
+        if Z is not None:
+            ter = ter.difference(Z)
+        pieces += [(R_, hi_) for R_ in _seat_rings(ter, sg_, ang)]
+    if extra is not None and not extra.is_empty:
+        pieces += [(R_, segs[0][1] * SEAT_H) for R_ in _seat_rings(extra, sg_, ang)]
+    if plat is not None and not plat.is_empty:            # the stage: the lowest level, with the stair feet on it
+        pieces += [(R_, (segs[0][1] - segs[0][2]) * SEAT_H) for R_ in _seat_rings(
+            plat if Z is None else plat.union(Z.intersection(rest)), sg_, ang)]
+    else:
+        for sg_i, z in zones:                             # under each stair its stretch's lowest level runs on
+            pieces += [(R_, (segs[sg_i][1] - segs[sg_i][2]) * SEAT_H) for R_ in _seat_rings(z.intersection(G), sg_, ang)]
+    P = dict(bot=min(low_all, base_min if base_min is not None else low_all) - SEAT_UNDER_M, pieces=pieces, stairs=stairs,
+             rows=n_row, flat=n_max < 1, why=why)
+    SEAT_PLANS[k] = P
+    return P
+
+
+# ================================================================ v2.16af: his symbol layers (alanlar/*, agaclar-2/tas-2)
+# Aras 27 Nov 2026 06:32-06:39 UTC: "For benches and umbrellas those are symbolic there are not one umbrella there are a
+# lot of benches and umbrellas underneath there so do it to real life sizes, bike racks, market stalls, sport courts,
+# seating steps (do it with stair tool), people we need just in sections and elevations in plan they are not needed,
+# stones these all can be archicad objects"; "Use objects for furnishing if it is not available in archicad object
+# library say so i can provide you the 3D object"; "Decks as slated slabs"; 06:39 "Yes library objects in real sizes".
+# These layers are top-view pictures (thousands of small coloured rings, the same picture pasted at several sizes: one
+# umbrella is 8.4 m across, one bench fills 3.3 x 4.3 m), so no ring is built as drawn: the rings of one picture are
+# grouped (closer than SYM_JOIN_M), the group is read by its layer and its ring count (the same picture has the same
+# count at every size; table below, read from masterplan_Latest.svg on 27 Nov 2026), and what it stands for is built
+# at real size inside the picture's footprint.
+SYM_ON = True
+SYM_JOIN_M = 0.5           # m: rings of one picture lie closer than this (two pictures are farther apart)
+SYM_STONE_JOIN_M = 0.05    # m: his stones touch each other; each stone is its own group
+SYMP_LAYERS = ("aras_alan", "bisiklet_parki", "bank", "pazar", "dinlenme", "sport_courts", "cocuk_park",
+              "workshop_alan", "begum_alan", "tas-2")
+# his layer -> ((ring count of one picture, what it is, people drawn in it), ...); DERIVED from looking at each picture
+SYM_TYPES = {
+    "aras_alan": ((329, "amphi", 0), (332, "bed", 0), (633, "bed", 0), (692, "bed", 0), (865, "bed", 0), (990, "bed", 0),
+                  (2687, "deck", 0)),
+    "bisiklet_parki": ((507, "bike", 0), (1014, "bike", 0)),
+    "bank": ((14, "bench", 1), (30, "bench", 2), (32, "bench", 0), (40, "bench", 1), (44, "bench", 0), (52, "table", 0),
+             (56, "table", 0), (63, "bench", 0), (73, "bench", 0), (97, "table", 0), (111, "table", 0), (121, "table", 0),
+             (153, "table", 0), (185, "planter", 0), (224, "planter", 0), (274, "lounger", 1), (289, "umbrella", 0),
+             (304, "planter", 0), (332, "lounger", 2), (1348, "deck", 0), (3794, "deck", 0)),
+    "pazar": ((87, "person", 2), (112, "person", 3), (133, "stall", 1), (199, "stall", 2), (224, "stall", 2),
+              (251, "stall", 1), (266, "kiosk", 0), (283, "truck", 0), (327, "stall", 1), (381, "shrub", 0),
+              (387, "stall_umb", 1), (406, "stall", 2), (441, "stall", 0), (454, "stall", 3), (465, "stall_umb", 0),
+              (658, "truck", 0), (2299, "stall_umb", 0), (5441, "stall_umb", 0)),
+    "dinlenme": ((93, "lounger", 2), (113, "lounger", 1)),
+    "sport_courts": ((363, "court", 0), (366, "court", 0)),
+    "cocuk_park": ((74, "person", 1), (78, "person", 1), (160, "none", 0), (209, "person", 1), (430, "person", 1),
+                   (1460, "person", 3)),
+    "workshop_alan": ((48, "worktable", 0), (67, "person", 2), (103, "person", 1), (116, "worktable", 1),
+                      (151, "worktable", 0), (197, "worktable", 2), (255, "worktable", 1), (259, "worktable", 2)),
+    "begum_alan": ((85, "planter", 0), (137, "person", 1), (141, "person", 1), (153, "person", 1), (176, "bed", 0),
+                   (179, "planter", 1), (191, "shrub", 1), (230, "person", 1), (254, "none", 0), (320, "shrub", 1),
+                   (327, "shrub", 1), (345, "shrub", 1), (438, "shrub", 1), (449, "shrub", 1), (1385, "bed", 2)),
+    "tas-2": ()}
+SYM_DEFAULT = {"aras_alan": "bed", "bisiklet_parki": "bike", "bank": "bench", "pazar": "stall", "dinlenme": "lounger",
+               "sport_courts": "court", "cocuk_park": "person", "workshop_alan": "worktable", "begum_alan": "shrub",
+               "tas-2": "stone"}     # a picture whose ring count is not in the table (a new or joined picture)
+# what it is -> (library kinds placed at each spot, spacing along the picture's long side, spacing across it: m,
+# ASSUMED: the object's own size + room to walk)
+SYM_KIND = {"bench": (("bench",), 2.6, 2.6), "table": (("picnic",), 4.0, 4.0), "umbrella": (("parasol", "bench"), 4.0, 4.0),
+            "planter": (("planter",), 3.0, 3.0), "lounger": (("lounger",), 3.5, 3.5), "bike": (("bikerack",), 3.2, 2.5),
+            "stall": (("stall",), 4.0, 4.0), "stall_umb": (("stall", "parasol"), 5.0, 5.0), "kiosk": (("kiosk",), 0, 0),
+            "truck": (("truck",), 0, 0), "worktable": (("table",), 3.0, 3.0), "shrub": (("shrub",), 2.0, 2.0),
+            "bed": (("shrub",), 3.0, 3.0), "court": (("court",), 0, 0), "person": ((), 0, 0)}
+# library kind -> (the Archicad library part's name, where the middle of its box lies from its own origin: x, y in m);
+# names and boxes MEASURED in this Archicad 30 library on the Desktop, 27 Nov 2026 (logs\library_parts_2026-11-27.txt:
+# each part placed once without a size); an offset of 0, 0 where the origin was not measured (ASSUMED: at its middle)
+# v2.16aj: offsets of Bicycle Holder 01, Metal Garden Table and Pick-up MEASURED in the built v2.16ai proposal file
+# (logs\check_v2_16ai_slope_2026-11-27.txt, table C); Table with Benches measured 0, 0
+SYM_LIB = {"bench": (u"Outdoor Bench", (0.90, -0.325)), "picnic": (u"Table with Benches", (0.0, 0.0)),
+           "lounger": (u"Deck Lounger 01", (0.30, 1.00)), "bikerack": (u"Bicycle Holder 01", (0.0, -0.07)),
+           "table": (u"Metal Garden Table", (0.27, 0.27))}
+SYM_OFF = {u"Pick-up": (1.96, 0.0)}   # v2.16aj: the same for a part found by its name (SYM_MISSING), measured there too
+# v2.16aj: library part -> its own size along its x and y, m (same measure: the placed part's size and its plan box;
+# Table with Benches and Bicycle Holder 01 CALCULATED from the plan box and the angle, 3.45 x 3.15 at 152.7 deg and
+# 2.60 x 0.28 at 0.7 deg): what the part stands on (_stand)
+SYM_BOX = {u"Outdoor Bench": (1.8, 0.65), u"Table with Benches": (2.80, 2.10), u"Deck Lounger 01": (0.6, 2.0),
+           u"Bicycle Holder 01": (2.6, 0.25), u"Metal Garden Table": (0.55, 0.54), u"Pick-up": (5.82, 2.21)}
+SYM_FALL_M = 0.20          # m: the log counts the objects whose uphill side sits deeper than this in the ground
+#                            (v2.16aj left them out; v2.16ak, Aras 27 Nov 18:24 UTC "Keep all, set into the ground":
+#                            none is left out. Desktop slope check of v2.16ai: under 25 of 52 stalls the ground falls
+#                            more, up to 1.43 m)
+SYM_COURTS = ((0.0, u"Basketball Court"),)   # his court's long side from ... m -> the part; Desktop 27 Nov 2026: the Basketball Court follows the size it is given (its lines; its box adds SYM_COURT_RUN on every side); the Volleyball Court and the Soccer Field do not
+SYM_COURT_RUN = 2.0        # m: the Basketball Court part's own run-off round its lines (measured: lines 25.1 x 13.6 -> box 29.10 x 17.60)
+SYM_PEOPLE = (u"Man Waiting", u"Woman Walking", u"Man Walking", u"Woman Waiting", u"Man Hands in Pockets",
+              u"Woman Hurrying", u"Woman Waving")         # standing adults (the library has no child figure)
+# NOT in this library (each tried by name and by placing it): a parasol with a 3D body ("Parasol" is flat, "Sun Shade"
+# is refused), a market stall, a kiosk, a planter, a rock, a child, a pickup truck. Aras was told 27 Nov 06:46 + 06:55
+# UTC and asks his colleagues for them; until a part of that kind is loaded these kinds are left out and logged
+SYM_MISSING = {"parasol": ("parasol 3d", "umbrella 3d", "garden umbrella", "market umbrella"),
+               "stall": ("market stall", "market stand"), "kiosk": ("kiosk",), "planter": ("planter", "flower box"),
+               "truck": ("pickup", "pick-up")}             # words looked for in the loaded part names (his own objects)
+SYMLIB = {}                # library kind -> (part name, offset) found in this Archicad
+# v2.16ai: Aras's own objects (kit/objects on main; the Desktop keeps them in <Project Files>\objects). objects.json
+# lists them: a native .gsm goes into the embedded library as it is, a mesh object as GDL text with its texture picture
+OBJ_DIR = os.path.join(BERGAMA_ROOT, "objects")
+OBJ_SIZE = {}              # part name -> (length along its x, width along its y, half width of its foot or 0): m, from objects.json
+OBJ_KIND = {}              # v2.16al: symbol kind -> part name, as objects.json says ("kind")
+SYM_GAP_M = 0.6            # m: room to walk between two of his objects (ASSUMED)
+SYM_ROW = ("stall_umb",)   # pictures whose kinds stand side by side across the row (a stall with a parasol beside it), not on one spot
+SYM_BENCH_D = 0.65         # m: depth of the Outdoor Bench (measured 27 Nov 2026, SYM_LIB): a bench under a parasol stands beside its foot
+SYM_PLAN = []              # the pictures of this run: dict(layer, n, kind, people, c, L, W, ang, U)
+SYM_DECK_T = 0.15          # m: a timber deck: one slab, boards as its surface (ASSUMED thickness)
+SYM_BED_H = 0.40           # m: a planting bed stands this high (ASSUMED)
+SYM_COURT_T = 0.10         # m: a sport court surface (ASSUMED)
+SYM_STONE_MIN_M2 = 0.3     # m2: a stone of his tas-2 layer from this size is built (as his river stones are)
+SYM_N = {}                 # counts of this run, for the log
+
+
+def _sym_groups(items, join):
+    """v2.16af: the filled rings of one symbol layer -> one dict per drawn picture (rings closer than join m):
+    n rings, middle c, long side L, short side W and direction ang of its tightest box, U the painted area, big its
+    largest ring"""
+    S_ = _shp()
+    if not S_:
+        return []
+    sg_, so_, st_ = S_[1], S_[2], S_[3]
+    P = []
+    for it in items:
+        if it[0] != "r" or len(it[4]) < 3:
+            continue
+        try:
+            g = sg_.Polygon([tuple(q[:2]) for q in it[4]])
+            g = g if g.is_valid else g.buffer(0)
+        except Exception:
+            continue
+        if not g.is_empty and g.area > 0:
+            P.append(g)
+    if not P:
+        return []
+    tree = st_.STRtree(P)
+    par = list(range(len(P)))
+
+    def fd(i):
+        while par[i] != i:
+            par[i] = par[par[i]]
+            i = par[i]
+        return i
+    a_, b_ = tree.query(P, predicate="dwithin", distance=join)
+    for i, j in zip(a_.tolist(), b_.tolist()):
+        if i < j:
+            ri, rj = fd(i), fd(j)
+            if ri != rj:
+                par[ri] = rj
+    G = {}
+    for i in range(len(P)):
+        G.setdefault(fd(i), []).append(i)
+    out = []
+    for ix in G.values():
+        U = so_.unary_union([P[i] for i in ix])
+        if U.is_empty or U.area < 0.3:
+            continue
+        R = U.minimum_rotated_rectangle
+        xs = list(R.exterior.coords)
+        e = sorted(((math.hypot(xs[k + 1][0] - xs[k][0], xs[k + 1][1] - xs[k][1]),
+                     math.atan2(xs[k + 1][1] - xs[k][1], xs[k + 1][0] - xs[k][0])) for k in range(4)), reverse=True)
+        out.append(dict(n=len(ix), c=(R.centroid.x, R.centroid.y), L=e[0][0], W=e[-1][0], ang=e[0][1], U=U,
+                        big=max((P[i] for i in ix), key=lambda x: x.area)))
+    out.sort(key=lambda d: (round(d["c"][0], 2), round(d["c"][1], 2)))
+    return out
+
+
+def _sym_kind(layer, g):
+    """v2.16af: (what the picture is, people drawn in it) by its layer and ring count (SYM_TYPES), else the layer's own"""
+    best = None
+    for n_, k_, p_ in SYM_TYPES.get(layer, ()):
+        d_ = abs(n_ - g["n"])
+        if d_ <= max(3, 0.015 * n_) and (best is None or d_ < best[0]):
+            best = (d_, k_, p_)
+    if best is None:
+        return SYM_DEFAULT.get(layer, "none"), 0
+    if best[1] == "amphi" and g["L"] < 30.0:              # the half-round is 50 m long; a small picture is a bed
+        return "bed", 0
+    return best[1], best[2]
+
+
+def sym_plan(J, in_wa, log):
+    """v2.16af: reads his symbol layers once (SYM_PLAN) and returns what is built as masterplan pieces [(name, ring,
+    material)]: timber decks, planting beds and sport courts, each ONE slab (build_site); the half-round as seating
+    (_seat_plan); his stones as boulders (build_selinos)"""
+    del SYM_PLAN[:]
+    SYM_N.clear()
+    SEAT_LOW.clear()
+    if not SYM_ON or not _shp():
+        return []
+    sg_ = _shp()[1]
+    t0_ = time.time()
+    cnt, unk = {}, {}
+    for key, items in (J.get("layers") or {}).items():
+        lay = key.split("/")[-1]
+        if lay not in SYMP_LAYERS or key.split("/")[0] not in ("alanlar", "agaclar-2"):
+            continue
+        n_in = 0
+        for g in _sym_groups(items, SYM_STONE_JOIN_M if lay == "tas-2" else SYM_JOIN_M):
+            if not in_wa([g["c"], g["c"], g["c"]]):
+                continue
+            k_, p_ = _sym_kind(lay, g)
+            if SYM_TYPES.get(lay) and not any(abs(n_ - g["n"]) <= max(3, 0.015 * n_) for n_, _k, _p in SYM_TYPES[lay]):
+                unk[lay] = unk.get(lay, 0) + 1
+            g.update(layer=lay, kind=k_, people=p_)
+            SYM_PLAN.append(g)
+            cnt[k_] = cnt.get(k_, 0) + 1
+            n_in += 1
+        if key in AUDIT:
+            AUDIT[key][1] = n_in
+    out = []
+    for g in SYM_PLAN:
+        if g["kind"] not in ("deck", "bed", "court", "amphi", "stone"):
+            continue
+        try:
+            if g["kind"] == "stone":                      # his stone: its own outline, built as his river stones are
+                G = g["U"].buffer(0.05, join_style=2).buffer(-0.05, join_style=2)
+                G = max(getattr(G, "geoms", [G]), key=lambda x: x.area)
+                parts = [sg_.Polygon(G.exterior).simplify(0.03)] if G.area >= SYM_STONE_MIN_M2 else []
+            elif g["kind"] == "court" or (g["kind"] == "bed" and g["U"].area >= 0.85 * g["L"] * g["W"]):
+                parts = [g["U"].minimum_rotated_rectangle]          # a court / a box-shaped bed is its box
+            else:
+                G = g["U"].buffer(0.5, join_style=2).buffer(-0.5, join_style=2)
+                G = max(getattr(G, "geoms", [G]), key=lambda x: x.area).simplify(0.05)
+                if g["kind"] == "amphi":                  # the half-round: one outline, its stage = its largest ring
+                    G = sg_.Polygon(G.exterior)
+                parts = [sg_.Polygon(p_.exterior) if sg_.Polygon(p_.exterior).area - p_.area < 4.0 else p_
+                         for p_ in [G]]                   # a small courtyard in a deck is decked over; a big one stays open
+            for H in [R_ for p_ in parts for R_ in _seat_rings(p_, sg_, g["ang"])]:
+                if g["kind"] == "amphi":
+                    SEAT_LOW[_seat_key(H)[:2]] = [tuple(q[:2]) for q in list(g["big"].exterior.coords)[:-1]]
+                out.append(({"stone": "rock"}.get(g["kind"], "sym_" + g["kind"]), H,
+                            {"deck": "timber", "bed": "park", "court": "court", "amphi": "terrace_stone",
+                             "stone": "bridge_stone"}[g["kind"]]))
+        except Exception as ex:
+            log.append(u"FLAG symbol layers (v2.16af): a %s in %s at %.1f,%.1f not planned (%s)" % (
+                g["kind"], g["layer"], g["c"][0], g["c"][1], ex))
+    SYM_N["pieces"] = len(out)
+    log.append(u"symbol layers (v2.16af): %d of his pictures read in %.0f s (alanlar/*, tas-2; inside the working area): "
+               u"%s; %d slab piece(s) for decks, beds, courts, the half-round and stones%s" % (
+                   len(SYM_PLAN), time.time() - t0_, u", ".join(u"%s %d" % kv for kv in sorted(cnt.items())) or u"none",
+                   len(out), (u"; pictures with a ring count not in the table, read by their layer only: " +
+                              u", ".join(u"%s %d" % kv for kv in sorted(unk.items()))) if unk else u""))
+    return out
+
+
+def _setup_objects(ac, log):
+    """v2.16ai (Aras 27 Nov 2026 12:35 UTC "please also apply those items directly into the archicad file", 11:52 "only
+    in proposal file", 14:42 "mix and match the file types to maximise the quality"): his own objects into the embedded
+    library of the proposal file. objects.json in OBJ_DIR/gdl lists them: "gsm" = a native Archicad object, added as
+    it is (AddFilesToEmbeddedLibrary); "script3d" = a mesh object as GDL text, made like the BGA parts
+    (CreateLibraryParts) with its true size as A, B, ZZYZX; its texture picture goes into the same library folder as a
+    file and the script names it (Desktop test 27 Nov 2026: a part made this way is not editable, a picture cannot
+    be stored in it). _lib_sym then finds them by their names. Nothing is made in the other files"""
+    OBJ_SIZE.clear()
+    OBJ_KIND.clear()
+    if SCOPE[0] != "proposal" or not GDL_OBJECTS:
+        return
+    import hashlib
+    gd_ = os.path.join(OBJ_DIR, "gdl")
+    try:
+        with open(os.path.join(gd_, "objects.json"), encoding="utf-8") as f_:
+            items = json.load(f_)
+    except Exception as ex:
+        log.append(u"FLAG Aras's objects (v2.16ai): %s not read (%s): his parasols, stalls, planters and kiosk are left "
+                   u"out" % (os.path.join(gd_, "objects.json"), ex))
+        return
+    made, same, bad = [], [], []
+    for it in items:
+        nm = it.get("name") or u"?"
+        try:
+            if it.get("gsm"):
+                path = os.path.join(OBJ_DIR, it["gsm"])
+                with open(path, "rb") as f_:
+                    raw = f_.read()
+                same_, h_ = _part_same(nm, hashlib.sha1(raw).hexdigest(), u"gsm")
+                if not same_:
+                    ac.t("AddFilesToEmbeddedLibrary", {"files": [{"inputPath": path, "outputPath": u"Aras/%s" % os.path.basename(path),
+                                                                  "type": "Object"}], "overwriteExisting": True}, 900.0)
+            else:
+                with open(os.path.join(gd_, it["script3d"]), encoding="utf-8") as f_:
+                    s3 = f_.read()
+                s2 = GDL2D_OBJ
+                if it.get("script2d"):
+                    with open(os.path.join(gd_, it["script2d"]), encoding="utf-8") as f_:
+                        s2 = f_.read()
+                pic = None
+                if it.get("picture"):
+                    with open(os.path.join(gd_, it["picture"]), "rb") as f_:
+                        pic = f_.read()
+                same_, h_ = _part_same(nm, s3 + (hashlib.sha1(pic).hexdigest() if pic else u""), s2)
+                if not same_:
+                    if pic:                               # its texture: a picture file beside the part, named in its script
+                        ac.t("AddFilesToEmbeddedLibrary", {"files": [{"inputPath": os.path.join(gd_, it["picture"]),
+                                                                      "outputPath": u"Aras/%s" % it["picture"], "type": "Pict"}],
+                                                           "overwriteExisting": True}, 900.0)
+                    r_ = ac.t("CreateLibraryParts", {"libraryParts": [dict(
+                        name=nm, parentName=LIB_PAR[0] or u"Model Element", path=u"Aras/%s.gsm" % nm, script3D=s3, script2D=s2,
+                        a=it["a"], b=it["b"], parameters=[dict(name="ZZYZX", type="Length", value=it["zzyzx"])])],
+                        "overwriteExisting": True}, 900.0)
+                    e = (r_.get("libraryParts") or [None])[0]
+                    if not isinstance(e, dict) or e.get("error"):
+                        raise RuntimeError(json.dumps(e)[:300])
+            if same_:
+                same.append(nm)
+            else:
+                _part_sent(nm, h_)
+                made.append(nm)
+            if it.get("a") and it.get("b"):
+                OBJ_SIZE[nm] = (float(it["a"]), float(it["b"]), float(it.get("foot") or 0.0))
+            if it.get("kind"):
+                OBJ_KIND[it["kind"]] = nm
+        except Exception as ex:
+            if _ac_gone(ex):
+                raise
+            bad.append(u"%s (%s)" % (nm, str(ex)[:200]))
+    log.append(u"Aras's objects (v2.16ai, embedded library folder Aras): %d made (%s), %d already in the project with the "
+               u"same content (%s)%s" % (len(made), u", ".join(made) or u"none", len(same), u", ".join(same) or u"none",
+                                         u"; FLAG not made: " + u"; ".join(bad) if bad else u""))
+
+
+def _lib_sym(names, log):
+    """v2.16af: the Archicad library parts for his symbol layers that are loaded in this Archicad (SYMLIB)"""
+    SYMLIB.clear()
+    for k_, (nm_, off_) in SYM_LIB.items():
+        if nm_ in names:
+            SYMLIB[k_] = (nm_, off_)
+    lost_ = []
+    for k_, nm_ in sorted(OBJ_KIND.items()):              # v2.16al: his own objects, by the kind objects.json gives
+        if nm_ in names:
+            SYMLIB[k_] = (nm_, SYM_OFF.get(nm_, (0.0, 0.0)))
+        else:
+            lost_.append(u"%s (%s)" % (nm_, k_))
+    if lost_:
+        log.append(u"FLAG Aras's objects (v2.16al): made, but not among the loaded library parts: %s" % u", ".join(lost_))
+    nl = [(n_, (n_ or u"").lower()) for n_ in names if n_ and not (n_ or u"").startswith((u"BGA ", u"Bergama "))]
+    for k_, words in SYM_MISSING.items():                 # a part Aras added for a kind the library lacks
+        if k_ in SYMLIB:
+            continue
+        for w_ in words:
+            c_ = sorted((n_ for n_, l_ in nl if re.search(u"(^|[^a-z])" + re.escape(w_) + u"($|[^a-z])", l_)),
+                        key=lambda n_: (len(n_), n_))
+            if c_:
+                SYMLIB[k_] = (c_[0], SYM_OFF.get(c_[0], (0.0, 0.0)))
+                break
+    SYMLIB["people"] = [n_ for n_ in SYM_PEOPLE if n_ in names]
+    SYMLIB["courts"] = [(l_, n_) for l_, n_ in SYM_COURTS if n_ in names]
+    log.append(u"symbol layers (v2.16af): Archicad library parts used at their own real size: %s; people: %s; courts: "
+               u"%s; no part loaded for: %s (those symbols are left out until Aras adds an object)" % (
+                   u", ".join(u"%s -> %s" % (k_, v_[0]) for k_, v_ in sorted(SYMLIB.items()) if isinstance(v_, tuple)) or u"none",
+                   u", ".join(SYMLIB["people"]) or u"none", u", ".join(n_ for _l, n_ in SYMLIB["courts"]) or u"none",
+                   u", ".join(k_ for k_ in sorted(set(list(SYM_LIB) + list(SYM_MISSING))) if k_ not in SYMLIB) or u"none"))
+
+
+def _sym_spots(g, sa, sb):
+    """v2.16af: the spots of one picture's objects: a grid sa m along its long side and sb m across it, centred in its
+    box, only spots on its painted area; a picture smaller than one grid cell has one spot, its middle"""
+    if sa <= 0 or sb <= 0:
+        return [g["c"]]
+    S_ = _shp()
+    nx, ny = max(1, int(g["L"] / sa + 1e-6)), max(1, int(g["W"] / sb + 1e-6))
+    ca, sn = math.cos(g["ang"]), math.sin(g["ang"])
+    U = g["U"].buffer(0.3) if S_ else None
+    out = []
+    for i in range(nx):
+        for j in range(ny):
+            a, b = (i - (nx - 1) / 2.0) * sa, (j - (ny - 1) / 2.0) * sb
+            p = (g["c"][0] + a * ca - b * sn, g["c"][1] + a * sn + b * ca)
+            if nx * ny == 1 or U is None or U.contains(S_[1].Point(p)):
+                out.append(p)
+    return out or [g["c"]]
+
+
+def sym_objects(xy, z0, gz, ins, free, log):
+    """v2.16af: (furniture items, people items) of his symbol layers for CreateObjects: per picture real-size library
+    objects on a grid inside its footprint (SYM_KIND); people as standing figures beside the picture's middle"""
+    fur, ppl, n_k, n_miss, n_out = [], [], {}, {}, 0
+    placed, n_over, S_ = [], {}, _shp()                   # v2.16ai: footprints of his own objects placed so far
+    n_fall = {}                                           # v2.16ak: kind -> [count deeper than SYM_FALL_M in the ground, deepest m]
+    for g in SYM_PLAN:
+        kd = SYM_KIND.get(g["kind"])
+        if not kd:
+            continue
+        ca, sn = math.cos(g["ang"]), math.sin(g["ang"])
+        # v2.16ai: his own objects have a real size (OBJ_SIZE): the grid of the picture is at least the object + room to
+        # walk; in a SYM_ROW picture the kinds stand side by side across the row (v2.16af put the stall and the
+        # parasol on ONE spot: 63 pairs, the dump of 27 Nov 2026); a bench under a parasol stands beside its foot
+        sized = [(lk_, OBJ_SIZE[SYMLIB[lk_][0]]) for lk_ in kd[0]
+                 if isinstance(SYMLIB.get(lk_), tuple) and SYMLIB[lk_][0] in OBJ_SIZE]
+        sa_, sb_, shift = kd[1], kd[2], {}
+        if sized and sa_ > 0:
+            sa_ = max(sa_, max(z_[0] for _l, z_ in sized) + SYM_GAP_M)
+            if g["kind"] in SYM_ROW:
+                tot_ = sum(z_[1] + SYM_GAP_M for _l, z_ in sized)
+                sb_, o_ = max(sb_, tot_), -tot_ / 2.0
+                for lk_, z_ in sized:
+                    shift[lk_] = o_ + (z_[1] + SYM_GAP_M) / 2.0
+                    o_ += z_[1] + SYM_GAP_M
+            else:
+                sb_ = max(sb_, max(z_[1] for _l, z_ in sized) + SYM_GAP_M)
+        foot_ = max([z_[2] for _l, z_ in sized] or [0.0])
+        if foot_ > 0 and "bench" in kd[0] and "bench" not in shift:
+            shift["bench"] = foot_ + SYM_BENCH_D / 2.0 + 0.1
+        spots = _sym_spots(g, sa_, sb_)
+        own_ = {}                                         # v2.16aj: spot of this picture -> its parasol
+        for lk in kd[0]:
+            if lk == "shrub":
+                part, off, dim = (LIBN.get("shrub"), (0.0, 0.0), dict(x=SHRUB_D_M, y=SHRUB_D_M, z=SHRUB_H_M))
+            elif lk == "court":
+                part = next((n_ for l_, n_ in SYMLIB.get("courts") or [] if g["L"] >= l_), None)
+                off = (0.0, 0.0)                          # his drawn box = the court's lines + the part's run-off
+                dim = dict(x=round(g["L"] - 2 * SYM_COURT_RUN, 2), y=round(g["W"] - 2 * SYM_COURT_RUN, 2), z=1.0)
+                if dim["y"] < 3.0:
+                    part = None
+            else:
+                part, off = SYMLIB.get(lk) or (None, None)
+                dim = None
+            if not part:
+                n_miss[lk] = n_miss.get(lk, 0) + len(spots)
+                continue
+            for si, p in enumerate(spots):
+                if shift.get(lk):
+                    p = (p[0] - shift[lk] * sn, p[1] + shift[lk] * ca)
+                bx_ = OBJ_SIZE.get(part) or SYM_BOX.get(part)
+                if bx_:                                   # v2.16aj: on the lowest surface under what it stands on
+                    hx_, hy_ = (bx_[2], bx_[2]) if len(bx_) > 2 and bx_[2] > 0 else (bx_[0] / 2.0, bx_[1] / 2.0)
+                    z, fall_ = _stand(gz, p, g["ang"], hx_, hy_)
+                else:
+                    z, fall_ = gz(p), 0.0
+                if z is None or not ins(p):
+                    n_out += 1
+                    continue
+                fp_ = None
+                if part in OBJ_SIZE and S_:               # v2.16ai: never on another of his objects (real footprints)
+                    hx_, hy_ = OBJ_SIZE[part][0] / 2.0, OBJ_SIZE[part][1] / 2.0
+                    fp_ = S_[1].Polygon([(p[0] + x_ * ca - y_ * sn, p[1] + x_ * sn + y_ * ca)
+                                         for x_, y_ in ((-hx_, -hy_), (hx_, -hy_), (hx_, hy_), (-hx_, hy_))])
+                    if any(fp_.distance(q_) < SYM_GAP_M / 2.0 for q_ in placed):
+                        n_over[lk] = n_over.get(lk, 0) + 1
+                        continue
+                if lk != "court" and not free(p, 0.4 if lk == "shrub" else 0.9,   # v2.16aj: a bench beside its own
+                                              own_.get(si) if lk == "bench" and "bench" in shift else None):   # parasol
+                    n_out += 1
+                    continue
+                if fp_ is not None:
+                    placed.append(fp_)
+                if lk == "parasol":
+                    own_[si] = p
+                if fall_ > SYM_FALL_M:                    # v2.16ak: kept (Aras): counted for the log only
+                    f_ = n_fall.setdefault(lk, [0, 0.0])
+                    f_[0], f_[1] = f_[0] + 1, max(f_[1], fall_)
+                a_ = g["ang"]                             # a sized court part's long side is its x axis
+                o = (p[0] - (off[0] * math.cos(a_) - off[1] * math.sin(a_)), p[1] - (off[0] * math.sin(a_) + off[1] * math.cos(a_)))
+                d_ = dict(libraryPartName=part, coordinates=dict(xy(o), z=round(z - z0, 3)), angle=round(a_, 4))
+                if dim:
+                    d_["dimensions"] = dim
+                fur.append(d_)
+                n_k[lk] = n_k.get(lk, 0) + 1
+        nppl = g["people"] if g["kind"] != "person" else max(1, g["people"])
+        for i in range(nppl if SYMLIB.get("people") else 0):
+            j1, j2 = _jit(g["c"][0] + i, g["c"][1])
+            b = (g["W"] / 2.0 + 0.6) if g["kind"] != "person" else 0.0   # beside the furniture, not in it
+            p = (g["c"][0] + (i - (nppl - 1) / 2.0) * 0.9 * ca - b * sn, g["c"][1] + (i - (nppl - 1) / 2.0) * 0.9 * sn + b * ca)
+            z = gz(p)
+            if z is None or not ins(p):
+                n_out += 1
+                continue
+            ppl.append(dict(libraryPartName=SYMLIB["people"][int(j1 * 997) % len(SYMLIB["people"])],
+                            coordinates=dict(xy(p), z=round(z - z0, 3)), angle=round(2 * math.pi * j2, 4)))
+        if nppl and not SYMLIB.get("people"):
+            n_miss["people"] = n_miss.get("people", 0) + nppl
+    SYM_N.update(objects=len(fur), people=len(ppl))
+    log.append(u"symbol layers (v2.16af): %d library object(s) at real size (%s) and %d people (on the layer shown only in "
+               u"sections and elevations) from %d of his pictures; %d spot(s) left out (off the ground, outside "
+               u"site_alan or on another object); spacing ASSUMED" % (
+                   len(fur), u", ".join(u"%s %d" % kv for kv in sorted(n_k.items())) or u"none", len(ppl), len(SYM_PLAN),
+                   n_out))
+    if OBJ_SIZE:
+        log.append(u"symbol layers (v2.16ai): Aras's own objects stand at their real size: grid of a picture = the object "
+                   u"+ %.1f m (ASSUMED), a stall with its parasol beside it across the row, a bench beside the foot of its "
+                   u"parasol; %d footprint(s) placed, left out because closer than %.1f m to another of his objects: %s" % (
+                       SYM_GAP_M, len(placed), SYM_GAP_M / 2.0,
+                       u", ".join(u"%s %d" % kv for kv in sorted(n_over.items())) or u"none"))
+    if n_fall:
+        log.append(u"symbol layers (v2.16ak): every object stands on the lowest surface under what it stands on, none is "
+                   u"left out for the slope (Aras 27 Nov 2026); uphill side more than %.2f m in the ground: %s" % (
+                       SYM_FALL_M, u", ".join(u"%s %d (deepest %.2f m)" % (k_, v_[0], v_[1]) for k_, v_ in sorted(n_fall.items()))))
+    if n_miss:
+        log.append(u"FLAG symbol layers (v2.16af): no library object for %s: left out (Aras provides the objects)" % (
+            u", ".join(u"%s %d" % kv for kv in sorted(n_miss.items()))))
+    return fur, ppl
+
+
 def build_site(ac, miss, log, xy, z0, tin, ox, oy, pieces):
     """his pieces as slabs on their exact outlines, top at the survey ground under their middle (+ MP_SLABS rise)"""
     del SITE_REC[:]
     del SITE_TOP[:]
     TIER_N[:] = [0, 0]
+    SEAT_N[:] = [0, 0, 0, 0, 0]
     if not pieces or "CreateSlabs" in miss:
         return []
     data, keep, n_noz = [], [], 0
+    stairs_, seat_why = [], []                            # v2.16af
     n_solid = 0
     n_hist_dk = 0                                          # v1.69
     zs_known = []
@@ -9502,7 +11295,37 @@ def build_site(ac, miss, log, xy, z0, tin, ox, oy, pieces):
             gb = [tin.z(q[0] - ox, q[1] - oy) for q in H]
             gb = [x for x in gb if x is not None]
             g = max(gb) if gb else g
-        if nm in TIER_KEYS and RIVER_PTS:                  # v1.19: seating tiers down to the river
+        sp_ = None
+        if nm in TIER_KEYS or nm == "sym_amphi":           # v2.16af: seating rows + stairs (Aras 27 Nov 06:45-06:58 UTC)
+            try:
+                sp_ = _seat_plan(H, lambda q: tin.z(q[0] - ox, q[1] - oy))
+            except Exception as ex:
+                log.append(u"FLAG seating (v2.16af): the piece at %.1f,%.1f not planned (%s: %s)" % (
+                    c[0], c[1], type(ex).__name__, ex))
+            if sp_ is None and nm == "sym_amphi":
+                log.append(u"FLAG seating (v2.16af): his half-round at %.1f,%.1f not built (no plan)" % (c[0], c[1]))
+                continue
+        if sp_ is not None:
+            for P, top in sp_["pieces"]:
+                data.append(dict(level=round(top - z0, 3), thickness=round(max(SEAT_UNDER_M, top - sp_["bot"]), 3),
+                                 polygonCoordinates=[xy(q) for q in P], _mat=PIECE_KEY.get(id(H))))
+                keep.append(None)
+                SITE_TOP.append((min(q[0] for q in P), min(q[1] for q in P), max(q[0] for q in P),
+                                 max(q[1] for q in P), list(P), top, True))
+            for a_, b_, bz_, nr_ in sp_["stairs"]:        # the flight lies to the RIGHT of its baseline (Desktop test,
+                l_ = math.hypot(b_[0] - a_[0], b_[1] - a_[1]) or 1e-9          # 27 Nov 2026): the baseline is the
+                lx, ly = -(b_[1] - a_[1]) / l_ * SEAT_STAIR_W / 2.0, (b_[0] - a_[0]) / l_ * SEAT_STAIR_W / 2.0   # left edge
+                stairs_.append(dict(baseLinePoints=[xy((a_[0] + lx, a_[1] + ly)), xy((b_[0] + lx, b_[1] + ly))],
+                                    zCoordinate=round(bz_ - z0, 3), totalHeight=round(nr_ * SEAT_H, 3),
+                                    flightWidth=SEAT_STAIR_W, stepNum=3 * nr_, riserHeight=SEAT_STEP_H,
+                                    treadDepth=SEAT_STEP_D))
+            SEAT_N[0] += 1
+            SEAT_N[1] += sp_["rows"]
+            SEAT_N[3] += 1 if sp_["flat"] else 0
+            seat_why.append(u"%.0f,%.0f %s" % (c[0], c[1], sp_["why"]))
+            continue
+        if nm in TIER_KEYS and RIVER_PTS:                  # v1.19: seating tiers down to the river (v2.16af: only
+            SEAT_N[4] += 1                                 # where the rows could not be planned: no shapely)
             r = min(RIVER_PTS, key=lambda q: (q[0] - c[0]) ** 2 + (q[1] - c[1]) ** 2)
             d = math.hypot(c[0] - r[0], c[1] - r[1])
             if d > 0.01:
@@ -9557,11 +11380,31 @@ def build_site(ac, miss, log, xy, z0, tin, ox, oy, pieces):
     for g_, kp in zip(gs_, keep):
         if g_ and kp:                                      # v1.19: tiers are his outline cut, not checked whole
             SITE_REC.append((g_, kp[0], kp[1]))
+    if SEAT_N[0]:                                          # v2.16af
+        log.append(u"seating (v2.16af, Aras 27 Nov 2026: rows %.2f m deep x %.2f m high, slabs; stairs %.0f x %.0f cm at "
+                   u"both ends and the middle, Stair tool, %.2f m wide ASSUMED): %d piece(s) (his river steps and his "
+                   u"half-round) as %d row slab(s), %d built flat (no level to step), %d the v1.19 way: %s" % (
+                       SEAT_D, SEAT_H, 100 * SEAT_STEP_D, 100 * SEAT_STEP_H, SEAT_STAIR_W, SEAT_N[0], SEAT_N[1],
+                       SEAT_N[3], SEAT_N[4], u"; ".join(seat_why)))
+    if stairs_:
+        if ac.has("CreateStairs"):
+            gst_ = ac.create("CreateStairs", "stairsData", stairs_, u"seating stairs (Stair tool, 30 x 15 cm)")
+            SEAT_N[2] = sum(1 for g_ in gst_ if g_)
+            made_st = [g_ for g_ in gst_ if g_]
+            log.append(u"seating stairs (v2.16af): %d of %d made with the Stair tool (3 steps per row; from the lowest "
+                       u"level up to the top level of their stretch)%s" % (
+                           SEAT_N[2], len(stairs_), u"" if SEAT_N[2] == len(stairs_) else
+                           u"; %d refused or in the other file" % (len(stairs_) - SEAT_N[2])))
+        else:
+            made_st = []
+            log.append(u"FLAG seating stairs (v2.16af): this Tapir has no CreateStairs: %d stair(s) not built" % len(stairs_))
+    else:
+        made_st = []
     if TIER_N[1]:
         log.append(u"stepped terraces: %d pieces as %d seating tiers (%.2f m deep x %.2f m high = 4 steps of 12 x 30 cm "
                    u"merged, Aras 19:09 + 19:13 UTC), stepping down toward his river outline; stair aisles not placed" % (
                        TIER_N[1], TIER_N[0], TIER_D, TIER_H))
-    elif any(n_ in TIER_KEYS for n_, _R, _H in pieces):
+    elif not SEAT_N[0] and any(n_ in TIER_KEYS for n_, _R, _H in pieces):   # v2.16ag: not when the rows are built
         log.append(u"FLAG stepped terraces built flat: no river outline (su_outline) in the MasterplanBase cache")
     if n_solid:                                            # v2.16ac
         log.append(u"masterplan (v2.16ac): %d of his slabs on sloping ground made solid down to the lowest ground on "
@@ -9573,7 +11416,7 @@ def build_site(ac, miss, log, xy, z0, tin, ox, oy, pieces):
     if n_hist_dk:                                          # v1.69
         log.append(u"masterplan: %d bridge outline(s) over a historic bridge not built as a second deck (the arches carry "
                    u"their own)" % n_hist_dk)
-    return [g_ for g_ in gs_ if g_]
+    return [g_ for g_ in gs_ if g_] + made_st
 
 
 def site_accuracy(ac, log, ox, oy):
@@ -9818,7 +11661,7 @@ def main():
     NET_C.clear()
     SEO_OPS[:], SEO_TERR[:], CANOPY_REC[:], EXTRA_OPS[:], KERB_OPS[:] = [], [], [], [], []   # v1.27: fresh per run (a re-run in the same Rhino kept old ones)
     KEEP.clear(); ITEMS[:] = []; NEW_G.clear(); SRC_OF.clear(); BUILT_PICK.clear(); BUILT_KEPT.clear(); BUILT_ZG[0] = None; N_KEPT[0] = 0; FOUND_OWN[0] = -1
-    LOCKED_BB[:] = []; EXTRA_LINKS[:] = []; TREE_OBJ[:] = []; N_NOTREE[0] = 0; PART_G.clear(); OWN_PART.clear(); BGRP.clear(); N_LOCKSKIP[0] = 0; N_TINONLY[0] = 0; N_RAFT[:] = [0, 0.0]; LINK_T.clear(); PID[0] = None             # v1.44          # v1.34: fresh per run
+    LOCKED_BB[:] = []; EXTRA_LINKS[:] = []; TREE_OBJ[:] = []; N_NOTREE[0] = 0; PART_G.clear(); OWN_PART.clear(); BGRP.clear(); N_LOCKSKIP[0] = 0; ROCK_SPIKES[:] = [0, 0, 0]; N_TINONLY[0] = 0; N_RAFT[:] = [0, 0.0]; LINK_T.clear(); PID[0] = None             # v1.44          # v1.34: fresh per run
     log = []
     ac = AC(log)
     try:
@@ -10107,10 +11950,24 @@ def main():
                    RING_MIN_M, BLD_XSKIP[0], u"; FLAG %d outline(s) still cross themselves (Archicad may refuse their "
                    u"roof / slabs)" % n_x_ if n_x_ else u""))
     if HOUSE_SNAP_M > 0:                                  # v2.13aa: neighbours share their wall lines
+        sharp0_ = _sharp_n(bld)
         try:
             _snap_houses(bld, log)
         except Exception as ex:
             log.append(u"FLAG house outlines (v2.13aa) not snapped to their neighbours (%s)" % ex)
+        try:                                              # v2.16af: narrow parts out, then the neighbours once more
+            for _k in range(4):                           # v2.16ah: until a round changes nothing (was: two fixed
+                if not (_house_overlaps(bld, log) + _house_thin(bld, log)):   # rounds, the second one unchecked)
+                    break
+                _snap_houses(bld, log)
+            else:
+                log.append(u"FLAG house outlines (v2.16ah): still changing after 4 rounds of cutting and joining")
+        except Exception as ex:
+            log.append(u"FLAG house outlines (v2.16af): overlaps / narrow parts not cut (%s)" % ex)
+        try:
+            _house_check(bld, log, sharp0_)
+        except Exception as ex:
+            log.append(u"FLAG house outlines (v2.16ah): final check not made (%s)" % ex)
     _bld_set([b["ring"] for b in bld])                   # v1.76: for the clash checks
     log.append(u"collisions (v1.76): %d house corner(s) inside a neighbouring house moved onto its wall line" % BLD_SNAP[0])
     log.append(u"collisions: %d survey building(s) overlapping the Kızıl Avlu hall by more than %.0f%% left out (the hall "
@@ -10198,6 +12055,12 @@ def main():
             except Exception:
                 c_[ty] = -1
         return c_
+    try:                                                  # v2.16ah: before the model is counted and listed
+        _one_story(ac, log)
+    except Exception as ex:
+        if _ac_gone(ex):
+            raise
+        log.append(u"FLAG stories (v2.16ah) not made one (%s): the plans show only part of the model" % ex)
     now = counts()
     reuse = bool(old.get("build_sig") == sig and old.get("counts") == now and old.get("elements"))
     tp = time.time()
@@ -10272,6 +12135,26 @@ def main():
                     continue
                 listed = False
                 log.append(u"FLAG %s elements not listed (%s)" % (ty, ex))
+        if listed and SCOPE[0] == "master" and gtype:
+            # v2.16ah (Desktop 27 Nov 2026, v2.16ag master: the list holds the 58,948 elements of the two hotlinked
+            # files too, with their BGA Element IDs; the master took them as its own, found 223 "hand-edited" and
+            # tried to delete 58,873 "no longer wanted" in 400 calls Archicad refused, 134 s): a hotlinked element
+            # cannot be edited in the master; Tapir's FilterElements IsEditable leaves the master's own (68 of 59,039)
+            try:
+                gl_ = list(gtype)
+                ed_ = set()
+                for k_ in range(0, len(gl_), 5000):
+                    r_ = ac.t("FilterElements", {"elements": [{"elementId": {"guid": g}} for g in gl_[k_:k_ + 5000]],
+                                                 "filters": ["IsEditable"]}, 300.0)
+                    ed_.update(e["elementId"]["guid"] for e in (r_ or {}).get("elements", []) if e.get("elementId"))
+                for g in gl_:
+                    if g not in ed_:
+                        gtype.pop(g, None)
+                log.append(u"master (v2.16ah): %d of the %d listed element(s) belong to the hotlinked files and are "
+                           u"left alone; %d are the master's own" % (len(gl_) - len(gtype), len(gl_), len(gtype)))
+            except Exception as ex:
+                log.append(u"FLAG master (v2.16ah): the hotlinked elements could not be told from the master's own "
+                           u"(%s): they are listed with them as before (slow, nothing is lost)" % ex)
         if listed:
             # v1.44: AcBuild's elements are the ones with a BGA- Element ID (in the pln: any PC, any copy); all
             # others are Aras's and never touched; a shape moved since AcBuild made it = hand-edited = locked
@@ -10328,7 +12211,10 @@ def main():
                 if gtype.get(g) == "Object" and pr0 == "houses":   # v2.06: balcony railing objects: never locked
                     KEEP.setdefault(h16, []).append(g)
                     continue
-                tol_ = EDIT_TOL_WALL_M if gtype.get(g) == "Wall" else (
+                # v2.16ah (Desktop 27 Nov 2026: one glass roof stud's box was 0.197 m longer than when it was made,
+                # the 109 others within 5 mm; 3 elements "hand-edited" in the proposal file, nobody edits by hand):
+                # Archicad trims and extends a beam and a column where they meet others, as it does a wall
+                tol_ = EDIT_TOL_WALL_M if gtype.get(g) in ("Wall", "Beam", "Column") else (
                     EDIT_TOL_OBJ_M if gtype.get(g) == "Object" else EDIT_TOL_M)   # v1.79; v2.05 objects
                 if bb0 and bb1 and max(abs(a_ - b_) for a_, b_ in zip(bb0, bb1)) > tol_:
                     LOCKED_BB.append((gtype[g], (bb1[0], bb1[1], bb1[3], bb1[4])))
@@ -10370,6 +12256,13 @@ def main():
     L = lambda n_: {}      # v1.2: default layers (the BG layers were hidden in the section views)
 
     if not reuse:
+        try:                                              # v2.16af: the ground the seating rows meet (river bed)
+            _seat_ground(tin, ox, oy, rects)
+        except Exception as ex:
+            if _ac_gone(ex):
+                raise
+            log.append(u"FLAG seating (v2.16af): the river bed under the rows not read (%s): rows go by the surveyed "
+                       u"ground" % ex)
         try:                                              # v1.88: the ground covers, planned before the ground
             cover_plan(log, tin, ox, oy, SP, bld, survey)
         except Exception as ex:
@@ -10987,6 +12880,10 @@ def main():
         log.append(u"house walls (v2.07): %d wall end(s) that stopped short moved onto the nearest wall (T-junction, corner or "
                    u"wall in line)"
                    % _snap_wall_ends(walls))
+        try:                                              # v2.16af: twins and short loose pieces out
+            _wall_drop(walls, wmeta, log)
+        except Exception as ex:
+            log.append(u"FLAG house walls (v2.16af): twin / loose pieces not checked (%s)" % ex)
         try:                                              # v2.14: house wall ends run on into a neighbour
             if WALL_PIECES:
                 FILL_W.extend(_wall_fill(walls, wmeta, list(FILL_W), lambda bi_: _core_out(bld[bi_]),
@@ -12148,7 +14045,7 @@ def main():
                             walk_s(v)
                 walk_s(ac.t("GetNavigatorItemTree", {"navigatorMapId": "PublicViewMap"}))
                 st_ = [dict(navigatorItemId=v_, viewSettings=dict({"graphicOverrideCombination": SEC_COMBO}, **(
-                    {"layerCombination": u"BGA - section " + nm} if nm in BAND_OK else {"layerCombination": u"BGA - all"})))
+                    {"layerCombination": u"BGA - section " + nm} if nm in BAND_OK else {"layerCombination": SEC_ALL})))
                        for nm, vs_ in vm_.items() for v_ in vs_]
                 if st_:
                     r_ = ac.t("SetViewSettings", {"navigatorItemIdsWithViewSettings": st_})
@@ -12160,6 +14057,49 @@ def main():
             except Exception as ex:
                 log.append(u"FLAG section view settings not set (%s): open each section view's View Settings and pick the "
                            u"layer combination \"BGA - section <name>\" by hand" % ex)
+            try:
+                # v2.16ah (Desktop 27 Nov 2026: "Site" and "N6-P0" drew only the section markers; the template's
+                # combination "01 Site" hides all 38 BGA layers, and the node views were made with whatever layer
+                # state was on screen): every run, the plan views show the model through "BGA - all"
+                pv_ = {}
+
+                def walk_p(o):
+                    if isinstance(o, dict):
+                        nm_ = o.get("name")
+                        if (nm_ in PVN or nm_ == PLAN_SITE) and o.get("navigatorItemId") and \
+                                "Folder" not in u"%s" % o.get("type"):
+                            pv_.setdefault(nm_, []).append(o["navigatorItemId"])
+                        for v in o.values():
+                            walk_p(v)
+                    elif isinstance(o, list):
+                        for v in o:
+                            walk_p(v)
+                walk_p(ac.t("GetNavigatorItemTree", {"navigatorMapId": "PublicViewMap"}))
+                NBv_ = dict((b["node"], b) for b in NB)
+                box_ = {}                                 # each node plan framed on its building + 10 m (a new view
+                for vn, stn, lv, nd, j in PV:             # takes the frame the window happens to show: "N6-P0" was
+                    b = NBv_.get(nd)                      # saved 150 m beside its building)
+                    if b:
+                        r_ = max(b["L"], b["D"]) / 2.0 + 10.0
+                        c_ = xy((b["c"][0], b["c"][1]))
+                        box_[vn] = dict(xMin=round(c_["x"] - r_, 2), yMin=round(c_["y"] - r_, 2),
+                                        xMax=round(c_["x"] + r_, 2), yMax=round(c_["y"] + r_, 2))
+                st_ = [dict(navigatorItemId=v_, viewSettings=dict(
+                    {"layerCombination": u"BGA - all"},
+                    **({"saveZoom": True, "ignoreSavedZoom": False, "zoom": box_[nm]} if nm in box_ else {})))
+                       for nm, vs_ in sorted(pv_.items()) for v_ in vs_]
+                ok_ = 0
+                if st_:
+                    r_ = ac.t("SetViewSettings", {"navigatorItemIdsWithViewSettings": st_})
+                    ok_ = sum(1 for e in (r_.get("executionResults") or []) if isinstance(e, dict) and e.get("success"))
+                no_ = [nm for nm in sorted(PVN) + [PLAN_SITE] if nm not in pv_]
+                log.append(u"%sView Map (v2.16ah): %d of %d plan view(s) (\"%s\" and the node plans) set to the layer "
+                           u"combination \"BGA - all\", each node plan framed on its building + 10 m%s" % (
+                               u"FLAG " if no_ or ok_ < len(st_) else u"", ok_, len(st_), PLAN_SITE,
+                               (u"; not in the View Map: %s" % u", ".join(no_)) if no_ else u""))
+            except Exception as ex:
+                log.append(u"FLAG plan view settings not set (%s): in the View Settings of \"%s\" and of each node "
+                           u"plan pick the layer combination \"BGA - all\" by hand" % (ex, PLAN_SITE))
         except Exception as ex:
             log.append(u"FLAG View Map views not made (%s)" % ex)
         published = False
