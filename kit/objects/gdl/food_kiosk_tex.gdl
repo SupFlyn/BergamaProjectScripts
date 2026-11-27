@@ -1,5 +1,5 @@
 ! Food Kiosk: mesh object made from Aras's file, sizes in m, origin at the middle of its footprint on the ground
-DEFINE TEXTURE "Food Kiosk tex" 1, 1, 1, 0, 0
+DEFINE TEXTURE "Food Kiosk tex" "food_kiosk.png", 1, 1, 0, 0
 DEFINE MATERIAL "Food Kiosk 01" 22, 0.098, 0.229, 0.208, 0, 0, IND(TEXTURE, "Food Kiosk tex")
 MATERIAL "Food Kiosk 01"
 BASE

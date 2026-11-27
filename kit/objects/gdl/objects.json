@@ -10,11 +10,12 @@
  {
   "name": "Market Umbrella White",
   "kind": "parasol",
-  "script3d": "market_umbrella_white.gdl",
+  "script3d": "market_umbrella_white_tex.gdl",
   "a": 2.737,
   "b": 2.737,
   "zzyzx": 2.564,
-  "foot": 0.244
+  "foot": 0.244,
+  "picture": "market_umbrella_white.png"
  },
  {
   "name": "Market Stall Shelter",
@@ -28,9 +29,10 @@
  {
   "name": "Food Kiosk",
   "kind": "kiosk",
-  "script3d": "food_kiosk.gdl",
+  "script3d": "food_kiosk_tex.gdl",
   "a": 2.267,
   "b": 2.728,
-  "zzyzx": 2.769
+  "zzyzx": 2.769,
+  "picture": "food_kiosk.png"
  }
 ]

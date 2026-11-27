@@ -157,6 +157,6 @@ for glass, k in ((False, 20), (True, 3)):
         print("%s colour %s tris %5d area %.2f m2" % ("glass" if glass else "matte", [round(float(x), 2) for x in cols[j]], int(m.sum()), A[m].sum()))
 txt, info = mesh2gdl.script("Food Kiosk", [dict(g, UV=None) for g in groups])
 open(out, "w", encoding="utf-8", newline="\n").write(txt)
-txt2, info2 = mesh2gdl.script("Food Kiosk", groups, texture=1)
+txt2, info2 = mesh2gdl.script("Food Kiosk", groups, texture="food_kiosk.png")
 open(out.replace(".gdl", "_tex.gdl"), "w", encoding="utf-8", newline="\n").write(txt2)
 print("triangles %d -> %d" % (tot0, info["triangles"]), info, "size", (mx - mn).round(3), "bytes", len(txt), "textured bytes", len(txt2))

@@ -19,7 +19,7 @@ faces -Y.
 Colours:
 - Parasol and kiosk: flat colours read from the object's own texture pictures (the mean colour of each triangle,
   grouped). The `_tex.gdl` versions carry the texture as well: every triangle has its own texture coordinates
-  (`PGON{3}`), the picture (`.png`; for the kiosk one atlas of its 35 textures) is stored in the part.
+  (`PGON{3}`), the picture (`.png`; for the kiosk one atlas of its 35 textures) goes into the embedded library as a file beside the part and the script names it. `objects.json` uses these versions.
 - Market stall: the .dwg carries NO colours (all solids on one layer, colour by layer). ASSUMED from the look noted
   in the research answer ("Red steel shelter: double-pitched sheet roof on a row of posts with Y-struts, long timber
   table under the ridge"): the two table tops timber (0.72, 0.56, 0.38), everything else red steel (0.62, 0.12,
@@ -36,4 +36,4 @@ pillow, shapely, ezdwg):
   the other 6 have open edges of about 5 mm at small holes), `conv_stall.py stall_solids.pkl <out.gdl> <out_2d.gdl>
   <this folder>`.
 
-Tested in a scratch Archicad 30 file on the Desktop (27 Nov 2026): the planter .gsm and the flat parasol and kiosk scripts are accepted and come out at these sizes. The stall and the `_tex` versions were not yet tested when this file was written.
+Tested in a scratch Archicad 30 file on the Desktop (27 Nov 2026, logs\check_objects2_2026-11-27.txt): all four go in through AcBuild's `_setup_objects` at these sizes; the textured parasol and kiosk were looked at in the 3D window (lettering readable, the right way round) and keep their flat colours in vector views.

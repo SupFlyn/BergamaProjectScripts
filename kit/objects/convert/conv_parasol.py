@@ -23,7 +23,7 @@ for j in sorted(set(lab.tolist()), key=lambda j: -A[lab == j].sum()):
     print("colour", [round(float(x), 3) for x in cols[j]], "tris", int(msk.sum()), "area %.2f m2" % A[msk].sum(), "z %.2f..%.2f" % (zz[:, 2].min(), zz[:, 2].max()))
 txt, info = mesh2gdl.script("Market Umbrella White", groups)
 open(out, "w", encoding="utf-8", newline="\n").write(txt)
-txt2, info2 = mesh2gdl.script("Market Umbrella White", groups, texture=1)
+txt2, info2 = mesh2gdl.script("Market Umbrella White", groups, texture="market_umbrella_white.png")
 open(out.replace(".gdl", "_tex.gdl"), "w", encoding="utf-8", newline="\n").write(txt2)
 Image.open(tex).convert("RGB").save(out.replace(".gdl", ".png"), optimize=True)
 print("textured", info2, "bytes", len(txt2))
