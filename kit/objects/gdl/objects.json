@@ -1,0 +1,36 @@
+[
+ {
+  "name": "folke_rectangular_planter",
+  "kind": "planter",
+  "gsm": "folke_rectangular_planter.gsm",
+  "a": 1.8,
+  "b": 0.7,
+  "zzyzx": 0.72
+ },
+ {
+  "name": "Market Umbrella White",
+  "kind": "parasol",
+  "script3d": "market_umbrella_white.gdl",
+  "a": 2.737,
+  "b": 2.737,
+  "zzyzx": 2.564,
+  "foot": 0.244
+ },
+ {
+  "name": "Market Stall Shelter",
+  "kind": "stall",
+  "script3d": "market_stall_shelter.gdl",
+  "script2d": "market_stall_shelter_2d.gdl",
+  "a": 5.89,
+  "b": 2.885,
+  "zzyzx": 2.456
+ },
+ {
+  "name": "Food Kiosk",
+  "kind": "kiosk",
+  "script3d": "food_kiosk.gdl",
+  "a": 2.267,
+  "b": 2.728,
+  "zzyzx": 2.769
+ }
+]
